@@ -8,10 +8,11 @@
 
 #define TAG "UART"
 
-static QueueHandle_t uart_queue;
-static QueueHandle_t data_queue;
-#define DATA_QUEUE_SIZE 1024
-#define RESPONSE_TIMEOUT_MS 1000
+static QueueHandle_t uart_event_queue;
+static QueueHandle_t input_queue;
+static QueueHandle_t send_queue;
+
+static subject_t *recv_subject = NULL;
 
 // UART interrupt handler task
 static void uart_event_task(void *pvParameters) {
@@ -25,10 +26,9 @@ static void uart_event_task(void *pvParameters) {
 
     while (1) {
         // Wait for UART events
-        if (xQueueReceive(uart_queue, (void *)&event, portMAX_DELAY)) {
+        if (xQueueReceive(uart_event_queue, (void *)&event, portMAX_DELAY)) {
             switch (event.type) {
             case UART_DATA:
-                ESP_LOGI(TAG, "Data received: %d bytes", event.size);
                 if (event.size > BUF_SIZE) {
                     ESP_LOGE(TAG, "Received data length exceeds buffer size");
                     break;
@@ -36,7 +36,7 @@ static void uart_event_task(void *pvParameters) {
                 int len = uart_read_bytes(UART_NUM, data, event.size, portMAX_DELAY);
                 if (len > 0) {
                     for (int i = 0; i < len; i++) {
-                        if (xQueueSend(data_queue, &data[i], portMAX_DELAY) != pdPASS) {
+                        if (xQueueSend(input_queue, &data[i], portMAX_DELAY) != pdPASS) {
                             ESP_LOGE(TAG, "Data queue overflow");
                             break;
                         }
@@ -47,13 +47,13 @@ static void uart_event_task(void *pvParameters) {
             case UART_FIFO_OVF:
                 ESP_LOGW(TAG, "UART FIFO overflow");
                 uart_flush_input(UART_NUM);
-                xQueueReset(uart_queue);
+                xQueueReset(uart_event_queue);
                 break;
 
             case UART_BUFFER_FULL:
                 ESP_LOGW(TAG, "UART buffer full");
                 uart_flush_input(UART_NUM);
-                xQueueReset(uart_queue);
+                xQueueReset(uart_event_queue);
                 break;
 
             case UART_PARITY_ERR:
@@ -75,11 +75,70 @@ static void uart_event_task(void *pvParameters) {
     vTaskDelete(NULL);
 }
 
+// Task to handle sending and receiving data
+
+static void uart_task(void *arg) {
+    send_data_t send_data;
+
+    while (1) {
+        // Wait for data to send
+        if (xQueueReceive(send_queue, &send_data, portMAX_DELAY) == pdPASS) {
+            int bytes_written = uart_write_bytes(UART_NUM, send_data.data, send_data.len);
+
+            if (bytes_written != send_data.len) {
+                ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", send_data.len, bytes_written);
+            }
+
+            // Wait for response
+            // FIXME: read until input_queue is empty?
+            recv_result_t recv_result;
+            size_t i = 0;
+            while (1) {
+                if (xQueueReceive(input_queue, &recv_result.data[i], pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+                    ESP_LOGE(TAG, "Timeout while reading response");
+                    recv_result.type = send_data.type;
+                    strcpy(recv_result.data, "TIMEOUT");
+                    recv_result.len = 0;
+                    recv_result.error = ESP_FAIL;
+                    subject_notify(recv_subject, &recv_result);
+                    break;
+                }
+                if (recv_result.data[i] == ';') {
+                    recv_result.type = send_data.type;
+                    recv_result.data[i + 1] = '\0';
+                    recv_result.len = i + 1;
+                    recv_result.error = ESP_OK;
+                    subject_notify(recv_subject, &recv_result);
+                    break;
+                }
+                i++;
+                if (i >= RECV_BUFFER_SIZE) {
+                    ESP_LOGE(TAG, "Received data exceeds buffer size");
+                    recv_result.type = send_data.type;
+                    strcpy(recv_result.data, "OVERFLOW");
+                    recv_result.len = 0;
+                    recv_result.error = ESP_FAIL;
+                    subject_notify(recv_subject, &recv_result);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 // Initialize the UART driver with interrupt-based reading
 esp_err_t uart_init(void) {
+    recv_subject = new_subject();
+
+    send_queue = xQueueCreate(SEND_QUEUE_SIZE, sizeof(send_data_t));
+    if (send_queue == NULL) {
+        ESP_LOGE(TAG, "Failed to create UART send queue");
+        return ESP_FAIL;
+    }
+
     // Create the data queue
-    data_queue = xQueueCreate(DATA_QUEUE_SIZE, sizeof(char));
-    if (data_queue == NULL) {
+    input_queue = xQueueCreate(DATA_QUEUE_SIZE, sizeof(char));
+    if (input_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create data queue");
         return ESP_FAIL;
     }
@@ -103,7 +162,7 @@ esp_err_t uart_init(void) {
     }
 
     // Install UART driver with RX buffer and event queue
-    if (uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart_queue, 0) != ESP_OK) {
+    if (uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart_event_queue, 0) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to install UART driver");
         return ESP_FAIL;
     }
@@ -114,40 +173,56 @@ esp_err_t uart_init(void) {
         return ESP_FAIL;
     }
 
+    if (xTaskCreate(uart_task, "uart_task", 2048, NULL, 10, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create UART task");
+        return ESP_FAIL;
+    }
+
     ESP_LOGI(TAG, "UART initialized with interrupt-based reading");
     return ESP_OK;
 }
 
-// Send a CAT command
-esp_err_t uart_send(const char *command, size_t command_size) {
-    int bytes_written = uart_write_bytes(UART_NUM, (const char *)command, command_size);
-    if (bytes_written < 0) {
-        ESP_LOGE(TAG, "Failed to write CAT command");
-        return ESP_FAIL;
+void uart_add_recv_observer(observer_callback_t callback, void *context) {
+    if (recv_subject == NULL) {
+        ESP_LOGE(TAG, "Receive subject is not initialized");
+        return;
     }
-    if (bytes_written != command_size) {
-        ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", command_size, bytes_written);
-        return ESP_FAIL;
-    }
-
-    ESP_LOGI(TAG, "CAT command sent");
-    return ESP_OK;
+    add_observer(recv_subject, callback, context);
 }
 
-// Read a CAT response
-esp_err_t uart_recv(char *response, size_t response_size) {
-    size_t i = 0;
-    while (i < response_size) {
-        if (xQueueReceive(data_queue, &response[i], pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
-            ESP_LOGE(TAG, "Timeout while reading response");
+esp_err_t uart_send(const char *command, int type) {
+    size_t command_size = strnlen(command, SEND_BUFFER_SIZE);
+    if (command_size == 0) {
+        ESP_LOGE(TAG, "Command is empty");
+        return ESP_FAIL;
+    }
+    if (command_size >= SEND_BUFFER_SIZE) {
+        ESP_LOGE(TAG, "Command size %d exceeds buffer size %d", command_size, SEND_BUFFER_SIZE - 1);
+        return ESP_FAIL;
+    }
+    if (command[command_size - 1] != ';') {
+        ESP_LOGE(TAG, "Command must end with a semicolon");
+        return ESP_FAIL;
+    }
+
+    send_data_t send_data;
+    send_data.type = type;
+    memcpy(send_data.data, command, command_size);
+    send_data.data[command_size] = '\0';
+    send_data.len = command_size;
+
+    ESP_LOGI(TAG, "Sending command: %s", send_data.data);
+
+    if (type == SEND_TYPE_EXTERNAL) {
+        if (xQueueSendToFront(send_queue, &send_data, portMAX_DELAY) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to enqueue command");
             return ESP_FAIL;
         }
-        if (response[i] == ';' || response[i] == '?') {
-            response[i] = '\0';
-            return ESP_OK;
+    } else {
+        if (xQueueSend(send_queue, &send_data, portMAX_DELAY) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to enqueue monitor");
+            return ESP_FAIL;
         }
-        i++;
     }
-    ESP_LOGE(TAG, "Terminator not found in response");
-    return ESP_FAIL;
+    return ESP_OK;
 }

@@ -9,6 +9,7 @@
 #include "network.h"
 #include "settings.h"
 #include "uart.h"
+#include "esp_timer.h"
 
 #define TAG "MAIN"
 
@@ -41,6 +42,24 @@ static void mount_html(void) {
     }
 }
 
+static int64_t last_data_time = 0;
+
+static void recv_data_callback(void *context, void *data) {
+    recv_result_t *result = (recv_result_t *)data;
+
+    int64_t current_time = esp_timer_get_time();
+    int64_t elapsed_time_ms = (current_time - last_data_time) / 1000;
+
+    if (result->error != ESP_OK) {
+        ESP_LOGE(TAG, "Error receiving data: %s", result->data);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Received data: %s (elapsed time: %lld ms)", result->data, elapsed_time_ms);
+
+    last_data_time = esp_timer_get_time();
+}
+
 void app_main(void) {
     ESP_LOGI(TAG, "Starting application");
     ESP_LOGI(TAG, "FreeRTOS version: %s", tskKERNEL_VERSION_NUMBER);
@@ -60,27 +79,20 @@ void app_main(void) {
     register_settings_endpoints();
 
     uart_init();
+    uart_add_recv_observer(recv_data_callback, NULL);
 
-    char data[128];
-    char *cmd = "if;";
+    char *cmds[] = {"BY;", "FA;", "AI;"};
 
     while (1) {
-        esp_err_t err = uart_send(cmd, strlen(cmd));
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to send command");
-            vTaskDelete(NULL);
-            return;
+        for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
+            esp_err_t err = uart_send(cmds[i], SEND_TYPE_EXTERNAL);
+            if (err != ESP_OK) {
+                ESP_LOGE(TAG, "Failed to send command");
+                vTaskDelete(NULL);
+                return;
+            }
         }
 
-        esp_err_t ret = uart_recv(data, sizeof(data));
-        if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "Received: %s\n", data);
-        }
-        else if (ret == ESP_ERR_TIMEOUT) {
-            ESP_LOGE(TAG, "Timeout waiting for response\n");
-        } else {
-            ESP_LOGE(TAG, "Returned error: %d\n", ret);
-        }
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
