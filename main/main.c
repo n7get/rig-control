@@ -11,6 +11,7 @@
 #include "uart.h"
 #include "esp_timer.h"
 #include "rig_commands.h"
+#include "info.h"
 
 #define TAG "MAIN"
 
@@ -69,6 +70,8 @@ static void recv_data_callback(void *context, void *data) {
 }
 
 void app_main(void) {
+    esp_timer_early_init();
+
     ESP_LOGI(TAG, "Starting application");
     ESP_LOGI(TAG, "FreeRTOS version: %s", tskKERNEL_VERSION_NUMBER);
 
@@ -84,6 +87,7 @@ void app_main(void) {
         return;
     }
 
+    register_info_endpoints();
     register_settings_endpoints();
 
     uart_init();

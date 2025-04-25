@@ -2,6 +2,7 @@ idf_component_register(
 	 SRCS 
 		"config.c"
 		"http.c"
+		"info.c"
 		"main.c"
 		"network.c"
 		"observer.c"

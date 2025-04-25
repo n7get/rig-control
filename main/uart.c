@@ -4,7 +4,9 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "pins.h"
+#include "esp_timer.h"
 #include <string.h>
+#include "info.h"
 
 #define TAG "UART"
 
@@ -25,7 +27,6 @@ static void uart_event_task(void *pvParameters) {
     }
 
     while (1) {
-        // Wait for UART events
         if (xQueueReceive(uart_event_queue, (void *)&event, portMAX_DELAY)) {
             switch (event.type) {
             case UART_DATA:
@@ -79,14 +80,31 @@ static void uart_event_task(void *pvParameters) {
 
 static void uart_task(void *arg) {
     send_data_t send_data;
+    info_t *info = get_info();
 
     while (1) {
+        int no_in_sendqueue = uxQueueMessagesWaiting(send_queue);
+        if ( no_in_sendqueue == 0) {
+            info->no_empty_sendqueue++;
+        } else {
+            info->no_busy_sendqueue++;
+            info->no_sendqueue_waiting += no_in_sendqueue;
+        }
+
         // Wait for data to send
         if (xQueueReceive(send_queue, &send_data, portMAX_DELAY) == pdPASS) {
+            info->total_sendqueue++;
+
+            int64_t start_time = esp_timer_get_time();
+
             int bytes_written = uart_write_bytes(UART_NUM, send_data.data, send_data.len);
 
             if (bytes_written != send_data.len) {
                 ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", send_data.len, bytes_written);
+            }
+
+            if (bytes_written > info->max_send_len) {
+                info->max_send_len = bytes_written;
             }
 
             // Wait for response
@@ -105,10 +123,31 @@ static void uart_task(void *arg) {
                     break;
                 }
                 if (recv_result.data[i] == ';') {
+                    if (recv_result.data[0] != '?') {
+                        int64_t end_time = esp_timer_get_time();
+                        int64_t elapsed_time = end_time - start_time;
+                        info->total_response_time += elapsed_time;
+                        info->no_responses++;
+                        if (elapsed_time > info->max_response_time) {
+                            info->max_response_time = elapsed_time;
+                        }
+                    }
+
                     recv_result.data[i + 1] = '\0';
                     recv_result.len = i + 1;
                     recv_result.error = ESP_OK;
                     subject_notify(recv_subject, &recv_result);
+
+                    // length of input_queue
+                    int queue_length = uxQueueMessagesWaiting(input_queue);
+                    if (queue_length > 0) {
+                        ESP_LOGW(TAG, "Data in input queue: %d", queue_length);
+                        xQueueReset(input_queue);
+                    }
+
+                    if (i + 1 > info->max_receive_len) {
+                        info->max_receive_len = i + 1;
+                    }
                     break;
                 }
                 i++;
