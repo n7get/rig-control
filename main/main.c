@@ -10,6 +10,7 @@
 #include "settings.h"
 #include "uart.h"
 #include "esp_timer.h"
+#include "rig_commands.h"
 
 #define TAG "MAIN"
 
@@ -47,15 +48,22 @@ static int64_t last_data_time = 0;
 static void recv_data_callback(void *context, void *data) {
     recv_result_t *result = (recv_result_t *)data;
 
-    int64_t current_time = esp_timer_get_time();
-    int64_t elapsed_time_ms = (current_time - last_data_time) / 1000;
+    // int64_t current_time = esp_timer_get_time();
+    // int64_t elapsed_time_ms = (current_time - last_data_time) / 1000;
 
     if (result->error != ESP_OK) {
         ESP_LOGE(TAG, "Error receiving data: %s", result->data);
         return;
     }
 
-    ESP_LOGI(TAG, "Received data: %s (elapsed time: %lld ms)", result->data, elapsed_time_ms);
+    // if (result->type == SEND_TYPE_MONITOR) {
+    //     if (strcmp(result->data, "?;") == 0) {
+    //         ESP_LOGI(TAG, "Error: Command: %s, result: %s  (elapsed time: %lld ms)", result->command, result->data, elapsed_time_ms); 
+    //     }
+    //     else {
+    //         ESP_LOGI(TAG, "Command: %s, result: %s  (elapsed time: %lld ms)", result->command, result->data, elapsed_time_ms);
+    //     }
+    // }
 
     last_data_time = esp_timer_get_time();
 }
@@ -81,7 +89,9 @@ void app_main(void) {
     uart_init();
     uart_add_recv_observer(recv_data_callback, NULL);
 
-    char *cmds[] = {"BY;", "FA;", "AI;"};
+    init_rig_commands();
+
+    char *cmds[] = {"BY;", "FA;"};
 
     while (1) {
         for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {

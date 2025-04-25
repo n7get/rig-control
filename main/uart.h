@@ -29,6 +29,7 @@ typedef struct {
 
 typedef struct {
     int type;
+    char command[SEND_BUFFER_SIZE];
     char data[RECV_BUFFER_SIZE];
     size_t len;
     esp_err_t error;

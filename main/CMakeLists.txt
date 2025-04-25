@@ -5,6 +5,7 @@ idf_component_register(
 		"main.c"
 		"network.c"
 		"observer.c"
+		"rig_commands.c"
 		"settings.c"
 		"uart.c"
 	PRIV_REQUIRES "dns_server" 

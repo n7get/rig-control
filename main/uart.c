@@ -92,11 +92,12 @@ static void uart_task(void *arg) {
             // Wait for response
             // FIXME: read until input_queue is empty?
             recv_result_t recv_result;
+            recv_result.type = send_data.type;
+            strcpy(recv_result.command, send_data.data);
             size_t i = 0;
             while (1) {
                 if (xQueueReceive(input_queue, &recv_result.data[i], pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
                     ESP_LOGE(TAG, "Timeout while reading response");
-                    recv_result.type = send_data.type;
                     strcpy(recv_result.data, "TIMEOUT");
                     recv_result.len = 0;
                     recv_result.error = ESP_FAIL;
@@ -104,7 +105,6 @@ static void uart_task(void *arg) {
                     break;
                 }
                 if (recv_result.data[i] == ';') {
-                    recv_result.type = send_data.type;
                     recv_result.data[i + 1] = '\0';
                     recv_result.len = i + 1;
                     recv_result.error = ESP_OK;
@@ -114,7 +114,6 @@ static void uart_task(void *arg) {
                 i++;
                 if (i >= RECV_BUFFER_SIZE) {
                     ESP_LOGE(TAG, "Received data exceeds buffer size");
-                    recv_result.type = send_data.type;
                     strcpy(recv_result.data, "OVERFLOW");
                     recv_result.len = 0;
                     recv_result.error = ESP_FAIL;
@@ -207,22 +206,27 @@ esp_err_t uart_send(const char *command, int type) {
 
     send_data_t send_data;
     send_data.type = type;
-    memcpy(send_data.data, command, command_size);
-    send_data.data[command_size] = '\0';
+    strncpy(send_data.data, command, SEND_BUFFER_SIZE);
     send_data.len = command_size;
 
-    ESP_LOGI(TAG, "Sending command: %s", send_data.data);
+    // if (type == SEND_TYPE_MONITOR) {
+    //     ESP_LOGI(TAG, "Sending command: %s", send_data.data);
+    // }
 
-    if (type == SEND_TYPE_EXTERNAL) {
+    if (send_data.type == SEND_TYPE_EXTERNAL) {
         if (xQueueSendToFront(send_queue, &send_data, portMAX_DELAY) != pdPASS) {
             ESP_LOGE(TAG, "Failed to enqueue command");
             return ESP_FAIL;
         }
-    } else {
+    } else if (send_data.type == SEND_TYPE_MONITOR) {
         if (xQueueSend(send_queue, &send_data, portMAX_DELAY) != pdPASS) {
             ESP_LOGE(TAG, "Failed to enqueue monitor");
             return ESP_FAIL;
         }
+    } else {
+        ESP_LOGE(TAG, "Command: %s, Invalid send type: %d", send_data.data, send_data.type);
+        return ESP_FAIL;
     }
+
     return ESP_OK;
 }
