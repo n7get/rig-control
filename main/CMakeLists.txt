@@ -1,5 +1,6 @@
 idf_component_register(
 	 SRCS 
+	 	"cat.c"
 		"config.c"
 		"http.c"
 		"info.c"
@@ -7,8 +8,8 @@ idf_component_register(
 		"network.c"
 		"observer.c"
 		"rig_commands.c"
+		"rig_monitor.c"
 		"settings.c"
-		"uart.c"
 	PRIV_REQUIRES "dns_server" 
 	PRIV_REQUIRES "esp_driver_uart"
 	PRIV_REQUIRES "esp_http_server"

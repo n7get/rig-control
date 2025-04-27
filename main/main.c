@@ -1,17 +1,15 @@
-#include <stdio.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "esp_littlefs.h"
 #include "esp_log.h"
-#include "string.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "cat.h"
 #include "config.h"
 #include "http.h"
-#include "network.h"
-#include "settings.h"
-#include "uart.h"
-#include "esp_timer.h"
-#include "rig_commands.h"
 #include "info.h"
+#include "network.h"
+#include "rig_monitor.h"
+#include "rig_commands.h"
+#include "settings.h"
 
 #define TAG "MAIN"
 
@@ -44,30 +42,11 @@ static void mount_html(void) {
     }
 }
 
-static int64_t last_data_time = 0;
+// static int64_t last_data_time = 0;
 
-static void recv_data_callback(void *context, void *data) {
-    recv_result_t *result = (recv_result_t *)data;
-
-    // int64_t current_time = esp_timer_get_time();
-    // int64_t elapsed_time_ms = (current_time - last_data_time) / 1000;
-
-    if (result->error != ESP_OK) {
-        ESP_LOGE(TAG, "Error receiving data: %s", result->data);
-        return;
-    }
-
-    // if (result->type == SEND_TYPE_MONITOR) {
-    //     if (strcmp(result->data, "?;") == 0) {
-    //         ESP_LOGI(TAG, "Error: Command: %s, result: %s  (elapsed time: %lld ms)", result->command, result->data, elapsed_time_ms); 
-    //     }
-    //     else {
-    //         ESP_LOGI(TAG, "Command: %s, result: %s  (elapsed time: %lld ms)", result->command, result->data, elapsed_time_ms);
-    //     }
-    // }
-
-    last_data_time = esp_timer_get_time();
-}
+// static void recv_data_callback(void *context, void *data) {
+//     ESP_LOGI(TAG, "Received data: %s", (char *)data);
+// }
 
 void app_main(void) {
     esp_timer_early_init();
@@ -90,23 +69,30 @@ void app_main(void) {
     register_info_endpoints();
     register_settings_endpoints();
 
-    uart_init();
-    uart_add_recv_observer(recv_data_callback, NULL);
-
+    cat_init();
+    
     init_rig_commands();
+    init_rig_monitor();
+    
+    ESP_LOGI(TAG, "Application started");
+    
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    
+    // rig_monitor_add_observers(OBSERVE_UPDATES | OBSERVE_STATUS, recv_data_callback, NULL);
+    // rig_monitor_add_observers(OBSERVE_COMMANDS, recv_data_callback, NULL);
+    // rig_monitor_add_observers(OBSERVE_STATUS, recv_data_callback, NULL);
+    // char *cmds[] = {"BY;", "FA;"};
 
-    char *cmds[] = {"BY;", "FA;"};
+    // while (1) {
+    //     for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
+    //         esp_err_t err = rig_monitor_send(cmds[i], SEND_TYPE_COMMAND);
+    //         if (err != ESP_OK) {
+    //             ESP_LOGE(TAG, "Failed to send command");
+    //             vTaskDelete(NULL);
+    //             return;
+    //         }
+    //     }
 
-    while (1) {
-        for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
-            esp_err_t err = uart_send(cmds[i], SEND_TYPE_EXTERNAL);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send command");
-                vTaskDelete(NULL);
-                return;
-            }
-        }
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
+    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // }
 }

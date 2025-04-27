@@ -29,6 +29,10 @@ static void init_info() {
     info.total_response_time = 0;
     info.no_responses = 0;
     info.max_response_time = 0;
+    info.polls = 0;
+    info.pending = 0;
+    info.valid = 0;
+    info.updates = 0;
 }
 
 static esp_err_t get_info_handler(httpd_req_t *req) {
@@ -54,28 +58,15 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     float avg_response_time = (float)info.total_response_time / (float)info.no_responses;
     cJSON_AddNumberToObject(json, "avg_response_time", avg_response_time / 1000.0f);
 
-    cJSON_AddNumberToObject(json, "free_heap", esp_get_free_heap_size());
+    cJSON_AddNumberToObject(json, "polls", info.polls);
+    float avg_pending = (float)info.pending / (float)info.polls;
+    cJSON_AddNumberToObject(json, "avg_pending", avg_pending);
+    float avg_valid = (float)info.valid / (float)info.polls;
+    cJSON_AddNumberToObject(json, "avg_valid", avg_valid);
+    float avg_updates = (float)info.updates / (float)info.polls;
+    cJSON_AddNumberToObject(json, "avg_updates", avg_updates);
 
-    // add rig_commands to json
-    // cJSON *commands_array = cJSON_CreateArray();
-    // if (commands_array == NULL) {
-    //     cJSON_Delete(json);
-    //     return ESP_FAIL;
-    // }
-    // cJSON_AddItemToObject(json, "rig_commands", commands_array);
-    // for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-    //     cJSON *command_obj = cJSON_CreateObject();
-    //     if (command_obj == NULL) {
-    //         cJSON_Delete(json);
-    //         return ESP_FAIL;
-    //     }
-    //     cJSON_AddStringToObject(command_obj, "cmd", rig_commands[i].cmd);
-    //     // cJSON_AddNumberToObject(command_obj, "len", rig_commands[i].len);
-    //     cJSON_AddBoolToObject(command_obj, "pending", rig_commands[i].pending);
-    //     cJSON_AddNumberToObject(command_obj, "refresh_time", rig_commands[i].refresh_time);
-    //     cJSON_AddNumberToObject(command_obj, "next_refresh", rig_commands[i].next_refresh);
-    //     cJSON_AddItemToArray(commands_array, command_obj);
-    // }
+    cJSON_AddNumberToObject(json, "free_heap", esp_get_free_heap_size());
 
     init_info();
 

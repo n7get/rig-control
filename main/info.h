@@ -12,6 +12,10 @@ typedef struct {
     int total_response_time;
     int no_responses;
     int max_response_time;
+    int polls;
+    int pending;
+    int valid;
+    int updates;
 } info_t;
 
 info_t *get_info();
