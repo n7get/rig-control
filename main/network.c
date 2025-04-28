@@ -1,154 +1,228 @@
-#include "esp_err.h"
-#include "esp_event.h"
+#include "network.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_log.h"
-#include "esp_mac.h"
-#include "esp_wifi.h"
-#include "settings.h"
-#include <string.h>
-#include <arpa/inet.h>
-#include "dns_server.h"
+#include "lwip/err.h"
+#include "lwip/sockets.h"
+#include "lwip/sys.h"
+#include <lwip/netdb.h>
+#include "string.h"
+#include "buffer.h"
+#include "rig_commands.h"
+#include "rig_monitor.h"
 
-#define MAX_STA_CONN 4
-#define MAX_RETRY 5
+#include "cat.h" // For SEND_TYPE_COMMAND, RECV_BUFFER_SIZE
+#include "rig_monitor.h" // For rig_monitor_command_buf
+#include "observer.h" // For observer_add
 
-static const char *TAG = "WIFI";
-static int retry_count = 0;
+#define KEEPALIVE_IDLE              5
+#define KEEPALIVE_INTERVAL          5
+#define KEEPALIVE_COUNT             3
+#define NETWORK_RECV_QUEUE_SIZE     10
 
-void wifi_init_ap(void);
-#include "esp_wifi.h"
+typedef struct {
+    int channel;
+    char data[RECV_BUFFER_SIZE];
+    size_t len;
+} send_queue_buf_t;
 
-static void dhcp_set_captiveportal_url(void) {
-    // get the IP of the access point to redirect to
-    esp_netif_ip_info_t ip_info;
-    esp_netif_get_ip_info(esp_netif_get_handle_from_ifkey("WIFI_AP_DEF"), &ip_info);
+static const char *TAG = "NETWORK";
+static QueueHandle_t send_queue = NULL;
 
-    char ip_addr[16];
-    inet_ntoa_r(ip_info.ip.addr, ip_addr, 16);
-    ESP_LOGI(TAG, "Set up softAP with IP: %s", ip_addr);
+// Callback function to put received rig data onto the network send queue
+static void network_send_callback(void *context, void *data) {
+    result_buf_t *result = (result_buf_t *)data;
 
-    // turn the IP into a URI
-    char* captiveportal_uri = (char*) malloc(32 * sizeof(char));
-    assert(captiveportal_uri && "Failed to allocate captiveportal_uri");
-    strcpy(captiveportal_uri, "http://");
-    strcat(captiveportal_uri, ip_addr);
+    send_queue_buf_t send_buf;
+    send_buf.channel = *(int *)context;
+    strncpy(send_buf.data, result->data, RECV_BUFFER_SIZE);
+    send_buf.len = result->len;
+    // ESP_LOGI(TAG, "Queuing data, channel: %d, data: %s, len: %d", send_buf.channel, send_buf.data, send_buf.len);
 
-    // get a handle to configure DHCP with
-    esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
-
-    // set the DHCP option 114
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_stop(netif));
-    ESP_ERROR_CHECK(esp_netif_dhcps_option(netif, ESP_NETIF_OP_SET, ESP_NETIF_CAPTIVEPORTAL_URI, captiveportal_uri, strlen(captiveportal_uri)));
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_dhcps_start(netif));
-
-    ESP_LOGI(TAG, "Set captive portal URL: %s", captiveportal_uri);
+    if (xQueueSend(send_queue, &send_buf, pdMS_TO_TICKS(100)) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to queue network send data");
+    }
 }
 
-static void wifi_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        ESP_LOGI(TAG, "Wi-Fi Station started");
+// Callback function to fill the buffer with data
+static int buffer_fill_callback(void *context, uint8_t *buf, size_t max_len) {
+    int sock = *(int *)context;
 
-        esp_wifi_connect();
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        wifi_event_sta_disconnected_t *event = (wifi_event_sta_disconnected_t *)event_data;
-        ESP_LOGI(TAG, "Wi-Fi Station disconnected: reason=%d", event->reason);
+    int len = recv(sock, buf, max_len, 0);
 
-        if (retry_count < MAX_RETRY) {
-            ESP_LOGI(TAG, "Disconnected from STA. Retrying...");
-            esp_wifi_connect();
-            retry_count++;
-        } else {
-            ESP_LOGI(TAG, "Failed to connect to STA. Switching to AP mode...");
-            esp_wifi_stop();
-            wifi_init_ap();
+    // Error occurred during receiving
+    if (len < 0) {
+        ESP_LOGE(TAG, "recv failed: errno %d", errno);
+        return -1;
+    }
+
+    // Connection closed
+    if (len == 0) {
+        ESP_LOGI(TAG, "Connection closed");
+        return 0;
+    }
+
+    // Data received
+    return len;
+}
+
+static void connection_established(int sock, buffer_t *buffer) {
+    while (1) {
+        char rx_buffer[SEND_BUFFER_SIZE];
+        int i = 0;
+
+        while (1) {
+            int ret = buffer_get_byte(buffer, (uint8_t *)&rx_buffer[i]);
+
+            // Error occurred during receiving
+            if (ret < 0) {
+                ESP_LOGE(TAG, "recv failed: errno %d", errno);
+                return;
+            }
+
+            // Connection closed
+            if (ret == 0) {
+                return;
+            }
+
+            // Buffer overflow
+            if (i >= SEND_BUFFER_SIZE - 1) {
+                ESP_LOGE(TAG, "Buffer overflow");
+                return;
+            }
+
+            // Check for end of command
+            if (rx_buffer[i] == ';') {
+                rx_buffer[i + 1] = '\0';
+
+                if (strcmp(rx_buffer, ENHANCED_RIG_COMMAND_ENHANCED_MODE) == 0) {
+                    rig_monitor_add_observers(OBSERVE_UPDATES|OBSERVE_STATUS, network_send_callback, (void *)&sock);
+                } else {
+                    rig_monitor_send(rx_buffer, SEND_TYPE_COMMAND);
+                }
+
+                i = 0;
+            }
+            else {
+                i++;
+            }
         }
-    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-        ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-        ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        retry_count = 0;
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_START) {
-        ESP_LOGI(TAG, "Wi-Fi Access Point started");
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STOP) {
-        ESP_LOGI(TAG, "Wi-Fi Access Point stopped");
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STACONNECTED) {
-        wifi_event_ap_staconnected_t *event = (wifi_event_ap_staconnected_t *)event_data;
-        ESP_LOGI(TAG, "Station connected to AP: MAC=" MACSTR ", AID=%d", MAC2STR(event->mac), event->aid);
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_AP_STADISCONNECTED) {
-        wifi_event_ap_stadisconnected_t *event = (wifi_event_ap_stadisconnected_t *)event_data;
-        ESP_LOGI(TAG, "Station disconnected from AP: MAC=" MACSTR ", AID=%d", MAC2STR(event->mac), event->aid);
-    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_HOME_CHANNEL_CHANGE) {
-        ESP_LOGI(TAG, "Home channel changed");
-    } else {
-        ESP_LOGI(TAG, "Unknown Event: %s, ID: %ld", event_base, event_id);
     }
 }
 
-void wifi_init_sta(void) {
-    esp_netif_create_default_wifi_sta();
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    esp_event_handler_instance_t instance_any_id;
-    esp_event_handler_instance_t instance_got_ip;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, &instance_any_id));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL, &instance_got_ip));
-
-    wifi_config_t wifi_config;
-    memset(&wifi_config, 0, sizeof(wifi_config));
-    strncpy((char *)wifi_config.sta.ssid, sta_ssid, sizeof(wifi_config.sta.ssid));
-    strncpy((char *)wifi_config.sta.password, sta_password, sizeof(wifi_config.sta.password));
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "Wi-Fi initialized in STA mode. Connecting to SSID: %s...", sta_ssid);
-}
-
-void wifi_init_ap(void) {
-    esp_netif_create_default_wifi_ap();
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
-    esp_event_handler_instance_t instance_any_id;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL, &instance_any_id));
-
-    wifi_config_t wifi_config;
-    memset(&wifi_config, 0, sizeof(wifi_config));
-    strncpy((char *)wifi_config.ap.ssid, ap_ssid, sizeof(wifi_config.ap.ssid));
-    strncpy((char *)wifi_config.ap.password, ap_password, sizeof(wifi_config.ap.password));
-    wifi_config.ap.ssid_len = strlen(ap_ssid);
-    wifi_config.ap.max_connection = MAX_STA_CONN;
-    wifi_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
-
-    if (strlen(ap_password) == 0) {
-        wifi_config.ap.authmode = WIFI_AUTH_OPEN;
+static void wait_for_accept(int listen_sock) {
+    int err = listen(listen_sock, 1);
+    if (err != 0) {
+        ESP_LOGE(TAG, "Error occurred during listen: errno %d", errno);
+        return;
     }
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    while (1) {
+        ESP_LOGI(TAG, "Socket listening");
+        struct sockaddr_storage source_addr; // Large enough for both IPv4 or IPv6
+        socklen_t addr_len = sizeof(source_addr);
+        int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len);
+        if (sock < 0) {
+            ESP_LOGE(TAG, "Unable to accept connection: errno %d", errno);
+            break; // Exit loop on error
+        }
 
-    ESP_LOGI(TAG, "Wi-Fi Access Point initialized. SSID: %s, Password: %s", ap_ssid, ap_password);
+        // Set connection parameters for keep-alive
+        int keepalive = 1;
+        int keepidle = KEEPALIVE_IDLE;
+        int keepinterval = KEEPALIVE_INTERVAL;
+        int keepcount = KEEPALIVE_COUNT;
+        setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &keepalive, sizeof(int));
+        setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &keepidle, sizeof(int));
+        setsockopt(sock, IPPROTO_TCP, TCP_KEEPINTVL, &keepinterval, sizeof(int));
+        setsockopt(sock, IPPROTO_TCP, TCP_KEEPCNT, &keepcount, sizeof(int));
 
-    dhcp_set_captiveportal_url();
+        // Set the current active socket for the send task
+        ESP_LOGI(TAG, "Socket accepted");
 
-    // Start the DNS server that will redirect all queries to the softAP IP
-    dns_server_config_t config = DNS_SERVER_CONFIG_SINGLE("*" /* all A queries */, "WIFI_AP_DEF" /* softAP netif ID */);
-    start_dns_server(&config);
+        rig_monitor_add_observers(OBSERVE_COMMANDS, network_send_callback, (void *)&sock);
+
+        buffer_t *buffer = buffer_create(RECV_BUFFER_SIZE, buffer_fill_callback, (void *)&sock);
+        if (buffer == NULL) {
+            ESP_LOGE(TAG, "Failed to create buffer");
+            close(sock);
+            rig_monitor_remove_observers(network_send_callback);
+            return;
+        }
+
+        connection_established(sock, buffer);
+
+        // Connection closed or error, reset current_sock and close the socket
+        shutdown(sock, 0);
+        close(sock);
+        buffer_free(buffer);
+        rig_monitor_remove_observers(network_send_callback);
+        ESP_LOGI(TAG, "Socket closed");
+    }
 }
 
-void wifi_init(void) {
-    ESP_LOGI(TAG, "Starting Wi-Fi...");
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+// Task to handle incoming TCP connections and receive data
+static void recv_task(void *pvParameters) {
+    int addr_family = AF_INET;
+    int ip_protocol = IPPROTO_IP;
+    struct sockaddr_storage dest_addr;
 
-    if (strlen(sta_ssid) > 0) {
-        ESP_LOGI(TAG, "Starting Wi-Fi in STA mode...");
-        wifi_init_sta();
-    } else {
-        ESP_LOGI(TAG, "Starting Wi-Fi in AP mode...");
-        wifi_init_ap();
+    struct sockaddr_in *dest_addr_ip4 = (struct sockaddr_in *)&dest_addr;
+    dest_addr_ip4->sin_addr.s_addr = htonl(INADDR_ANY);
+    dest_addr_ip4->sin_family = AF_INET;
+    dest_addr_ip4->sin_port = htons(NETWORK_PORT);
+
+    int listen_sock = socket(addr_family, SOCK_STREAM, ip_protocol);
+    if (listen_sock < 0) {
+        ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
+        vTaskDelete(NULL);
+        return;
     }
+    int opt = 1;
+    setsockopt(listen_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    ESP_LOGI(TAG, "Socket created");
+
+    int err = bind(listen_sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (err != 0) {
+        ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+        return;
+    }
+    ESP_LOGI(TAG, "Socket bound, port %d", NETWORK_PORT);
+
+    wait_for_accept(listen_sock);
+
+    close(listen_sock);
+    vTaskDelete(NULL);
+}
+
+// Task to send data from the queue to the connected TCP client
+static void send_task(void *pvParameters) {
+    while (1) {
+        send_queue_buf_t send_buf;
+
+        // Wait for data to appear in the queue
+        if (xQueueReceive(send_queue, &send_buf, portMAX_DELAY) == pdPASS) {
+            int written = send(send_buf.channel, send_buf.data, send_buf.len, 0);
+            if (written < 0) {
+                ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
+                break;
+            }
+        }
+    }
+}
+
+// Initialize network tasks and queue
+esp_err_t network_init(void) {
+    send_queue = xQueueCreate(300, sizeof(send_queue_buf_t));
+    if (send_queue == NULL) {
+        ESP_LOGE(TAG, "Failed to create network receive queue");
+        return ESP_FAIL;
+    }
+
+    xTaskCreate(recv_task, "network_recv_task", 4096, NULL, 5, NULL);
+    xTaskCreate(send_task, "network_send_task", 4096, NULL, 5, NULL);
+
+    ESP_LOGI(TAG, "Network tasks initialized");
+    return ESP_OK;
 }

@@ -19,7 +19,7 @@ typedef struct {
 
 subject_t *new_subject();
 void add_observer(subject_t *subject, observer_callback_t callback, void *context);
-void remove_observer(subject_t *subject, observer_callback_t callback, void *context);
+void remove_observer(subject_t *subject, observer_callback_t callback);
 void subject_notify(subject_t *subject, void *data);
 void free_subject(subject_t *subject);
 

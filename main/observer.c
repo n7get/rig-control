@@ -33,10 +33,10 @@ void add_observer(subject_t *subject, observer_callback_t callback, void *contex
     }
 }
 
-void remove_observer(subject_t *subject, observer_callback_t callback, void *context) {
+void remove_observer(subject_t *subject, observer_callback_t callback) {
     observer_t *current = subject->head;
     while (current != NULL) {
-        if (current->callback == callback && current->context == context) {
+        if (current->callback == callback) {
             if (current->prev != NULL) {
                 current->prev->next = current->next;
             } else {

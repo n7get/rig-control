@@ -265,11 +265,11 @@ void cat_clear() {
     uart_flush(UART_NUM);
 }
 
-void log_command_buf(char *tag, command_buf_t *command_buf) {
+void log_command_buf(const char *tag, command_buf_t *command_buf) {
     char *type_str;
     switch(command_buf->type) {
         case SEND_TYPE_COMMAND:
-            type_str = "EXTERNAL";
+            type_str = "COMMAND";
             break;
         case SEND_TYPE_MONITOR:
             type_str = "MONITOR";
@@ -281,11 +281,11 @@ void log_command_buf(char *tag, command_buf_t *command_buf) {
     ESP_LOGI(tag, "command_buf_t, type: %s, data: %s, len: %d", type_str, command_buf->data, command_buf->len);
 }
 
-void log_result_buf(char *tag, result_buf_t *result) {
+void log_result_buf(const char *tag, result_buf_t *result) {
     char *type_str;
     switch(result->command_buf.type) {
         case SEND_TYPE_COMMAND:
-            type_str = "EXTERNAL";
+            type_str = "COMMAND";
             break;
         case SEND_TYPE_MONITOR:
             type_str = "MONITOR";

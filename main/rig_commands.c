@@ -237,7 +237,6 @@ rig_command_t *get_rig_commands() {
 
 void rig_command_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        rig_commands[i].status = INVALID;
         rig_commands[i].last_value[0] = '\0';
     }
 }

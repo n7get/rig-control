@@ -10,6 +10,7 @@
 #include "rig_monitor.h"
 #include "rig_commands.h"
 #include "settings.h"
+#include "wifi.h"
 
 #define TAG "MAIN"
 
@@ -45,7 +46,8 @@ static void mount_html(void) {
 // static int64_t last_data_time = 0;
 
 // static void recv_data_callback(void *context, void *data) {
-//     ESP_LOGI(TAG, "Received data: %s", (char *)data);
+//     result_buf_t *result = (result_buf_t *)data;
+//     ESP_LOGI(TAG, "Received data: %s", result->data);
 // }
 
 void app_main(void) {
@@ -73,6 +75,8 @@ void app_main(void) {
     
     init_rig_commands();
     init_rig_monitor();
+    
+    network_init();
     
     ESP_LOGI(TAG, "Application started");
     

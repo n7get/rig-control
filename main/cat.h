@@ -46,7 +46,7 @@ typedef struct {
 esp_err_t cat_init(void);
 void cat_clear(void);
 esp_err_t cat_send(const char *command, int type, int priority);
-void log_command_buf(char *tag, command_buf_t *command_buf);
-void log_result_buf(char *tag, result_buf_t *result);
+void log_command_buf(const char *tag, command_buf_t *command_buf);
+void log_result_buf(const char *tag, result_buf_t *result);
 
 #endif // UART_H

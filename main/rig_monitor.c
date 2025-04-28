@@ -49,10 +49,10 @@ static void send_rig_id_command() {
 
 void notify_observers(result_buf_t *result, bool updated) {
     if (result->command_buf.type == SEND_TYPE_COMMAND) {
-        subject_notify(command_subject, (void *)result->data);
+        subject_notify(command_subject, (void *)result);
     }
     if (result->command_buf.type == SEND_TYPE_MONITOR && updated) {
-        subject_notify(updates_subject, (void *)result->data);
+        subject_notify(updates_subject, (void *)result);
     }
 }
 
@@ -237,7 +237,7 @@ static void rig_monitor_task(void *pvParameters) {
         if (xQueueReceive(rm_event_queue, &event, portMAX_DELAY) == pdPASS) {
 #ifdef LOG_EVENTS            
             log_event(&event, in_startup, is_ready);
-#endif            
+#endif
 
             switch (event.type) { 
                 case RM_EVENT_RECEIVED:
@@ -307,6 +307,16 @@ void rig_monitor_add_observers(uint32_t observed, observer_callback_t callback, 
     }
 }
 
+void rig_monitor_remove_observers(observer_callback_t callback) {
+    if (updates_subject == NULL) {
+        ESP_LOGE(TAG, "Receive subject is not initialized");
+        return;
+    }
+    remove_observer(updates_subject, callback);
+    remove_observer(command_subject, callback);
+    remove_observer(status_subject, callback);
+}
+
 esp_err_t rig_monitor_send(const char *command, int type) {
     size_t command_size = strnlen(command, SEND_BUFFER_SIZE);
     if (command_size == 0) {
@@ -324,11 +334,16 @@ esp_err_t rig_monitor_send(const char *command, int type) {
     }
 
     rm_event_t event;
-    event.type = RM_EVENT_SEND;
-    event.priority = type == SEND_TYPE_COMMAND ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
-    event.command_buf.type = type;
-    strncpy(event.command_buf.data, command, SEND_BUFFER_SIZE);
-    event.command_buf.len = command_size;
+
+    if (strcmp(command, ENHANCED_RIG_COMMAND_REFRESH) == 0) {
+        event.type = RM_EVENT_REFRESH;
+    } else {
+        event.type = RM_EVENT_SEND;
+        event.priority = type == SEND_TYPE_COMMAND ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
+        event.command_buf.type = type;
+        strncpy(event.command_buf.data, command, SEND_BUFFER_SIZE);
+        event.command_buf.len = command_size;
+    }
 
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to send event to rig monitor task");
@@ -404,7 +419,7 @@ void init_rig_monitor() {
     }
 
     // create a task to process the rig monitor events
-    if (xTaskCreate(rig_monitor_task, "rig_monitor_task", 2048, NULL, 5, NULL) != pdPASS) {
+    if (xTaskCreate(rig_monitor_task, "rig_monitor_task", 4096, NULL, 5, NULL) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create rig monitor task");
         return;
     }

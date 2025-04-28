@@ -1,5 +1,6 @@
 idf_component_register(
 	 SRCS 
+	    "buffer.c"
 	 	"cat.c"
 		"config.c"
 		"http.c"
@@ -10,6 +11,7 @@ idf_component_register(
 		"rig_commands.c"
 		"rig_monitor.c"
 		"settings.c"
+		"wifi.c"
 	PRIV_REQUIRES "dns_server" 
 	PRIV_REQUIRES "esp_driver_uart"
 	PRIV_REQUIRES "esp_http_server"
