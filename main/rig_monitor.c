@@ -44,6 +44,7 @@ static TickType_t last_scan_tick;
  * @brief Send the ID command to the radio.
  */
 static void send_rig_id_command() {
+    cat_flush();
     cat_send(rig_command_id(), SEND_TYPE_MONITOR, SEND_PRIORITY_HIGH);
 }
 
@@ -118,6 +119,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
         if (result->result == RECV_RESULT_OK) {
             if (strcmp(result->data, rig_id()) == 0) {
                 ESP_LOGI(TAG, "Received ID command: %s", result->data);
+                ESP_LOGI(TAG, "Send queue length: %d", cat_send_len());
                 return false;
             } else {
                 ESP_LOGE(TAG, "Received wrong ID command: %s", result->data);
@@ -135,72 +137,11 @@ static bool event_received(bool in_startup, result_buf_t *result) {
         return false;
     }
 
-    rig_command_set_next_refresh(cmd);
-
     bool updated = rig_command_set_last_value(cmd, result->data);
 
     notify_observers(result, updated);
 
     return false;
-}
-
-static bool event_scan(bool is_ready) {
-    TickType_t start_tick = xTaskGetTickCount();
-    TickType_t elapsed_ticks = start_tick - last_scan_tick;
-
-    rig_command_t *rig_commands = get_rig_commands();
-
-    bool has_not_ready = false;
-    info_t *info = get_info();
-    info->polls++;
-    
-    // ESP_LOGI("RMT", "Elapsed time: %d, is_ready: %s", (int)elapsed_ticks, is_ready ? "true" : "false");
-    
-    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        switch(rig_commands[i].status) {
-            case INVALID:
-                if (!is_ready) {
-                    if (rig_commands[i].next_refresh <= 0) {
-                        cat_send(rig_commands[i].cmd, SEND_TYPE_MONITOR, SEND_PRIORITY_NORMAL);
-                        rig_commands[i].status = PENDING_INIT;
-                    } else {
-                        rig_commands[i].next_refresh -= elapsed_ticks;
-                    }
-                    has_not_ready |= true;
-                }
-                break;
-            case PENDING_INIT:
-                if (!is_ready) {
-                    has_not_ready |= true;
-                }
-                break;
-
-            case VADID:
-                info->valid++;
-                if (is_ready) {
-                    if (rig_commands[i].next_refresh <= 0) {
-                        cat_send(rig_commands[i].cmd, SEND_TYPE_MONITOR, SEND_PRIORITY_NORMAL);
-                        info->updates++;
-                        rig_commands[i].status = PENDING;
-                    } else {
-                        rig_commands[i].next_refresh -= elapsed_ticks;
-                    }
-                }
-                break;
-
-            case PENDING:
-                info->pending++;
-                break;
-
-            case UNKNOWN:
-                ESP_LOGE(TAG, "Unknown command status: %d", rig_commands[i].status);
-                break;
-        }
-    }
-
-    last_scan_tick = xTaskGetTickCount();
-
-    return is_ready ? false : !has_not_ready;
 }
 
 /**
@@ -254,7 +195,7 @@ static void rig_monitor_task(void *pvParameters) {
                     is_ready = false;
                     rig_command_reset();
                     send_rig_id_command();
-                    cat_clear();
+                    ESP_LOGW(TAG, "Rig monitor timeout, resetting");
                     notify_status(ENHANCED_RIG_RESULT_NOT_READY);
                     break;
 
@@ -262,19 +203,23 @@ static void rig_monitor_task(void *pvParameters) {
                     if (in_startup || !is_ready) {
                         notify_status(ENHANCED_RIG_RESULT_NOT_READY);
                     } else {
-                        cat_send(event.command_buf.data, event.command_buf.type, event.priority);
+                        if (cat_send(event.command_buf.data, event.command_buf.type, event.priority) == ESP_ERR_NO_MEM) {
+                            notify_status(ENHANCED_RIG_RESULT_BUSY);
+                            get_info()->send_queue_full++;
+                        }
                     }
                     break;
 
                 case RM_EVENT_SCAN:
                     if (!in_startup) {
-                        if (event_scan(is_ready)) {
-                            in_startup = false;
-                            is_ready = true;
-
-                            ESP_LOGI(TAG, "Rig monitor is ready");
-
-                            notify_status(ENHANCED_RIG_RESULT_READY);
+                        if (!is_ready) {
+                            if (rig_command_is_ready()) {
+                                is_ready = true;
+                                notify_status(ENHANCED_RIG_RESULT_READY);
+                                ESP_LOGI(TAG, "Rig monitor is ready");
+                            }
+                        } else {
+                            last_scan_tick = rig_command_scan_for_updates(last_scan_tick);
                         }
                     }
                     break;

@@ -36,13 +36,15 @@ typedef struct {
 #define ENHANCED_RIG_RESULT_NOT_READY "!N;"
 #define ENHANCED_RIG_RESULT_READY "!R;"
 #define ENHANCED_RIG_RESULT_ERROR "!E;"
+#define ENHANCED_RIG_RESULT_BUSY "!B;"
 
 void init_rig_commands();
-rig_command_t *get_rig_commands();
-void rig_command_set_next_refresh(rig_command_t *cmd);
+bool rig_command_is_ready();
+TickType_t rig_command_scan_for_updates(TickType_t last_scan_tick);
 void rig_command_reset();
 const char *rig_command_id();
 const char *rig_id();
+bool rig_command_is_fail(const char *result);
 rig_command_t *find_command(const char *cmd);
 bool rig_command_set_last_value(rig_command_t *cmd, const char *value);
 void log_rig_command(char *tag, rig_command_t *cmd);
