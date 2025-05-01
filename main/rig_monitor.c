@@ -44,7 +44,6 @@ static TickType_t last_scan_tick;
  * @brief Send the ID command to the radio.
  */
 static void send_rig_id_command() {
-    cat_flush();
     cat_send(rig_command_id(), SEND_TYPE_MONITOR, SEND_PRIORITY_HIGH);
 }
 
@@ -58,7 +57,12 @@ void notify_observers(result_buf_t *result, bool updated) {
 }
 
 void notify_status(char *data) {
-    subject_notify(status_subject, data);
+    ESP_LOGI(TAG, "Notify status: %s", data);
+    result_buf_t result_buf;
+    result_buf.result = RECV_RESULT_OK;
+    strncpy(result_buf.data, data, RECV_BUFFER_SIZE);
+    result_buf.len = strlen(data);
+    subject_notify(status_subject, &result_buf);
 }
 
 // #define LOG_EVENTS
@@ -117,7 +121,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
 
     if (in_startup) {
         if (result->result == RECV_RESULT_OK) {
-            if (strcmp(result->data, rig_id()) == 0) {
+            if (strcmp(result->data, rig_expected_id()) == 0) {
                 ESP_LOGI(TAG, "Received ID command: %s", result->data);
                 ESP_LOGI(TAG, "Send queue length: %d", cat_send_len());
                 return false;
@@ -194,6 +198,7 @@ static void rig_monitor_task(void *pvParameters) {
                     in_startup = true;
                     is_ready = false;
                     rig_command_reset();
+                    cat_flush();
                     send_rig_id_command();
                     ESP_LOGW(TAG, "Rig monitor timeout, resetting");
                     notify_status(ENHANCED_RIG_RESULT_NOT_READY);
@@ -225,7 +230,7 @@ static void rig_monitor_task(void *pvParameters) {
                     break;
 
                 case RM_EVENT_REFRESH:
-                    rig_command_reset();
+                    rig_command_refresh();
                     break;
 
                 default:

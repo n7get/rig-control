@@ -323,8 +323,15 @@ TickType_t rig_command_scan_for_updates(TickType_t last_scan_tick) {
  */
 void rig_command_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        rig_commands[i].last_value[0] = '\0';
+        rig_commands[i].status = INVALID;
         rig_commands[i].next_refresh = 0;
+        rig_commands[i].last_value[0] = '\0';
+    }
+}
+
+void rig_command_refresh() {
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        rig_commands[i].last_value[0] = '\0';
     }
 }
 
@@ -353,7 +360,7 @@ bool rig_command_set_last_value(rig_command_t *cmd, const char *value) {
 const char *rig_command_id() {
     return "ID;";
 }
-const char *rig_id() {
+const char *rig_expected_id() {
     return "ID0670;";
 }
 
