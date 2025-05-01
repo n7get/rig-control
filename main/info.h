@@ -12,10 +12,16 @@ typedef struct {
     int total_response_time;
     int no_responses;
     int max_response_time;
+    int elapsed_ticks;
     int polls;
     int pending;
     int valid;
     int updates;
+    int send_queue_full;
+    int uart_max_read_len;
+    int uart_buffer_full;
+    int uart_fifo_ovf;
+    int input_queue_full;
 } info_t;
 
 info_t *get_info();

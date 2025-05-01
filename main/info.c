@@ -30,9 +30,15 @@ static void init_info() {
     info.no_responses = 0;
     info.max_response_time = 0;
     info.polls = 0;
+    info.elapsed_ticks = 0;
     info.pending = 0;
     info.valid = 0;
     info.updates = 0;
+    info.send_queue_full = 0;
+    info.uart_max_read_len = 0;
+    info.uart_buffer_full = 0;
+    info.uart_fifo_ovf = 0;
+    info.input_queue_full = 0;
 }
 
 static esp_err_t get_info_handler(httpd_req_t *req) {
@@ -59,12 +65,19 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     cJSON_AddNumberToObject(json, "avg_response_time", avg_response_time / 1000.0f);
 
     cJSON_AddNumberToObject(json, "polls", info.polls);
+    float avg_elapsed_ticks = (float)info.elapsed_ticks / (float)info.polls;
+    cJSON_AddNumberToObject(json, "avg_elapsed_ticks", avg_elapsed_ticks);
     float avg_pending = (float)info.pending / (float)info.polls;
     cJSON_AddNumberToObject(json, "avg_pending", avg_pending);
     float avg_valid = (float)info.valid / (float)info.polls;
     cJSON_AddNumberToObject(json, "avg_valid", avg_valid);
     float avg_updates = (float)info.updates / (float)info.polls;
     cJSON_AddNumberToObject(json, "avg_updates", avg_updates);
+    cJSON_AddNumberToObject(json, "send_queue_full", info.send_queue_full);
+    cJSON_AddNumberToObject(json, "uart_max_read_len", info.uart_max_read_len);
+    cJSON_AddNumberToObject(json, "uart_buffer_full", info.uart_buffer_full);
+    cJSON_AddNumberToObject(json, "uart_fifo_ovf", info.uart_fifo_ovf);
+    cJSON_AddNumberToObject(json, "input_queue_full", info.input_queue_full);
 
     cJSON_AddNumberToObject(json, "free_heap", esp_get_free_heap_size());
 

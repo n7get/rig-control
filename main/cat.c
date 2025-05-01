@@ -1,121 +1,117 @@
 #include <string.h>
-#include "driver/uart.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "cat.h"
 #include "info.h"
-#include "pins.h"
+#include "rig_commands.h"
 #include "rig_monitor.h"
+#include "rig_uart.h"
 
-#define TAG "UART"
+#define TAG "CAT"
 
-static QueueHandle_t uart_event_queue;
-static QueueHandle_t input_queue;
-static QueueHandle_t send_queue;
+typedef enum {
+    RESULT_OK = 0,
+    RESULT_TIMEOUT,
+    RESULT_ERROR,
+} process_command_result_t;
 
-// UART interrupt handler task
-static void uart_event_task(void *pvParameters) {
-    uart_event_t event;
-    char *data = malloc(BUF_SIZE);
-    if (data == NULL) {
-        ESP_LOGE(TAG, "Failed to allocate memory for data buffer");
-        vTaskDelete(NULL);
-        return;
+static QueueHandle_t send_queue = NULL;
+
+static process_command_result_t process_command(result_buf_t *result_buf) {
+    info_t *info = get_info();
+
+    int bytes_written = rig_uart_send(result_buf->command_buf.data, result_buf->command_buf.len);
+
+    if (bytes_written != result_buf->command_buf.len) {
+        ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", result_buf->command_buf.len, bytes_written);
     }
 
-    while (1) {
-        if (xQueueReceive(uart_event_queue, (void *)&event, portMAX_DELAY)) {
-            switch (event.type) {
-            case UART_DATA:
-                if (event.size > BUF_SIZE) {
-                    ESP_LOGE(TAG, "Received data length exceeds buffer size");
-                    break;
+    if (bytes_written > info->max_send_len) {
+        info->max_send_len = bytes_written;
+    }
+
+    size_t i = 0;
+    for(;;) {
+        int ret = rig_uart_recv_byte(&result_buf->data[i]);
+        if (ret == -1) {
+            ESP_LOGE(TAG, "Error processing command");
+            result_buf->result = RECV_RESULT_ERROR;
+            return RESULT_ERROR;
+        }
+        if (ret == 0) {
+            return RESULT_TIMEOUT;
+        }
+
+        if (result_buf->data[i] == ';') {
+            result_buf->result = RECV_RESULT_OK;
+            result_buf->data[i + 1] = '\0';
+            result_buf->len = i + 1;
+
+            int remain_recv_len = rig_uart_recv_len();
+            if (remain_recv_len > 0) {
+                ESP_LOGW(TAG, "Data in buffer: %d", remain_recv_len);
+
+                char buf[128];
+                int ret = rig_uart_peek_buffer(buf, 127);
+                if (ret > 0) {
+                    buf[ret] = '\0';
+                    ESP_LOGW(TAG, "Data in buffer: %s", buf);
+                } else {
+                    ESP_LOGE(TAG, "Failed to read from buffer");
                 }
-                int len = uart_read_bytes(UART_NUM, data, event.size, portMAX_DELAY);
-                if (len > 0) {
-                    for (int i = 0; i < len; i++) {
-                        while (xQueueSend(input_queue, &data[i], pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
-                            ESP_LOGE(TAG, "Input queue overflow");
-                        }
-                    }
-                }
-                break;
 
-            case UART_FIFO_OVF:
-                ESP_LOGW(TAG, "UART FIFO overflow");
-                uart_flush_input(UART_NUM);
-                xQueueReset(uart_event_queue);
-                break;
-
-            case UART_BUFFER_FULL:
-                ESP_LOGW(TAG, "UART buffer full");
-                uart_flush_input(UART_NUM);
-                xQueueReset(uart_event_queue);
-                break;
-
-            case UART_PARITY_ERR:
-                ESP_LOGE(TAG, "UART parity error");
-                break;
-
-            case UART_FRAME_ERR:
-                ESP_LOGE(TAG, "UART frame error");
-                break;
-
-            default:
-                ESP_LOGW(TAG, "Unhandled UART event type: %d", event.type);
-                break;
+                rig_uart_clear_buffer();
             }
+            return RESULT_OK;
+        }
+        i++;
+
+        if (i >= RECV_BUFFER_SIZE) {
+            ESP_LOGE(TAG, "Received data exceeds buffer size");
+            result_buf->result = RECV_RESULT_OVERFLOW;
+            return RESULT_ERROR;
         }
     }
-
-    free(data);
-    vTaskDelete(NULL);
 }
 
-// Task to handle sending and receiving data
-
-static void uart_task(void *arg) {
+static void cat_task(void *arg) {
     info_t *info = get_info();
 
     while (1) {
         int no_in_sendqueue = uxQueueMessagesWaiting(send_queue);
-        if ( no_in_sendqueue == 0) {
+        if (no_in_sendqueue == 0) {
             info->no_empty_sendqueue++;
         } else {
             info->no_busy_sendqueue++;
             info->no_sendqueue_waiting += no_in_sendqueue;
         }
-        // ESP_LOGE(TAG, "Send queue size: %d", no_in_sendqueue);
 
         // Wait for data to send
         result_buf_t result_buf;
+
         if (xQueueReceive(send_queue, &result_buf.command_buf, portMAX_DELAY) == pdPASS) {
-            info->total_sendqueue++;
-
             int64_t start_time = esp_timer_get_time();
+            info->total_sendqueue++;
+            int retries = 0;
 
-            int bytes_written = uart_write_bytes(UART_NUM, result_buf.command_buf.data, result_buf.command_buf.len);
+            for(;;) {
+                result_buf.result = -1;
+                result_buf.data[0] = '\0';
+                result_buf.len = 0;
 
-            if (bytes_written != result_buf.command_buf.len) {
-                ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", result_buf.command_buf.len, bytes_written);
-            }
+                process_command_result_t pcr = process_command(&result_buf);
+                if (pcr == RESULT_OK) {
+                    if (!rig_command_is_fail(result_buf.data) && memcmp(result_buf.data, result_buf.command_buf.data, result_buf.command_buf.len - 1) != 0) {
+                        ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", result_buf.command_buf.data, result_buf.data);
+                        rig_uart_flush();
+                        ESP_LOGW(TAG, "Retrying command");
+                        continue;
+                    }
 
-            if (bytes_written > info->max_send_len) {
-                info->max_send_len = bytes_written;
-            }
-
-            size_t i = 0;
-            while (1) {
-                if (xQueueReceive(input_queue, &result_buf.data[i], pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
-                    ESP_LOGE(TAG, "Timeout while reading response");
-                    result_buf.result = RECV_RESULT_TIMEOUT;
-                    rig_monitor_recv_data(&result_buf);
-                    break;
-                }
-                if (result_buf.data[i] == ';') {
-                    if (result_buf.data[0] != '?') {
+                    if (!rig_command_is_fail(result_buf.data)) {
                         int64_t end_time = esp_timer_get_time();
                         int64_t elapsed_time = end_time - start_time;
                         info->total_response_time += elapsed_time;
@@ -124,91 +120,40 @@ static void uart_task(void *arg) {
                             info->max_response_time = elapsed_time;
                         }
 
-                        if (i + 1 > info->max_receive_len) {
-                            info->max_receive_len = i + 1;
+                        if (result_buf.len > info->max_receive_len) {
+                            info->max_receive_len = result_buf.len;
                         }
                     }
 
-                    result_buf.result = RECV_RESULT_OK;
-                    result_buf.data[i + 1] = '\0';
-                    result_buf.len = i + 1;
-                    // log_result_buf("uart_task", &result_buf);
                     rig_monitor_recv_data(&result_buf);
-
-                    // length of input_queue
-                    int queue_length = uxQueueMessagesWaiting(input_queue);
-                    if (queue_length > 0) {
-                        ESP_LOGW(TAG, "Data in input queue: %d", queue_length);
-                        xQueueReset(input_queue);
-                    }
                     break;
                 }
-                i++;
-                if (i >= RECV_BUFFER_SIZE) {
-                    ESP_LOGE(TAG, "Received data exceeds buffer size");
-                    result_buf.result = RECV_RESULT_OVERFLOW;
+
+                if (pcr == RESULT_TIMEOUT) {
+                    retries++;
+                    if (retries >= 3) {
+                        ESP_LOGW(TAG, "Receive timeout, giving up on command");
+                        result_buf.result = RECV_RESULT_TIMEOUT;
+                        rig_monitor_recv_data(&result_buf);
+
+                        rig_uart_flush();
+                        ESP_LOGW(TAG, "Cleared buffer after timeout");
+                        break;
+                    } {
+                        ESP_LOGW(TAG, "Receive timeout, retrying command");
+                    }
+                }
+
+                if (pcr == RESULT_ERROR) {
                     rig_monitor_recv_data(&result_buf);
+
+                    rig_uart_flush();
+                    ESP_LOGE(TAG, "Cleared buffer after error");
                     break;
                 }
             }
         }
     }
-}
-
-// Initialize the UART driver with interrupt-based reading
-esp_err_t cat_init(void) {
-    send_queue = xQueueCreate(SEND_QUEUE_SIZE, sizeof(command_buf_t));
-    if (send_queue == NULL) {
-        ESP_LOGE(TAG, "Failed to create UART send queue");
-        return ESP_FAIL;
-    }
-
-    // Create the data queue
-    input_queue = xQueueCreate(DATA_QUEUE_SIZE, sizeof(char));
-    if (input_queue == NULL) {
-        ESP_LOGE(TAG, "Failed to create data queue");
-        return ESP_FAIL;
-    }
-
-    uart_config_t uart_config = {
-        .baud_rate = UART_BAUD_RATE,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-    };
-
-    if (uart_param_config(UART_NUM, &uart_config) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure UART parameters");
-        return ESP_FAIL;
-    }
-
-    if (uart_set_pin(UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set UART pins");
-        return ESP_FAIL;
-    }
-
-    // Install UART driver with RX buffer and event queue
-    if (uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE * 2, 20, &uart_event_queue, 0) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to install UART driver");
-        return ESP_FAIL;
-    }
-
-    uart_flush_input(UART_NUM);
-
-    // Create a task to handle UART events
-    if (xTaskCreate(uart_event_task, "uart_event_task", 2048, NULL, 12, NULL) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to create UART event task");
-        return ESP_FAIL;
-    }
-
-    if (xTaskCreate(uart_task, "uart_task", 2048, NULL, 10, NULL) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to create UART task");
-        return ESP_FAIL;
-    }
-
-    ESP_LOGI(TAG, "UART initialized with interrupt-based reading");
-    return ESP_OK;
 }
 
 esp_err_t cat_send(const char *command, int type, int priority) {
@@ -226,14 +171,16 @@ esp_err_t cat_send(const char *command, int type, int priority) {
         return ESP_FAIL;
     }
 
+    // Make sure some space is always available in the send queue for high priority commands
+    UBaseType_t a = uxQueueSpacesAvailable(send_queue);
+    if ((priority == SEND_PRIORITY_HIGH && a == 0) || a < SEND_QUEUE_MIN) {
+        return ESP_ERR_NO_MEM;
+    }
+
     command_buf_t command_buf;
     command_buf.type = type;
     strncpy(command_buf.data, command, SEND_BUFFER_SIZE);
     command_buf.len = command_size;
-
-    // if (type == SEND_TYPE_MONITOR) {
-    //     ESP_LOGI(TAG, "Sending command: %s", command_buf.data);
-    // }
 
     if (priority == SEND_PRIORITY_HIGH) {
         while (xQueueSendToFront(send_queue, &command_buf, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
@@ -251,18 +198,37 @@ esp_err_t cat_send(const char *command, int type, int priority) {
     return ESP_OK;
 }
 
-void cat_clear() {
-    if (input_queue != NULL) {
-        xQueueReset(input_queue);
-    }
+int cat_send_len() {
+    return uxQueueMessagesWaiting(send_queue);
+}
+
+void cat_flush() {
+    rig_uart_flush();
     if (send_queue != NULL) {
         xQueueReset(send_queue);
     }
-    if (uart_event_queue != NULL) {
-        xQueueReset(uart_event_queue);
+}
+
+// Initialize the UART driver with interrupt-based reading
+esp_err_t cat_init(void) {
+    if (rig_uart_init() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to initialize UART");
+        return ESP_FAIL;
     }
 
-    uart_flush(UART_NUM);
+    send_queue = xQueueCreate(SEND_QUEUE_SIZE, sizeof(command_buf_t));
+    if (send_queue == NULL) {
+        ESP_LOGE(TAG, "Failed to create UART send queue");
+        return ESP_FAIL;
+    }
+
+    if (xTaskCreate(cat_task, "cat_task", 4096, NULL, 10, NULL) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to create UART task");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGI(TAG, "CAT interface initialized");
+    return ESP_OK;
 }
 
 void log_command_buf(const char *tag, command_buf_t *command_buf) {

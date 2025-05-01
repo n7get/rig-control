@@ -10,6 +10,7 @@ idf_component_register(
 		"observer.c"
 		"rig_commands.c"
 		"rig_monitor.c"
+		"rig_uart.c"
 		"settings.c"
 		"wifi.c"
 	PRIV_REQUIRES "dns_server" 

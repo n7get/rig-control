@@ -42,6 +42,33 @@ buffer_t *buffer_create(size_t buf_size, buffer_fill_callback_t callback, void *
 int buffer_get_byte(buffer_t *buffer, uint8_t *byte);
 
 /**
+ * @brief Peek at what's in the buffer without removing it.
+ *
+ * If the buffer is empty, returns 0.
+ *
+ * @param buffer Pointer to the initialized buffer_t structure.
+ * @param buf Pointer to the buffer where data will be stored.
+ * @param max_len Maximum number of bytes to read.
+ * @return Number of bytes read, or -1 on error.
+ */
+int buffer_peek(buffer_t *buffer, uint8_t *buf, size_t max_len);
+
+/**
+ * @brief Return the number of bytes in the buffer.
+ * 
+ * @param buffer Pointer to the initialized buffer_t structure.
+ * @return Number of bytes in the buffer.
+ */
+int buffer_len(buffer_t *buffer);
+
+/**
+ * @brief Resets the buffer's read position and count.
+ *
+ * @param buffer Pointer to the buffer_t structure to reset.
+ */
+void buffer_flush(buffer_t *buffer);
+
+/**
  * @brief Frees the memory allocated for the buffer structure and its data.
  *
  * @param buffer Pointer to the buffer_t structure to free.

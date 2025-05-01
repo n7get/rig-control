@@ -1,6 +1,6 @@
+#include <stdlib.h>
+#include <string.h>
 #include "buffer.h"
-#include <string.h> // For NULL
-#include <stdlib.h> // For malloc and free
 
 /**
  * @brief Initializes the buffer structure.
@@ -32,12 +32,26 @@ buffer_t *buffer_create(size_t buf_size, buffer_fill_callback_t callback, void *
     return buffer;
 }
 
+int buffer_len(buffer_t *buffer) {
+    if (buffer == NULL) {
+        return -1; // Invalid arguments
+    }
+    return buffer->count - buffer->read_pos;
+}
+
+void buffer_flush(buffer_t *buffer) {
+    if (buffer) {
+        buffer->count = 0;
+        buffer->read_pos = 0;
+    }
+}
+
 /**
  * @brief Gets the next byte from the buffer.
  */
 int buffer_get_byte(buffer_t *buffer, uint8_t *byte) {
     if (!buffer || !byte) {
-        return -1; // Invalid arguments
+        return -1;
     }
 
     // If the buffer is empty, try to refill it
@@ -58,6 +72,26 @@ int buffer_get_byte(buffer_t *buffer, uint8_t *byte) {
     *byte = buffer->data[buffer->read_pos++];
 
     return 1; // Byte successfully retrieved
+}
+
+int buffer_peek(buffer_t *buffer, uint8_t *buf, size_t max_len) {
+    if (!buffer || !buf) {
+        return -1; // Invalid arguments
+    }
+
+    size_t bytes_to_copy = buffer->count - buffer->read_pos;
+
+    if (bytes_to_copy <= 0) {
+        return 0;
+    }
+
+    if (bytes_to_copy > max_len) {
+        bytes_to_copy = max_len;
+    }
+
+    memcpy(buf, &buffer->data[buffer->read_pos], bytes_to_copy);
+    
+    return bytes_to_copy; // Number of bytes copied
 }
 
 /**
