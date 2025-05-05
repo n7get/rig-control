@@ -7,11 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "info.h"
-#include "rig_commands.h"
 
 #define TAG "INFO"
-
-extern rig_command_t rig_commands[];
 
 info_t info;
 
@@ -35,6 +32,7 @@ static void init_info() {
     info.valid = 0;
     info.updates = 0;
     info.send_queue_full = 0;
+    info.send_queue_fast_full = 0;
     info.uart_max_read_len = 0;
     info.uart_buffer_full = 0;
     info.uart_fifo_ovf = 0;
@@ -74,6 +72,7 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     float avg_updates = (float)info.updates / (float)info.polls;
     cJSON_AddNumberToObject(json, "avg_updates", avg_updates);
     cJSON_AddNumberToObject(json, "send_queue_full", info.send_queue_full);
+    cJSON_AddNumberToObject(json, "send_queue_fast_full", info.send_queue_fast_full);
     cJSON_AddNumberToObject(json, "uart_max_read_len", info.uart_max_read_len);
     cJSON_AddNumberToObject(json, "uart_buffer_full", info.uart_buffer_full);
     cJSON_AddNumberToObject(json, "uart_fifo_ovf", info.uart_fifo_ovf);

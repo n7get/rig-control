@@ -1,5 +1,4 @@
-#ifndef RIG_MONITOR_H
-#define RIG_MONITOR_H
+#pragma once
 
 #include "cat.h"
 #include "observer.h"
@@ -13,5 +12,3 @@ void rig_monitor_remove_observers(observer_callback_t callback);
 void rig_monitor_recv_data(result_buf_t *result);
 esp_err_t rig_monitor_send(const char *command, int type);
 void init_rig_monitor();
-
-#endif

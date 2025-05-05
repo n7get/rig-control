@@ -173,7 +173,7 @@ esp_err_t cat_send(const char *command, int type, int priority) {
 
     // Make sure some space is always available in the send queue for high priority commands
     UBaseType_t a = uxQueueSpacesAvailable(send_queue);
-    if ((priority == SEND_PRIORITY_HIGH && a == 0) || a < SEND_QUEUE_MIN) {
+    if ((priority == SEND_PRIORITY_HIGH && a == 0) || (priority == SEND_PRIORITY_NORMAL && a <= SEND_QUEUE_MIN)) {
         return ESP_ERR_NO_MEM;
     }
 

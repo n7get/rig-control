@@ -1,5 +1,4 @@
-#ifndef OBSERVER_H
-#define OBSERVER_H
+#pragma once
 
 #include <stddef.h>
 
@@ -22,6 +21,3 @@ void add_observer(subject_t *subject, observer_callback_t callback, void *contex
 void remove_observer(subject_t *subject, observer_callback_t callback);
 void subject_notify(subject_t *subject, void *data);
 void free_subject(subject_t *subject);
-
-#endif // OBSERVER_H
-

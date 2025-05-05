@@ -9,10 +9,9 @@
 #include <lwip/netdb.h>
 #include "string.h"
 #include "buffer.h"
+#include "rig.h"
 #include "rig_commands.h"
 #include "rig_monitor.h"
-
-#include "cat.h" // For SEND_TYPE_COMMAND, RECV_BUFFER_SIZE
 #include "rig_monitor.h" // For rig_monitor_command_buf
 #include "observer.h" // For observer_add
 
@@ -97,11 +96,7 @@ static void connection_established(int sock, buffer_t *buffer) {
             if (rx_buffer[i] == ';') {
                 rx_buffer[i + 1] = '\0';
 
-                if (strcmp(rx_buffer, ENHANCED_RIG_COMMAND_ENHANCED_MODE) == 0) {
-                    rig_monitor_add_observers(OBSERVE_UPDATES|OBSERVE_STATUS, tcp_send_callback, (void *)&sock);
-                } else {
-                    rig_monitor_send(rx_buffer, SEND_TYPE_COMMAND);
-                }
+                rig_monitor_send(rx_buffer, SEND_TYPE_COMMAND);
 
                 i = 0;
             }
@@ -142,7 +137,7 @@ static void wait_for_accept(int listen_sock) {
         // Set the current active socket for the send task
         ESP_LOGI(TAG, "Socket accepted");
 
-        rig_monitor_add_observers(OBSERVE_COMMANDS, tcp_send_callback, (void *)&sock);
+        rig_monitor_add_observers(OBSERVE_COMMANDS|OBSERVE_UPDATES|OBSERVE_STATUS, tcp_send_callback, (void *)&sock);
 
         buffer_t *buffer = buffer_create(RECV_BUFFER_SIZE, buffer_fill_callback, (void *)&sock);
         if (buffer == NULL) {

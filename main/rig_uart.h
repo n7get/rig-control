@@ -1,5 +1,4 @@
-#ifndef RIG_UART_H
-#define RIG_UART_H
+#pragma once
 
 #include <stdio.h>
 #include "buffer.h"
@@ -17,5 +16,3 @@ int rig_uart_recv_byte(char *data);
 int rig_uart_peek_buffer(char *data, size_t len);
 void rig_uart_clear_buffer(void);
 void rig_uart_flush(void);
-
-#endif // RIG_UART_H

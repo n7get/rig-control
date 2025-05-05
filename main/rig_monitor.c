@@ -6,7 +6,6 @@
 #include "freertos/timers.h"
 #include "esp_log.h"
 #include "esp_timer.h"
-#include "cat.h"
 #include "info.h"
 #include "observer.h"
 #include "rig_commands.h"
@@ -21,6 +20,7 @@ typedef enum {
     RM_EVENT_SCAN,
     RM_EVENT_REFRESH,
     RM_EVENT_START,
+    RM_EVENT_PING,
 } rm_event_type_t;
 
 typedef struct {
@@ -56,8 +56,7 @@ void notify_observers(result_buf_t *result, bool updated) {
     }
 }
 
-void notify_status(char *data) {
-    ESP_LOGI(TAG, "Notify status: %s", data);
+void notify_status(const char *data) {
     result_buf_t result_buf;
     result_buf.result = RECV_RESULT_OK;
     strncpy(result_buf.data, data, RECV_BUFFER_SIZE);
@@ -87,6 +86,9 @@ static void log_event(rm_event_t *event, bool in_startup, bool is_ready) {
             break;
         case RM_EVENT_START:
             type_str = "START";
+            break;
+        case RM_EVENT_PING:
+            type_str = "PING";
             break;
         default:
             type_str = "UNKNOWN";
@@ -135,17 +137,19 @@ static bool event_received(bool in_startup, result_buf_t *result) {
         return true;
     }
 
-    rig_command_t *cmd = find_command(result->command_buf.data);
-    if (cmd == NULL) {
-        ESP_LOGE(TAG, "Command not found: %s", result->command_buf.data);
-        return false;
-    }
-
-    bool updated = rig_command_set_last_value(cmd, result->data);
+    bool updated = rig_command_set_last_value(result, result->data);
 
     notify_observers(result, updated);
 
     return false;
+}
+
+static void event_ping(bool in_startup, bool is_ready) {
+    if (!in_startup && is_ready) {
+        notify_status(rig_command_ready());
+    } else {
+        notify_status(rig_command_not_ready());
+    }
 }
 
 /**
@@ -200,16 +204,16 @@ static void rig_monitor_task(void *pvParameters) {
                     rig_command_reset();
                     cat_flush();
                     send_rig_id_command();
-                    ESP_LOGW(TAG, "Rig monitor timeout, resetting");
-                    notify_status(ENHANCED_RIG_RESULT_NOT_READY);
+                    ESP_LOGW(TAG, "Restarting rig monitor");
+                    notify_status(rig_command_not_ready());
                     break;
 
                 case RM_EVENT_SEND:
                     if (in_startup || !is_ready) {
-                        notify_status(ENHANCED_RIG_RESULT_NOT_READY);
+                        notify_status(rig_command_not_ready());
                     } else {
                         if (cat_send(event.command_buf.data, event.command_buf.type, event.priority) == ESP_ERR_NO_MEM) {
-                            notify_status(ENHANCED_RIG_RESULT_BUSY);
+                            notify_status(rig_command_busy());
                             get_info()->send_queue_full++;
                         }
                     }
@@ -220,7 +224,7 @@ static void rig_monitor_task(void *pvParameters) {
                         if (!is_ready) {
                             if (rig_command_is_ready()) {
                                 is_ready = true;
-                                notify_status(ENHANCED_RIG_RESULT_READY);
+                                notify_status(rig_command_ready());
                                 ESP_LOGI(TAG, "Rig monitor is ready");
                             }
                         } else {
@@ -231,6 +235,10 @@ static void rig_monitor_task(void *pvParameters) {
 
                 case RM_EVENT_REFRESH:
                     rig_command_refresh();
+                    break;
+
+                case RM_EVENT_PING:
+                    event_ping(in_startup, is_ready);
                     break;
 
                 default:
@@ -268,38 +276,52 @@ void rig_monitor_remove_observers(observer_callback_t callback) {
 }
 
 esp_err_t rig_monitor_send(const char *command, int type) {
-    size_t command_size = strnlen(command, SEND_BUFFER_SIZE);
-    if (command_size == 0) {
-        ESP_LOGE(TAG, "Command is empty");
-        return ESP_FAIL;
-    }
-    // Buffer needs to be large enough to hold the command and the null terminator
-    if (command_size >= SEND_BUFFER_SIZE) {
-        ESP_LOGE(TAG, "Command size %d exceeds buffer size %d", command_size, SEND_BUFFER_SIZE - 1);
-        return ESP_FAIL;
-    }
-    if (command[command_size - 1] != ';') {
-        ESP_LOGE(TAG, "Command must end with a semicolon");
-        return ESP_FAIL;
-    }
-
     rm_event_t event;
 
-    if (strcmp(command, ENHANCED_RIG_COMMAND_REFRESH) == 0) {
-        event.type = RM_EVENT_REFRESH;
-    } else {
+    if (rig_command_is_refresh(command)) {
+        event.type = RM_EVENT_START;
+    
+        while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to send event to rig monitor task");
+        }
+
+        return ESP_OK;
+    }
+
+    if (rig_command_is_ping(command)) {
+        event.type = RM_EVENT_PING;
+    
+        while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to send event to rig monitor task");
+        }
+
+        return ESP_OK;
+    }
+
+    switch (rig_command_recv_command(command)) {
+    case RC_COMMAND_NORMAL:
         event.type = RM_EVENT_SEND;
         event.priority = type == SEND_TYPE_COMMAND ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
         event.command_buf.type = type;
         strncpy(event.command_buf.data, command, SEND_BUFFER_SIZE);
-        event.command_buf.len = command_size;
+        event.command_buf.len = strnlen(command, SEND_BUFFER_SIZE);
+    
+        while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to send event to rig monitor task");
+        }
+
+        return ESP_OK;
+
+    case RC_COMMAND_INVALID:
+        ESP_LOGE(TAG, "Command not valid: %s", command);
+        return ESP_FAIL;
+
+    case RC_COMMAND_IGNORE:
+        ESP_LOGI(TAG, "Command ignored: %s", command);
+        return ESP_OK;
     }
 
-    while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to send event to rig monitor task");
-    }
-
-    return ESP_OK;
+    return ESP_FAIL;
 }
 
 void rig_monitor_recv_data(result_buf_t *result) {

@@ -1,5 +1,4 @@
-#ifndef BUFFER_H
-#define BUFFER_H
+#pragma once
 
 #include <stddef.h>
 #include <stdint.h>
@@ -74,5 +73,3 @@ void buffer_flush(buffer_t *buffer);
  * @param buffer Pointer to the buffer_t structure to free.
  */
 void buffer_free(buffer_t *buffer);
-
-#endif // BUFFER_H

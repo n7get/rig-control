@@ -6,9 +6,9 @@
 #include "freertos/queue.h"
 #include "freertos/task.h"
 #include "buffer.h"
-#include "cat.h"
 #include "info.h"
 #include "pins.h"
+#include "rig.h"
 #include "rig_uart.h"
 #include "rig_commands.h"
 

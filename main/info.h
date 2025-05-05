@@ -1,6 +1,4 @@
-// generate info.h file
-#ifndef INFO_H
-#define INFO_H
+#pragma once
 
 typedef struct {
     int no_empty_sendqueue;
@@ -18,6 +16,7 @@ typedef struct {
     int valid;
     int updates;
     int send_queue_full;
+    int send_queue_fast_full;
     int uart_max_read_len;
     int uart_buffer_full;
     int uart_fifo_ovf;
@@ -26,5 +25,3 @@ typedef struct {
 
 info_t *get_info();
 void register_info_endpoints(void);
-
-#endif // INFO_H
