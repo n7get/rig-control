@@ -45,24 +45,24 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    cJSON_AddNumberToObject(json, "no_empty_sendqueue", info.no_empty_sendqueue);
-    cJSON_AddNumberToObject(json, "no_busy_sendqueue", info.no_busy_sendqueue);
+    // cJSON_AddNumberToObject(json, "no_empty_sendqueue", info.no_empty_sendqueue);
+    // cJSON_AddNumberToObject(json, "no_busy_sendqueue", info.no_busy_sendqueue);
     float busy_sendqueue_percent = ((float)info.no_busy_sendqueue / (float)(info.no_empty_sendqueue + info.no_busy_sendqueue)) * 100.0f;
     cJSON_AddNumberToObject(json, "busy_sendqueue_percent", busy_sendqueue_percent);
-    cJSON_AddNumberToObject(json, "no_sendqueue_waiting", info.no_sendqueue_waiting);
-    cJSON_AddNumberToObject(json, "total_sendqueue", info.total_sendqueue);
+    // cJSON_AddNumberToObject(json, "no_sendqueue_waiting", info.no_sendqueue_waiting);
+    // cJSON_AddNumberToObject(json, "total_sendqueue", info.total_sendqueue);
     float avg_sendqueue_len = (float)info.no_sendqueue_waiting / (float)info.total_sendqueue;
     cJSON_AddNumberToObject(json, "avg_sendqueue_len", avg_sendqueue_len);
 
     cJSON_AddNumberToObject(json, "max_send_len", info.max_send_len);
     cJSON_AddNumberToObject(json, "max_receive_len", info.max_receive_len);
-    cJSON_AddNumberToObject(json, "total_response_time", info.total_response_time / 1000);
-    cJSON_AddNumberToObject(json, "no_responses", info.no_responses);
-    cJSON_AddNumberToObject(json, "max_response_time", info.max_response_time / 1000);
+    // cJSON_AddNumberToObject(json, "total_response_time", info.total_response_time / 1000);
+    // cJSON_AddNumberToObject(json, "no_responses", info.no_responses);
     float avg_response_time = (float)info.total_response_time / (float)info.no_responses;
     cJSON_AddNumberToObject(json, "avg_response_time", avg_response_time / 1000.0f);
+    cJSON_AddNumberToObject(json, "max_response_time", info.max_response_time / 1000);
 
-    cJSON_AddNumberToObject(json, "polls", info.polls);
+    // cJSON_AddNumberToObject(json, "polls", info.polls);
     float avg_elapsed_ticks = (float)info.elapsed_ticks / (float)info.polls;
     cJSON_AddNumberToObject(json, "avg_elapsed_ticks", avg_elapsed_ticks);
     float avg_pending = (float)info.pending / (float)info.polls;
@@ -79,6 +79,8 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     cJSON_AddNumberToObject(json, "input_queue_full", info.input_queue_full);
 
     cJSON_AddNumberToObject(json, "free_heap", esp_get_free_heap_size());
+    cJSON_AddNumberToObject(json, "min_free_heap", esp_get_minimum_free_heap_size());
+    cJSON_AddNumberToObject(json, "free_stack", uxTaskGetStackHighWaterMark(NULL));
 
     init_info();
 
