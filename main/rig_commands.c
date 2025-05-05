@@ -51,6 +51,7 @@ typedef struct {
 #define ENHANCED_RIG_RESULT_READY "!R;"
 #define ENHANCED_RIG_RESULT_ERROR "!E;"
 #define ENHANCED_RIG_RESULT_BUSY "!B;"
+#define ENHANCED_RIG_RESULT_PING "!P;"
 
 #define TAG "RIG_COMMANDS"
 
@@ -537,17 +538,20 @@ bool rig_command_is_ping(const char *value) {
     return strcmp(value, ENHANCED_RIG_COMMAND_PING) == 0;
 }
 
-const char *rig_command_not_ready() {
+const char *rig_command_result_not_ready() {
     return ENHANCED_RIG_RESULT_NOT_READY;
 }
-const char *rig_command_ready() {
+const char *rig_command_result_ready() {
     return ENHANCED_RIG_RESULT_READY;
 }
-const char *rig_command_error() {
+const char *rig_command_result_error() {
     return ENHANCED_RIG_RESULT_ERROR;
 }
-const char *rig_command_busy() {
+const char *rig_command_result_busy() {
     return ENHANCED_RIG_RESULT_BUSY;
+}
+const char *rig_command_result_ping() {
+    return ENHANCED_RIG_RESULT_PING;
 }
 
 bool rig_command_is_fail(const char *result) {

@@ -77,22 +77,27 @@ bool rig_command_set_last_value(result_buf_t *result, const char *value);
 /**
  * Value for monitor not ready.
  */
-const char *rig_command_not_ready();
+const char *rig_command_result_not_ready();
 
 /**
  * Vaalue for monitor ready.
  */
-const char *rig_command_ready();
+const char *rig_command_result_ready();
 
 /**
  * Value for monitor encountered an error.
  */
-const char *rig_command_error();
+const char *rig_command_result_error();
 
 /**
  * Value for monitor busy.
  */
-const char *rig_command_busy();
+const char *rig_command_result_busy();
+
+/**
+ * Value for monitor ping.
+ */
+const char *rig_command_result_ping();
 
 /**
  * Special command to refresh the monitor.

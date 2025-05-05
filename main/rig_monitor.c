@@ -145,11 +145,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
 }
 
 static void event_ping(bool in_startup, bool is_ready) {
-    if (!in_startup && is_ready) {
-        notify_status(rig_command_ready());
-    } else {
-        notify_status(rig_command_not_ready());
-    }
+    notify_status(rig_command_result_ping());
 }
 
 /**
@@ -205,15 +201,15 @@ static void rig_monitor_task(void *pvParameters) {
                     cat_flush();
                     send_rig_id_command();
                     ESP_LOGW(TAG, "Restarting rig monitor");
-                    notify_status(rig_command_not_ready());
+                    notify_status(rig_command_result_not_ready());
                     break;
 
                 case RM_EVENT_SEND:
                     if (in_startup || !is_ready) {
-                        notify_status(rig_command_not_ready());
+                        notify_status(rig_command_result_not_ready());
                     } else {
                         if (cat_send(event.command_buf.data, event.command_buf.type, event.priority) == ESP_ERR_NO_MEM) {
-                            notify_status(rig_command_busy());
+                            notify_status(rig_command_result_busy());
                             get_info()->send_queue_full++;
                         }
                     }
@@ -224,7 +220,7 @@ static void rig_monitor_task(void *pvParameters) {
                         if (!is_ready) {
                             if (rig_command_is_ready()) {
                                 is_ready = true;
-                                notify_status(rig_command_ready());
+                                notify_status(rig_command_result_ready());
                                 ESP_LOGI(TAG, "Rig monitor is ready");
                             }
                         } else {
