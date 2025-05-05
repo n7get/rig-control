@@ -44,7 +44,7 @@ static TickType_t last_scan_tick;
  * @brief Send the ID command to the radio.
  */
 static void send_rig_id_command() {
-    cat_send(rig_command_id(), SEND_TYPE_MONITOR, SEND_PRIORITY_HIGH);
+    cat_send(rc_id_command(), SEND_TYPE_MONITOR, SEND_PRIORITY_HIGH);
 }
 
 void notify_observers(result_buf_t *result, bool updated) {
@@ -123,7 +123,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
 
     if (in_startup) {
         if (result->result == RECV_RESULT_OK) {
-            if (strcmp(result->data, rig_expected_id()) == 0) {
+            if (strcmp(result->data, rc_is_id()) == 0) {
                 ESP_LOGI(TAG, "Received ID command: %s", result->data);
                 ESP_LOGI(TAG, "Send queue length: %d", cat_send_len());
                 return false;
@@ -137,7 +137,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
         return true;
     }
 
-    bool updated = rig_command_set_last_value(result, result->data);
+    bool updated = rc_set_last_value(result, result->data);
 
     notify_observers(result, updated);
 
@@ -145,7 +145,7 @@ static bool event_received(bool in_startup, result_buf_t *result) {
 }
 
 static void event_ping(bool in_startup, bool is_ready) {
-    notify_status(rig_command_result_ping());
+    notify_status(rc_result_ping());
 }
 
 /**
@@ -197,19 +197,19 @@ static void rig_monitor_task(void *pvParameters) {
                 case RM_EVENT_START:
                     in_startup = true;
                     is_ready = false;
-                    rig_command_reset();
+                    rc_reset();
                     cat_flush();
                     send_rig_id_command();
                     ESP_LOGW(TAG, "Restarting rig monitor");
-                    notify_status(rig_command_result_not_ready());
+                    notify_status(rc_result_not_ready());
                     break;
 
                 case RM_EVENT_SEND:
                     if (in_startup || !is_ready) {
-                        notify_status(rig_command_result_not_ready());
+                        notify_status(rc_result_not_ready());
                     } else {
                         if (cat_send(event.command_buf.data, event.command_buf.type, event.priority) == ESP_ERR_NO_MEM) {
-                            notify_status(rig_command_result_busy());
+                            notify_status(rc_result_busy());
                             get_info()->send_queue_full++;
                         }
                     }
@@ -218,19 +218,19 @@ static void rig_monitor_task(void *pvParameters) {
                 case RM_EVENT_SCAN:
                     if (!in_startup) {
                         if (!is_ready) {
-                            if (rig_command_is_ready()) {
+                            if (rc_is_ready()) {
                                 is_ready = true;
-                                notify_status(rig_command_result_ready());
+                                notify_status(rc_result_ready());
                                 ESP_LOGI(TAG, "Rig monitor is ready");
                             }
                         } else {
-                            last_scan_tick = rig_command_scan_for_updates(last_scan_tick);
+                            last_scan_tick = rc_scan_for_updates(last_scan_tick);
                         }
                     }
                     break;
 
                 case RM_EVENT_REFRESH:
-                    rig_command_refresh();
+                    rc_refresh();
                     break;
 
                 case RM_EVENT_PING:
@@ -271,10 +271,10 @@ void rig_monitor_remove_observers(observer_callback_t callback) {
     remove_observer(status_subject, callback);
 }
 
-esp_err_t rig_monitor_send(const char *command, int type) {
+esp_err_t rm_queue_command(const char *command, int type) {
     rm_event_t event;
 
-    if (rig_command_is_refresh(command)) {
+    if (rc_is_refresh(command)) {
         event.type = RM_EVENT_START;
     
         while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
@@ -284,7 +284,7 @@ esp_err_t rig_monitor_send(const char *command, int type) {
         return ESP_OK;
     }
 
-    if (rig_command_is_ping(command)) {
+    if (rc_is_ping(command)) {
         event.type = RM_EVENT_PING;
     
         while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
@@ -294,7 +294,7 @@ esp_err_t rig_monitor_send(const char *command, int type) {
         return ESP_OK;
     }
 
-    switch (rig_command_recv_command(command)) {
+    switch (rc_recv_command(command)) {
     case RC_COMMAND_NORMAL:
         event.type = RM_EVENT_SEND;
         event.priority = type == SEND_TYPE_COMMAND ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
@@ -320,7 +320,7 @@ esp_err_t rig_monitor_send(const char *command, int type) {
     return ESP_FAIL;
 }
 
-void rig_monitor_recv_data(result_buf_t *result) {
+void rm_queue_result(result_buf_t *result) {
     rm_event_t event;
 
     switch(result->result) {

@@ -104,14 +104,14 @@ static void cat_task(void *arg) {
 
                 process_command_result_t pcr = process_command(&result_buf);
                 if (pcr == RESULT_OK) {
-                    if (!rig_command_is_fail(result_buf.data) && memcmp(result_buf.data, result_buf.command_buf.data, result_buf.command_buf.len - 1) != 0) {
+                    if (!rc_is_fail(result_buf.data) && memcmp(result_buf.data, result_buf.command_buf.data, result_buf.command_buf.len - 1) != 0) {
                         ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", result_buf.command_buf.data, result_buf.data);
                         rig_uart_flush();
                         ESP_LOGW(TAG, "Retrying command");
                         continue;
                     }
 
-                    if (!rig_command_is_fail(result_buf.data)) {
+                    if (!rc_is_fail(result_buf.data)) {
                         int64_t end_time = esp_timer_get_time();
                         int64_t elapsed_time = end_time - start_time;
                         info->total_response_time += elapsed_time;
@@ -125,7 +125,7 @@ static void cat_task(void *arg) {
                         }
                     }
 
-                    rig_monitor_recv_data(&result_buf);
+                    rm_queue_result(&result_buf);
                     break;
                 }
 
@@ -134,7 +134,7 @@ static void cat_task(void *arg) {
                     if (retries >= 3) {
                         ESP_LOGW(TAG, "Receive timeout, giving up on command");
                         result_buf.result = RECV_RESULT_TIMEOUT;
-                        rig_monitor_recv_data(&result_buf);
+                        rm_queue_result(&result_buf);
 
                         rig_uart_flush();
                         ESP_LOGW(TAG, "Cleared buffer after timeout");
@@ -145,7 +145,7 @@ static void cat_task(void *arg) {
                 }
 
                 if (pcr == RESULT_ERROR) {
-                    rig_monitor_recv_data(&result_buf);
+                    rm_queue_result(&result_buf);
 
                     rig_uart_flush();
                     ESP_LOGE(TAG, "Cleared buffer after error");

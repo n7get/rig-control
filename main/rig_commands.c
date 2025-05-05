@@ -342,7 +342,7 @@ static void log_rig_command(char *tag, rig_command_t *cmd) {
  * Once all commands are initialized (VALID_F), then return
  * true.
  */
-bool rig_command_is_ready() {
+bool rc_is_ready() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         if (rig_commands[i].flags & INVALID_F) {
             if(cat_send(rig_commands[i].cmd, SEND_TYPE_MONITOR, SEND_PRIORITY_NORMAL) == ESP_ERR_NO_MEM) {
@@ -388,7 +388,7 @@ static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority
 // send commands to the rig. It uses a tick count to manage
 // the timing of the updates.
 // It returns the tick count of the last scan.
-TickType_t rig_command_scan_for_updates(TickType_t last_scan_tick) {
+TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
     TickType_t start_tick = xTaskGetTickCount();
     TickType_t elapsed_ticks = start_tick - last_scan_tick;
 
@@ -419,7 +419,7 @@ TickType_t rig_command_scan_for_updates(TickType_t last_scan_tick) {
     return xTaskGetTickCount();
 }
 
-rc_recv_command_type rig_command_recv_command(const char *cmd_str) {
+rc_recv_command_type rc_recv_command(const char *cmd_str) {
     if (cmd_str[0] == '+' || cmd_str[0] == '-') {
         rig_command_t *command = find_command(cmd_str + 1);
         if (command == NULL) {
@@ -445,7 +445,7 @@ rc_recv_command_type rig_command_recv_command(const char *cmd_str) {
     return RC_COMMAND_NORMAL;
 }
 
-void rig_command_reset() {
+void rc_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         rig_commands[i].flags &= RESET_MASK;
         rig_commands[i].flags |= INVALID_F;
@@ -453,12 +453,6 @@ void rig_command_reset() {
         rig_commands[i].last_value[0] = '\0';
     }
 }
-
-// void rig_command_refresh() {
-//     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-//         rig_commands[i].last_value[0] = '\0';
-//     }
-// }
 
 // A response from the rig has been received.
 // Clear pending and set valid.
@@ -469,7 +463,7 @@ void rig_command_reset() {
 // If the response hasn't changed and countdown is active, decrement the countdown.
 // If the countdown reaches zero, clear the fast flag.
 // If the response is the same return false, otherwise return true.
-bool rig_command_set_last_value(result_buf_t *result, const char *value) {
+bool rc_set_last_value(result_buf_t *result, const char *value) {
     rig_command_t *cmd = find_command(result->command_buf.data);
     if (cmd == NULL) {
         ESP_LOGE(TAG, "Command not found: %s", result->command_buf.data);
@@ -480,11 +474,11 @@ bool rig_command_set_last_value(result_buf_t *result, const char *value) {
         return false;
     }
 
-    // ESP_LOGI(TAG, "rig_command_set_last_value, cmd: %s, status: %d", cmd->cmd, cmd->status);
+    // ESP_LOGI(TAG, "rc_set_last_value, cmd: %s, status: %d", cmd->cmd, cmd->status);
     cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
     cmd->flags |= VALID_F;
 
-    if (rig_command_is_fail(value)) {
+    if (rc_is_fail(value)) {
         cmd->flags |= ERROR_F;
         cmd->flags &= ~FAST_F;
         cmd->last_value[0] = '\0';
@@ -517,44 +511,44 @@ bool rig_command_set_last_value(result_buf_t *result, const char *value) {
     return false;
 }
 
-const char *rig_command_id() {
+const char *rc_id_command() {
     return "ID;";
 }
-const char *rig_expected_id() {
+const char *rc_is_id() {
     return "ID0670;";
 }
 
-const char *rig_command_refresh() {
+const char *rc_refresh() {
     return ENHANCED_RIG_COMMAND_REFRESH;
 }
-bool rig_command_is_refresh(const char *value) {
+bool rc_is_refresh(const char *value) {
     return strcmp(value, ENHANCED_RIG_COMMAND_REFRESH) == 0;
 }
 
-const char *rig_command_ping() {
+const char *rc_ping_command() {
     return ENHANCED_RIG_COMMAND_PING;
 }
-bool rig_command_is_ping(const char *value) {
+bool rc_is_ping(const char *value) {
     return strcmp(value, ENHANCED_RIG_COMMAND_PING) == 0;
 }
 
-const char *rig_command_result_not_ready() {
+const char *rc_result_not_ready() {
     return ENHANCED_RIG_RESULT_NOT_READY;
 }
-const char *rig_command_result_ready() {
+const char *rc_result_ready() {
     return ENHANCED_RIG_RESULT_READY;
 }
-const char *rig_command_result_error() {
+const char *rc_result_error() {
     return ENHANCED_RIG_RESULT_ERROR;
 }
-const char *rig_command_result_busy() {
+const char *rc_result_busy() {
     return ENHANCED_RIG_RESULT_BUSY;
 }
-const char *rig_command_result_ping() {
+const char *rc_result_ping() {
     return ENHANCED_RIG_RESULT_PING;
 }
 
-bool rig_command_is_fail(const char *result) {
+bool rc_is_fail(const char *result) {
     if (result == NULL) {
         return false;
     }

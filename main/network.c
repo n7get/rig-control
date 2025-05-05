@@ -96,7 +96,7 @@ static void connection_established(int sock, buffer_t *buffer) {
             if (rx_buffer[i] == ';') {
                 rx_buffer[i + 1] = '\0';
 
-                rig_monitor_send(rx_buffer, SEND_TYPE_COMMAND);
+                rm_queue_command(rx_buffer, SEND_TYPE_COMMAND);
 
                 i = 0;
             }
