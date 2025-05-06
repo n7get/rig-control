@@ -34,6 +34,14 @@ bool rc_is_ready();
 TickType_t rc_scan_for_updates(TickType_t last_scan_tick);
 
 /**
+ * rc_randomize_refresh
+ * 
+ * This function randomizes the refresh time of all commands
+ * The idea is to spread out the refresh time of all commands
+ */
+void rc_randomize_refresh();
+
+/**
  * rc_recv_command
  * 
  * This function checks if the command is a valid command.

@@ -233,6 +233,7 @@ static void rig_monitor_task(void *pvParameters) {
                             break;
                         }
 
+                        rc_randomize_refresh();
                         is_ready = true;
                         notify_status(rc_result_ready());
                         ESP_LOGI(TAG, "Rig monitor is ready");

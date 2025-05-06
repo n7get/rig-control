@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "esp_log.h"
+#include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "cat.h"
 #include "info.h"
@@ -418,6 +419,12 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
     }
 
     return xTaskGetTickCount();
+}
+
+void rc_randomize_refresh() {
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        rig_commands[i].next_refresh = esp_random() % rig_commands[i].refresh_time;
+    }
 }
 
 rc_recv_command_type rc_recv_command(const char *cmd_str) {
