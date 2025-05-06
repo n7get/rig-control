@@ -13,7 +13,7 @@
 #define MEDIUM_REFRESH_TIME pdMS_TO_TICKS(2000)
 #define SLOW_REFRESH_TIME pdMS_TO_TICKS(10000)
 
-#define AUTO_FAST_REFRESH_COUNT pdMS_TO_TICKS(5000)
+#define AUTO_FAST_REFRESH_TICKS pdMS_TO_TICKS(5000)
 
 // These flags are used to initialization of the command values
 #define INVALID_F 0x1       // Command not initialized
@@ -29,7 +29,7 @@
 // kick into automatic fast refresh mode.  Once the count down
 // has expired, the command will go back to normal refresh time.
 #define AUTO_FAST_F 0x40    // This flag is never cleared
-#define COUNT_DOWN_F 0x80
+#define CHECK_FAST_UNTIL 0x80
 
 #define RESET_MASK (AUTO_FAST_F)
 
@@ -38,7 +38,7 @@ typedef struct {
     const char *cmd;                    // Command string
     uint8_t len;                        // Length of the command string (excluding the semicolon)
     uint8_t flags;                      // Flags to indicate the status of the command
-    int16_t fast_count;                 // Fast count for the command
+    TickType_t fast_until;              // Fast count for the command
     int16_t refresh_time;               // Refresh time in ticks
     int16_t next_refresh;               // Next refresh time in ticks
     char last_value[RECV_BUFFER_SIZE];  // Last value, initialized to NULL
@@ -321,7 +321,7 @@ static void log_rig_command(char *tag, rig_command_t *cmd) {
     if (cmd->flags & AUTO_FAST_F) {
         strcat(flags_str, "A");
     }
-    if (cmd->flags & COUNT_DOWN_F) {
+    if (cmd->flags & CHECK_FAST_UNTIL) {
         strcat(flags_str, "C");
     }
     if (cmd->flags & ERROR_F) {
@@ -403,6 +403,7 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
                 info->send_queue_fast_full++;
                 break;
             }
+            // ESP_LOGI(TAG, "Fast command: %s", rig_commands[i].cmd);
         }
     }
 
@@ -429,8 +430,10 @@ rc_recv_command_type rc_recv_command(const char *cmd_str) {
 
         if (cmd_str[0] == '+') {
             command->flags |= FAST_F;
+            ESP_LOGI(TAG, "Add fast command: %s", command->cmd);
         } else {
             command->flags &= ~FAST_F;
+            ESP_LOGI(TAG, "Remove fast command: %s", command->cmd);
         }
 
         return RC_COMMAND_IGNORE;
@@ -503,16 +506,17 @@ bool rc_set_last_value(result_buf_t *result, const char *value) {
         strncpy(cmd->last_value, value, RECV_BUFFER_SIZE);
 
         if (cmd->flags & AUTO_FAST_F) {
-            cmd->flags |= FAST_F | COUNT_DOWN_F;
-            cmd->fast_count = AUTO_FAST_REFRESH_COUNT;
+            cmd->flags |= FAST_F | CHECK_FAST_UNTIL;
+            cmd->fast_until = xTaskGetTickCount() + AUTO_FAST_REFRESH_TICKS;
+            ESP_LOGI(TAG, "Auto fast command: %s", cmd->cmd);
         }
 
         return true;
-    } else if (cmd->flags & COUNT_DOWN_F) {
-        cmd->fast_count--;
-        if (cmd->fast_count <= 0) {
-            cmd->flags &= ~(COUNT_DOWN_F | FAST_F);
+    } else if (cmd->flags & CHECK_FAST_UNTIL) {
+        if (xTaskGetTickCount() > cmd->fast_until) {
+            cmd->flags &= ~(FAST_F | CHECK_FAST_UNTIL);
             cmd->next_refresh = cmd->refresh_time;
+            ESP_LOGI(TAG, "Auto fast command expired: %s", cmd->cmd);
         }
     }
 

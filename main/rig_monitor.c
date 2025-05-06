@@ -328,7 +328,6 @@ esp_err_t rm_queue_command(const char *command, int type) {
         return ESP_FAIL;
 
     case RC_COMMAND_IGNORE:
-        ESP_LOGI(TAG, "Command ignored: %s", command);
         return ESP_OK;
     }
 
