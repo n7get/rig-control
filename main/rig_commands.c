@@ -454,6 +454,14 @@ void rc_reset() {
     }
 }
 
+void rc_send_refresh(void (*notify_callback)(char *)) {
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        if (rig_commands[i].flags & VALID_F && !(rig_commands[i].flags & ERROR_F)) {
+            notify_callback(rig_commands[i].last_value);
+        }
+    }
+}
+
 // A response from the rig has been received.
 // Clear pending and set valid.
 // If the response is an error, set the error flag.
@@ -518,7 +526,7 @@ const char *rc_is_id() {
     return "ID0670;";
 }
 
-const char *rc_refresh() {
+const char *rc_refresh_command() {
     return ENHANCED_RIG_COMMAND_REFRESH;
 }
 bool rc_is_refresh(const char *value) {

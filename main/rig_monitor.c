@@ -56,6 +56,14 @@ void notify_observers(result_buf_t *result, bool updated) {
     }
 }
 
+static void notify_refresh(char *data) {
+    result_buf_t result_buf;
+    result_buf.result = RECV_RESULT_OK;
+    strncpy(result_buf.data, data, RECV_BUFFER_SIZE);
+    result_buf.len = strlen(data);
+    subject_notify(updates_subject, &result_buf);
+}
+
 void notify_status(const char *data) {
     result_buf_t result_buf;
     result_buf.result = RECV_RESULT_OK;
@@ -234,7 +242,10 @@ static void rig_monitor_task(void *pvParameters) {
                     break;
 
                 case RM_EVENT_REFRESH:
-                    rc_refresh();
+                    ESP_LOGI(TAG, "Starting refresh");
+                    rc_send_refresh(notify_refresh);
+                    notify_status(rc_result_ready());
+                    ESP_LOGI(TAG, "Refresh complete");
                     break;
 
                 case RM_EVENT_PING:
@@ -279,7 +290,7 @@ esp_err_t rm_queue_command(const char *command, int type) {
     rm_event_t event;
 
     if (rc_is_refresh(command)) {
-        event.type = RM_EVENT_START;
+        event.type = RM_EVENT_REFRESH;
     
         while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
             ESP_LOGE(TAG, "Failed to send event to rig monitor task");

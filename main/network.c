@@ -68,6 +68,8 @@ static int buffer_fill_callback(void *context, uint8_t *buf, size_t max_len) {
 }
 
 static void connection_established(int sock, buffer_t *buffer) {
+    rm_queue_command(rc_refresh_command(), SEND_TYPE_COMMAND);
+
     while (1) {
         char rx_buffer[SEND_BUFFER_SIZE];
         int i = 0;

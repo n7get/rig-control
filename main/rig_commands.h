@@ -51,6 +51,13 @@ rc_recv_command_type rc_recv_command(const char *cmd_str);
 void rc_reset();
 
 /**
+ * rc_send_refresh
+ * 
+ * This function sends the last value of all commands to the network interface.
+ */
+void rc_send_refresh(void (*notify_callback)(char *));
+
+/**
  * Get command to get the ID of the radio.
  */
 const char *rc_id_command();
@@ -100,7 +107,7 @@ const char *rc_result_ping();
 /**
  * Special command to refresh the monitor.
  */
-const char *rc_refresh();
+const char *rc_refresh_command();
 
 /**
  * Check if the command is for refresh.
