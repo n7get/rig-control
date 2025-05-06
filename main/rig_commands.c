@@ -427,12 +427,11 @@ void rc_randomize_refresh() {
     }
 }
 
-rc_recv_command_type rc_recv_command(const char *cmd_str) {
+void rc_handle_special_command(const char *cmd_str) {
     if (cmd_str[0] == '+' || cmd_str[0] == '-') {
         rig_command_t *command = find_command(cmd_str + 1);
         if (command == NULL) {
-            ESP_LOGE(TAG, "Command not found: %s", cmd_str + 1);
-            return RC_COMMAND_INVALID;
+            return;
         }
 
         if (cmd_str[0] == '+') {
@@ -442,8 +441,19 @@ rc_recv_command_type rc_recv_command(const char *cmd_str) {
             command->flags &= ~FAST_F;
             ESP_LOGI(TAG, "Remove fast command: %s", command->cmd);
         }
+        return;
+    }
+    ESP_LOGE(TAG, "Unknown special command: %s", cmd_str);
+}
 
-        return RC_COMMAND_IGNORE;
+rc_recv_command_type rc_recv_command(const char *cmd_str) {
+    if (cmd_str[0] == '+' || cmd_str[0] == '-') {
+        rig_command_t *command = find_command(cmd_str + 1);
+        if (command == NULL) {
+            ESP_LOGE(TAG, "Command not found: %s", cmd_str + 1);
+            return RC_COMMAND_INVALID;
+        }
+        return RC_COMMAND_SPECIAL;
     }
 
     rig_command_t *command = find_command(cmd_str);

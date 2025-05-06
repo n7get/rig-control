@@ -7,7 +7,7 @@
 
 typedef enum {
     RC_COMMAND_NORMAL = 0,
-    RC_COMMAND_IGNORE,
+    RC_COMMAND_SPECIAL,
     RC_COMMAND_INVALID,
 } rc_recv_command_type;
 
@@ -40,6 +40,14 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick);
  * The idea is to spread out the refresh time of all commands
  */
 void rc_randomize_refresh();
+
+/**
+ * rc_handle_special_command
+ * 
+ * This function handles special commands that are not part 
+ * of the CAT command set.
+ */
+void rc_handle_special_command(const char *cmd_str);
 
 /**
  * rc_recv_command

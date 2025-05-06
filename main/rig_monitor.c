@@ -21,6 +21,7 @@ typedef enum {
     RM_EVENT_REFRESH,
     RM_EVENT_START,
     RM_EVENT_PING,
+    RM_EVENT_SPECIAL,
 } rm_event_type_t;
 
 typedef struct {
@@ -253,6 +254,12 @@ static void rig_monitor_task(void *pvParameters) {
                     event_ping(in_startup, is_ready);
                     break;
 
+                case RM_EVENT_SPECIAL:
+                    if (is_ready) {
+                        rc_handle_special_command(event.command_buf.data);
+                    }
+                    break;
+
                 default:
                     ESP_LOGE(TAG, "Unknown event type: %d", event.type);
                     break;
@@ -324,12 +331,19 @@ esp_err_t rm_queue_command(const char *command, int type) {
 
         return ESP_OK;
 
+    case RC_COMMAND_SPECIAL:
+        event.type = RM_EVENT_SPECIAL;
+        strncpy(event.command_buf.data, command, SEND_BUFFER_SIZE);
+        event.command_buf.len = strnlen(command, SEND_BUFFER_SIZE);
+    
+        while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to send event to rig monitor task");
+        }
+        return ESP_OK;
+
     case RC_COMMAND_INVALID:
         ESP_LOGE(TAG, "Command not valid: %s", command);
         return ESP_FAIL;
-
-    case RC_COMMAND_IGNORE:
-        return ESP_OK;
     }
 
     return ESP_FAIL;
