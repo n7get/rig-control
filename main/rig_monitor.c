@@ -216,17 +216,21 @@ static void rig_monitor_task(void *pvParameters) {
                     break;
 
                 case RM_EVENT_SCAN:
-                    if (!in_startup) {
-                        if (!is_ready) {
-                            if (rc_is_ready()) {
-                                is_ready = true;
-                                notify_status(rc_result_ready());
-                                ESP_LOGI(TAG, "Rig monitor is ready");
-                            }
-                        } else {
-                            last_scan_tick = rc_scan_for_updates(last_scan_tick);
-                        }
+                    if (in_startup) {
+                        break;
                     }
+
+                    if (!is_ready) {
+                        if (!rc_is_ready()) {
+                            break;
+                        }
+
+                        is_ready = true;
+                        notify_status(rc_result_ready());
+                        ESP_LOGI(TAG, "Rig monitor is ready");
+                    }
+
+                    last_scan_tick = rc_scan_for_updates(last_scan_tick);
                     break;
 
                 case RM_EVENT_REFRESH:
