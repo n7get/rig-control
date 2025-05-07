@@ -9,7 +9,7 @@
 
 static const char *TAG = "SETTINGS";
 
-char ap_ssid[32] = "ft991a";
+char ap_ssid[32] = "rigmonitor";
 char ap_password[64] = "";
 char sta_ssid[32] = "";
 char sta_password[64] = "";
