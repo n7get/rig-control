@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include "cJSON.h"
 #include "esp_log.h"
 #include "esp_random.h"
 #include "freertos/FreeRTOS.h"
@@ -643,6 +644,37 @@ bool rc_is_fail(const char *response) {
     }
     return response[0] == '?' && response[1] == ';';
 }
+
+char *rc_to_json() {
+    cJSON *json_array = cJSON_CreateArray();
+    if (json_array == NULL) {
+        ESP_LOGE(TAG, "Failed to create JSON array");
+        return NULL;
+    }
+
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        // Add last_value to the JSON array
+        if (rig_commands[i].flags & VALID_F) {
+            cJSON *json_value = cJSON_CreateString(rig_commands[i].last_value);
+            if (json_value == NULL) {
+                ESP_LOGE(TAG, "Failed to create JSON string for command: %s", rig_commands[i].cmd);
+                cJSON_Delete(json_array);
+                return NULL;
+            }
+            cJSON_AddItemToArray(json_array, json_value);
+        }
+    }
+
+    // Convert the JSON array to a string
+    char *json_string = cJSON_PrintUnformatted(json_array);
+    cJSON_Delete(json_array); // Free the JSON array object
+
+    if (json_string == NULL) {
+        ESP_LOGE(TAG, "Failed to convert JSON array to string");
+        return NULL;
+    }
+
+    return json_string; // Caller must free this string using free()
 }
 
 void init_rig_commands() {

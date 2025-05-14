@@ -141,8 +141,6 @@ void wifi_init_ap(void) {
 
 void wifi_init(void) {
     ESP_LOGI(TAG, "Starting Wi-Fi...");
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     if (strlen(sta_ssid) > 0) {
         ESP_LOGI(TAG, "Starting Wi-Fi in STA mode...");

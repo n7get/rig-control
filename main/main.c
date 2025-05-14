@@ -1,16 +1,19 @@
 #include "esp_littlefs.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
 #include "config.h"
 #include "http.h"
 #include "info.h"
-#include "network.h"
 #include "rig.h"
+#include "rig_api.h"
 #include "rig_monitor.h"
 #include "rig_commands.h"
 #include "settings.h"
+#include "ui.h"
 #include "wifi.h"
+#include "ws.h"
 
 #define TAG "MAIN"
 
@@ -43,18 +46,16 @@ static void mount_html(void) {
     }
 }
 
-// static int64_t last_data_time = 0;
-
-// static void recv_data_callback(void *context, void *data) {
-//     result_buf_t *result = (result_buf_t *)data;
-//     ESP_LOGI(TAG, "Received data: %s", result->data);
-// }
-
 void app_main(void) {
-    esp_timer_early_init();
-
     ESP_LOGI(TAG, "Starting application");
     ESP_LOGI(TAG, "FreeRTOS version: %s", tskKERNEL_VERSION_NUMBER);
+    // ESP_LOGI(TAG, "Free heap size: %u", esp_get_free_heap_size());
+    // ESP_LOGI(TAG, "Free stack size: %u", uxTaskGetStackHighWaterMark(NULL));
+    // ESP_LOGI(TAG, "Minimum free heap size: %u", esp_get_minimum_free_heap_size());
+
+    ESP_ERROR_CHECK(esp_timer_early_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_ERROR_CHECK(esp_netif_init());
 
     mount_html();
 
@@ -70,33 +71,15 @@ void app_main(void) {
 
     register_info_endpoints();
     register_settings_endpoints();
+    register_rig_endpoints();
 
     cat_init();
     
     init_rig_commands();
     init_rig_monitor();
+    ui_init();
     
-    network_init();
+    ws_init();
     
     ESP_LOGI(TAG, "Application started");
-    
-    vTaskDelay(2000 / portTICK_PERIOD_MS);
-    
-    // rig_monitor_add_observers(OBSERVE_UPDATES | OBSERVE_STATUS, recv_data_callback, NULL);
-    // rig_monitor_add_observers(OBSERVE_COMMANDS, recv_data_callback, NULL);
-    // rig_monitor_add_observers(OBSERVE_STATUS, recv_data_callback, NULL);
-    // char *cmds[] = {"BY;", "FA;"};
-
-    // while (1) {
-    //     for (int i = 0; i < sizeof(cmds) / sizeof(cmds[0]); i++) {
-    //         esp_err_t err = rig_monitor_send(cmds[i], SEND_TYPE_COMMAND);
-    //         if (err != ESP_OK) {
-    //             ESP_LOGE(TAG, "Failed to send command");
-    //             vTaskDelete(NULL);
-    //             return;
-    //         }
-    //     }
-
-    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
-    // }
 }

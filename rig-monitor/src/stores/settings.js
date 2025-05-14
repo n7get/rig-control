@@ -1,0 +1,96 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+
+export const useSettingsStore = defineStore('settings', () => {
+	const settings = {
+    af_gain: ref({ desc: 'AF_GAIN', value: null, changed: false, fav: false, saved: false}),
+    agc: ref({desc: 'AGC', value: null, changed: false, fav: false, saved: false}),
+    apf: ref({ desc: 'APF_ON/OFF', value: null, changed: false, fav: false, saved: false}),
+    apf_freq: ref({ desc: 'APF_FREQ', value: null, changed: false, fav: false, saved: false}),
+    auto_notch: ref({ desc: 'AUTO_NOTCH', value: null, changed: false, fav: false, saved: false}),
+    break_in: ref({ desc: 'BREAK-IN', value: null, changed: false, fav: false, saved: false}),
+    busy: ref({ desc: 'BUSY', value: null, changed: false, fav: false, saved: false}),
+    clar: ref({ desc: 'CLAR', value: null, changed: false, fav: false, saved: false}),
+    contour_freq: ref({ desc: 'CONTOUR_FREQ', value: null, changed: false, fav: false, saved: false}),
+    contour_on: ref({ desc: 'CONTOUR_ON/OFF', value: null, changed: false, fav: false, saved: false}),
+    ctcss: ref({ desc: 'CTCSS', value: null, changed: false, fav: false, saved: false}),
+    ctcss_tone_frequency: ref({ desc: 'CTCSS_TONE_FREQUENCY', value: null, changed: false, fav: false, saved: false}),
+    cw_break_in_delay_time: ref({ desc: 'CW_BREAK-IN_DELAY_TIME', value: null, changed: false, fav: false, saved: false}),
+    cw_spot: ref({ desc: 'CW_SPOT', value: null, changed: false, fav: false, saved: false}),
+    date: ref({ desc: 'DATE', value: null, changed: false, fav: false, saved: false}),
+    dcs_tone_frequency: ref({ desc: 'DCS_TONE_FREQUENCY', value: null, changed: false, fav: false, saved: false}),
+    fast_step: ref({ desc: 'FAST_STEP', value: null, changed: false, fav: false, saved: false}),
+    function_tx: ref({ desc: 'FUNCTION_TX', value: null, changed: false, fav: false, saved: false}),
+    if_shift: ref({ desc: 'IF-SHIFT', value: null, changed: false, fav: false, saved: false}),
+    information: ref({ desc: 'OPPOSITE_BAND_INFORMATION', value: null, changed: false, fav: false, saved: false}),
+    key_pitch: ref({ desc: 'KEY_PITCH', value: null, changed: false, fav: false, saved: false}),
+    key_speed: ref({ desc: 'KEY_SPEED', value: null, changed: false, fav: false, saved: false}),
+    keyer: ref({ desc: 'KEYER', value: null, changed: false, fav: false, saved: false}),
+    lock: ref({ desc: 'LOCK', value: null, changed: false, fav: false, saved: false}),
+    manual_notch_level: ref({ desc: 'MANUAL_NOTCH_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    manual_notch_on: ref({ desc: 'MANUAL_NOTCH_ON/OFF', value: null, changed: false, fav: false, saved: false}),
+    memory_channel: ref({ desc: 'MEMORY_CHANNEL', value: null, changed: false, fav: false, saved: false}),
+    meter_sw: ref({ desc: 'METER_SW', value: null, changed: false, fav: false, saved: false}),
+    mic_gain: ref({ desc: 'MIC_GAIN', value: null, changed: false, fav: false, saved: false}),
+    mode: ref({ desc: 'MODE', value: null, changed: false, fav: false, saved: false}),
+    monitor: ref({ desc: 'MONITOR_ON/OFF', value: null, changed: false, fav: false, saved: false}),
+    monitor_level: ref({ desc: 'MONITOR_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    mox_set: ref({ desc: 'MOX_SET', value: null, changed: false, fav: false, saved: false}),
+    narrow: ref({ desc: 'NARROW', value: null, changed: false, fav: false, saved: false}),
+    noise_blanker_level: ref({ desc: 'NOISE_BLANKER_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    noise_blanker_status: ref({ desc: 'NOISE_BLANKER_STATUS', value: null, changed: false, fav: false, saved: false}),
+    noise_reduction: ref({ desc: 'NOISE_REDUCTION', value: null, changed: false, fav: false, saved: false}),
+    noise_reduction_level: ref({ desc: 'NOISE_REDUCTION_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    offset: ref({ desc: 'OFFSET_(REPEATER_SHIFT)', value: null, changed: false, fav: false, saved: false}),
+    opposite_band_information: ref({ desc: 'OPPOSITE_BAND_INFORMATION', value: null, changed: false, fav: false, saved: false}),
+    parametric_microphone_equalizer: ref({ desc: 'PARAMETRIC_MICROPHONE_EQUALIZER', value: null, changed: false, fav: false, saved: false}),
+    pll_unlock_status: ref({ desc: 'PLL_UNLOCK_STATUS', value: null, changed: false, fav: false, saved: false}),
+    power_level: ref({ desc: 'POWER_CONTROL', value: null, changed: false, fav: false, saved: false}),
+    pre_amp: ref({ desc: 'PRE-AMP_(IPO)', value: null, changed: false, fav: false, saved: false}),
+    radio_information_hi_swr: ref({ desc: 'RADIO_INFORMATION_HI_SWR', value: null, changed: false, fav: false, saved: false}),
+    radio_information_play: ref({ desc: 'RADIO_INFORMATION_PLAY', value: null, changed: false, fav: false, saved: false}),
+    radio_information_rec: ref({ desc: 'RADIO_INFORMATION_REC', value: null, changed: false, fav: false, saved: false}),
+    radio_information_tx_led: ref({ desc: 'RADIO_INFORMATION_TX_LED', value: null, changed: false, fav: false, saved: false}),
+    radio_information_vfo_a_rx: ref({ desc: 'RADIO_INFORMATION_VFO-A_RX', value: null, changed: false, fav: false, saved: false}),
+    radio_information_vfo_a_tx: ref({ desc: 'RADIO_INFORMATION_VFO-A_TX', value: null, changed: false, fav: false, saved: false}),
+    radio_information_vfo_b_tx: ref({ desc: 'RADIO_INFORMATION_VFO-B_TX', value: null, changed: false, fav: false, saved: false}),
+    radio_status: ref({ desc: 'RADIO_STATUS', value: null, changed: false, fav: false, saved: false}),
+    read_meter_alc: ref({ desc: 'READ_METER_ALC', value: null, changed: false, fav: false, saved: false}),
+    read_meter_front_panel: ref({ desc: 'READ_METER_FRONT_PANEL', value: null, changed: false, fav: false, saved: false}),
+    read_meter_swr: ref({ desc: 'READ_METER_SWR', value: null, changed: false, fav: false, saved: false}),
+    rf_attenuator: ref({ desc: 'RF_ATTENUATOR', value: null, changed: false, fav: false, saved: false}),
+    rf_gain: ref({ desc: 'RF_GAIN', value: null, changed: false, fav: false, saved: false}),
+    s_meter_reading: ref({ desc: 'S-METER_READING', value: null, changed: false, fav: false, saved: false}),
+    speech_processor: ref({ desc: 'SPEECH_PROCESSOR', value: null, changed: false, fav: false, saved: false}),
+    speech_processor_level: ref({ desc: 'SPEECH_PROCESSOR_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    speech_processor_on: ref({ desc: 'SPEECH_PROCESSOR_ON/OFF', value: null, changed: false, fav: false, saved: false}),
+    squelch_level: ref({ desc: 'SQUELCH_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    squelclh_level: ref({ desc: 'SQUELCLH_LEVEL', value: null, changed: false, fav: false, saved: false}),
+    time: ref({ desc: 'TIME', value: null, changed: false, fav: false, saved: false}),
+    time_differential: ref({ desc: 'TIME_DIFFERENTIAL', value: null, changed: false, fav: false, saved: false}),
+    transmit: ref({ desc: 'TX_SET', value: null, changed: false, fav: false, saved: false}),
+    tuner: ref({ desc: 'ANTENNA_TUNER_CONTROL', value: null, changed: false, fav: false, saved: false}),
+    tx_clar: ref({ desc: 'TX_CLAR', value: null, changed: false, fav: false, saved: false}),
+    txw: ref({ desc: 'TXW', value: null, changed: false, fav: false, saved: false}),
+    vfo_a: ref({ desc: 'FREQUENCY_VFO-A', value: null, changed: false, fav: false, saved: false}),
+    vfo_b: ref({ desc: 'FREQUENCY_VFO-B', value: null, changed: false, fav: false, saved: false}),
+    vox_delay_time: ref({ desc: 'VOX_DELAY_TIME', value: null, changed: false, fav: false, saved: false}),
+    vox_gain: ref({ desc: 'VOX_GAIN', value: null, changed: false, fav: false, saved: false}),
+    vox_status: ref({ desc: 'VOX_STATUS', value: null, changed: false, fav: false, saved: false}),
+    width: ref({ desc: 'WIDTH', value: null, changed: false, fav: false, saved: false}),
+	};
+
+  const result = {};
+  for (const key in settings) {
+    result[key] = computed(() => settings[key].value);
+  }
+  result.settings = settings;
+
+  // result.s_meter_percent = computed(() => {
+  //   const sMeterReading = settings.s_meter_reading.value;
+  //   if (sMeterReading === null) return null;
+  //   return Math.round((sMeterReading / 100) * 100);
+  // });
+
+  return result;
+})

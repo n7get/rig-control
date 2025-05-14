@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include "rig.h"
+#include "freertos/FreeRTOS.h"
 
 #define POLL_INTERVAL 25
 
@@ -47,7 +48,7 @@ void rc_randomize_refresh();
  * This function handles special commands that are not part 
  * of the CAT command set.
  */
-void rc_handle_special_command(const char *cmd_str);
+void rc_handle_special_command(command_t *command);
 
 /**
  * rc_recv_command
@@ -93,7 +94,7 @@ bool rc_is_fail(const char *result);
  * 
  * This function sets the last value of a command if it is different from the current value.
  */
-bool rc_set_last_value(result_buf_t *result, const char *value);
+bool rc_set_last_value(response_t *result);
 
 /**
  * Value for monitor not ready.
@@ -138,3 +139,7 @@ const char *rc_ping_command();
  * Check if the command is for ping.
  */
 bool rc_is_ping(const char *value);
+
+char *rc_to_json();
+
+esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t type);
