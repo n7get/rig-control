@@ -23,14 +23,14 @@ void init_rig_monitor();
  * 
  * @return ESP_OK on success, ESP_FAIL on failure.
  */
-esp_err_t rm_queue_command(const char *command, int type);
+esp_err_t rm_queue_command(const char *command, send_type_t type);
 
 /**
  * @brief Queue result from CAT interface to the rig monitor.
  * 
  * @param result The result buffer to queue.
  */
-void rm_queue_result(result_buf_t *result);
+void rm_queue_response(response_t *result);
 
 /**
  * @brief Add observers to the output of rig monitor.

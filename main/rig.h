@@ -5,17 +5,14 @@
 #define SEND_BUFFER_SIZE 64
 #define RECV_BUFFER_SIZE 64
 
-#define SEND_TYPE_COMMAND 0
-#define SEND_TYPE_MONITOR 1
-
 #define SEND_PRIORITY_NORMAL 0
 #define SEND_PRIORITY_HIGH 1
 
-typedef struct {
-    int type;
-    char data[SEND_BUFFER_SIZE];
-    size_t len;
-} command_buf_t;
+typedef enum {
+    SEND_TYPE_COMMAND = 0,
+    SEND_TYPE_READ,
+    SEND_TYPE_SPECIAL,
+} send_type_t;
 
 typedef enum {
     RECV_RESULT_OK = 0,
@@ -26,8 +23,26 @@ typedef enum {
 } recv_result_t;
 
 typedef struct {
+    send_type_t type;
+
+    char command[SEND_BUFFER_SIZE];
+    size_t command_len;
+
+    char read[SEND_BUFFER_SIZE];
+    size_t read_len;
+} command_t;
+
+typedef struct {
+    send_type_t type;
+
+    char command[SEND_BUFFER_SIZE];
+    size_t command_len;
+
+    char read[SEND_BUFFER_SIZE];
+    size_t read_len;
+
+    char response[RECV_BUFFER_SIZE];
+    size_t response_len;
+
     recv_result_t result;
-    command_buf_t command_buf;
-    char data[RECV_BUFFER_SIZE];
-    size_t len;
-} result_buf_t;
+} response_t;

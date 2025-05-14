@@ -20,13 +20,29 @@ typedef enum {
 
 static QueueHandle_t send_queue = NULL;
 
-static process_command_result_t process_command(result_buf_t *result_buf) {
+static process_command_result_t process_command(response_t *response) {
     info_t *info = get_info();
 
-    int bytes_written = rig_uart_send(result_buf->command_buf.data, result_buf->command_buf.len);
+    // Combine command and read into a single send buffer
 
-    if (bytes_written != result_buf->command_buf.len) {
-        ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", result_buf->command_buf.len, bytes_written);
+    char send_buf[SEND_BUFFER_SIZE * 2];
+    int send_buf_len = 0;
+    if (response->command_len > 0) {
+        memcpy(send_buf, response->command, response->command_len);
+        send_buf_len = response->command_len;
+    }
+    memcpy(send_buf + send_buf_len, response->read, response->read_len);
+    send_buf[response->command_len + response->read_len] = '\0';
+    send_buf_len += response->read_len;
+
+    if (response->command_len != 0) {
+        ESP_LOGI(TAG, "Sending command: %s", send_buf);
+    }
+
+    int bytes_written = rig_uart_send(send_buf, send_buf_len);
+
+    if (bytes_written != send_buf_len) {
+        ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", send_buf_len, bytes_written);
     }
 
     if (bytes_written > info->max_send_len) {
@@ -35,20 +51,20 @@ static process_command_result_t process_command(result_buf_t *result_buf) {
 
     size_t i = 0;
     for(;;) {
-        int ret = rig_uart_recv_byte(&result_buf->data[i]);
+        int ret = rig_uart_recv_byte(&response->response[i]);
         if (ret == -1) {
             ESP_LOGE(TAG, "Error processing command");
-            result_buf->result = RECV_RESULT_ERROR;
+            response->result = RECV_RESULT_ERROR;
             return RESULT_ERROR;
         }
         if (ret == 0) {
             return RESULT_TIMEOUT;
         }
 
-        if (result_buf->data[i] == ';') {
-            result_buf->result = RECV_RESULT_OK;
-            result_buf->data[i + 1] = '\0';
-            result_buf->len = i + 1;
+        if (response->response[i] == ';') {
+            response->result = RECV_RESULT_OK;
+            response->response[i + 1] = '\0';
+            response->response_len = i + 1;
 
             int remain_recv_len = rig_uart_recv_len();
             if (remain_recv_len > 0) {
@@ -71,7 +87,7 @@ static process_command_result_t process_command(result_buf_t *result_buf) {
 
         if (i >= RECV_BUFFER_SIZE) {
             ESP_LOGE(TAG, "Received data exceeds buffer size");
-            result_buf->result = RECV_RESULT_OVERFLOW;
+            response->result = RECV_RESULT_OVERFLOW;
             return RESULT_ERROR;
         }
     }
@@ -90,28 +106,33 @@ static void cat_task(void *arg) {
         }
 
         // Wait for data to send
-        result_buf_t result_buf;
-
-        if (xQueueReceive(send_queue, &result_buf.command_buf, portMAX_DELAY) == pdPASS) {
+        command_t command;
+        
+        if (xQueueReceive(send_queue, &command, portMAX_DELAY) == pdPASS) {
             int64_t start_time = esp_timer_get_time();
             info->total_sendqueue++;
             int retries = 0;
 
             for(;;) {
-                result_buf.result = -1;
-                result_buf.data[0] = '\0';
-                result_buf.len = 0;
+                response_t response;
+                memset(&response, 0, sizeof(response_t));
+                response.type = command.type;
+                strncpy(response.command, command.command, SEND_BUFFER_SIZE);
+                response.command_len = command.command_len;
+                strncpy(response.read, command.read, SEND_BUFFER_SIZE);
+                response.read_len = command.read_len;
+                response.result = -1;
 
-                process_command_result_t pcr = process_command(&result_buf);
+                process_command_result_t pcr = process_command(&response);
                 if (pcr == RESULT_OK) {
-                    if (!rc_is_fail(result_buf.data) && memcmp(result_buf.data, result_buf.command_buf.data, result_buf.command_buf.len - 1) != 0) {
-                        ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", result_buf.command_buf.data, result_buf.data);
+                    if (!rc_is_fail(response.response) && memcmp(response.response, response.read, response.read_len - 1) != 0) {
+                        ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", response.read, response.response);
                         rig_uart_flush();
                         ESP_LOGW(TAG, "Retrying command");
                         continue;
                     }
 
-                    if (!rc_is_fail(result_buf.data)) {
+                    if (!rc_is_fail(response.response)) {
                         int64_t end_time = esp_timer_get_time();
                         int64_t elapsed_time = end_time - start_time;
                         info->total_response_time += elapsed_time;
@@ -120,12 +141,12 @@ static void cat_task(void *arg) {
                             info->max_response_time = elapsed_time;
                         }
 
-                        if (result_buf.len > info->max_receive_len) {
-                            info->max_receive_len = result_buf.len;
+                        if (response.response_len > info->max_receive_len) {
+                            info->max_receive_len = response.response_len;
                         }
                     }
 
-                    rm_queue_result(&result_buf);
+                    rm_queue_response(&response);
                     break;
                 }
 
@@ -133,8 +154,8 @@ static void cat_task(void *arg) {
                     retries++;
                     if (retries >= 3) {
                         ESP_LOGW(TAG, "Receive timeout, giving up on command");
-                        result_buf.result = RECV_RESULT_TIMEOUT;
-                        rm_queue_result(&result_buf);
+                        response.result = RECV_RESULT_TIMEOUT;
+                        rm_queue_response(&response);
 
                         rig_uart_flush();
                         ESP_LOGW(TAG, "Cleared buffer after timeout");
@@ -145,7 +166,7 @@ static void cat_task(void *arg) {
                 }
 
                 if (pcr == RESULT_ERROR) {
-                    rm_queue_result(&result_buf);
+                    rm_queue_response(&response);
 
                     rig_uart_flush();
                     ESP_LOGE(TAG, "Cleared buffer after error");
@@ -156,42 +177,23 @@ static void cat_task(void *arg) {
     }
 }
 
-esp_err_t cat_send(const char *command, int type, int priority) {
-    size_t command_size = strnlen(command, SEND_BUFFER_SIZE);
-    if (command_size == 0) {
-        ESP_LOGE(TAG, "Command is empty");
-        return ESP_FAIL;
-    }
-    if (command_size >= SEND_BUFFER_SIZE) {
-        ESP_LOGE(TAG, "Command size %d exceeds buffer size %d", command_size, SEND_BUFFER_SIZE - 1);
-        return ESP_FAIL;
-    }
-    if (command[command_size - 1] != ';') {
-        ESP_LOGE(TAG, "Command must end with a semicolon");
-        return ESP_FAIL;
-    }
-
+esp_err_t cat_queue_command(command_t *command, int priority) {
     // Make sure some space is always available in the send queue for high priority commands
     UBaseType_t a = uxQueueSpacesAvailable(send_queue);
     if ((priority == SEND_PRIORITY_HIGH && a == 0) || (priority == SEND_PRIORITY_NORMAL && a <= SEND_QUEUE_MIN)) {
         return ESP_ERR_NO_MEM;
     }
 
-    command_buf_t command_buf;
-    command_buf.type = type;
-    strncpy(command_buf.data, command, SEND_BUFFER_SIZE);
-    command_buf.len = command_size;
-
     if (priority == SEND_PRIORITY_HIGH) {
-        while (xQueueSendToFront(send_queue, &command_buf, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+        while (xQueueSendToFront(send_queue, command, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
             ESP_LOGE(TAG, "Failed to enqueue high priority command");
         }
     } else if (priority == SEND_PRIORITY_NORMAL) {
-        while (xQueueSend(send_queue, &command_buf, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+        while (xQueueSend(send_queue, command, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
             ESP_LOGE(TAG, "Failed to enqueue normal priority command");
         }
     } else {
-        ESP_LOGE(TAG, "Command: %s, Invalid priority: %d", command_buf.data, priority);
+        ESP_LOGE(TAG, "Command: %s, Invalid priority: %d", command->read, priority);
         return ESP_FAIL;
     }
 
@@ -216,7 +218,7 @@ esp_err_t cat_init(void) {
         return ESP_FAIL;
     }
 
-    send_queue = xQueueCreate(SEND_QUEUE_SIZE, sizeof(command_buf_t));
+    send_queue = xQueueCreate(SEND_QUEUE_SIZE, sizeof(command_t));
     if (send_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create UART send queue");
         return ESP_FAIL;
@@ -231,37 +233,25 @@ esp_err_t cat_init(void) {
     return ESP_OK;
 }
 
-void log_command_buf(const char *tag, command_buf_t *command_buf) {
+void log_response(const char *tag, response_t *response) {
     char *type_str;
-    switch(command_buf->type) {
+    switch(response->type) {
         case SEND_TYPE_COMMAND:
             type_str = "COMMAND";
             break;
-        case SEND_TYPE_MONITOR:
-            type_str = "MONITOR";
+        case SEND_TYPE_READ:
+            type_str = "READ";
+            break;
+        case SEND_TYPE_SPECIAL:
+            type_str = "SPECIAL";
             break;
         default:
             type_str = "UNKNOWN";
             break;
     }
-    ESP_LOGI(tag, "command_buf_t, type: %s, data: %s, len: %d", type_str, command_buf->data, command_buf->len);
-}
 
-void log_result_buf(const char *tag, result_buf_t *result) {
-    char *type_str;
-    switch(result->command_buf.type) {
-        case SEND_TYPE_COMMAND:
-            type_str = "COMMAND";
-            break;
-        case SEND_TYPE_MONITOR:
-            type_str = "MONITOR";
-            break;
-        default:
-            type_str = "UNKNOWN";
-            break;
-    }
     char *result_str;
-    switch(result->result) {
+    switch(response->result) {
         case RECV_RESULT_OK:
             result_str = "OK";
             break;
@@ -278,5 +268,6 @@ void log_result_buf(const char *tag, result_buf_t *result) {
             result_str = "UNKNOWN";
             break;
     }
-    ESP_LOGI(tag, "result_buf_t, cmd: %s, type: %s, result: %s, data: %s, len: %d", result->command_buf.data, type_str, result_str, result->data, result->len);
+    ESP_LOGI(tag, "response_t, cmd: %s, read: %s, type: %s, result: %s, data: %s, len: %d",
+        response->command, response->read, type_str, result_str, response->response, response->response_len);
 }

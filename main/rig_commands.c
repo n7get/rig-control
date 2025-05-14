@@ -73,7 +73,7 @@ static rig_command_t rig_commands[] = {
     {"CO03;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CT0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"DA;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    // {"DA;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"FA;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"FB;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"FS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -300,6 +300,53 @@ static rig_command_t *find_command(const char *cmd) {
     return NULL;
 }
 
+esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t type) {
+    size_t command_size = strnlen(cmd_str, SEND_BUFFER_SIZE);
+    if (command_size == 0) {
+        ESP_LOGE(TAG, "Command is empty");
+        return ESP_FAIL;
+    }
+    if (command_size >= SEND_BUFFER_SIZE) {
+        ESP_LOGE(TAG, "Command size %d exceeds buffer size %d", command_size, SEND_BUFFER_SIZE - 1);
+        return ESP_FAIL;
+    }
+    if (cmd_str[command_size - 1] != ';') {
+        ESP_LOGE(TAG, "Command must end with a semicolon");
+        return ESP_FAIL;
+    }
+
+    rig_command_t *rc_cmd = find_command(cmd_str);
+    if (rc_cmd == NULL) {
+        ESP_LOGE(TAG, "Command %s not found in rig_commands", cmd_str);
+        return ESP_FAIL;
+    }
+
+    command->type = type;
+    switch(type) {
+    case SEND_TYPE_COMMAND:
+        strncpy(command->command, cmd_str, SEND_BUFFER_SIZE);
+        command->command_len = command_size;
+        strcpy(command->read, rc_cmd->cmd);
+        command->read_len = strlen(command->read);
+        break;
+
+    case SEND_TYPE_READ:
+        strncpy(command->read, cmd_str, SEND_BUFFER_SIZE);
+        command->read_len = strlen(cmd_str);
+        break;
+
+    case SEND_TYPE_SPECIAL:
+        ESP_LOGE(TAG, "Special command %s is not valid here", cmd_str);
+        return ESP_FAIL;
+
+    default:
+        ESP_LOGE(TAG, "Invalid command type %d", type);
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
+}
+
 #ifdef LOG_RIG_COMMAND
 static void log_rig_command(char *tag, rig_command_t *cmd) {
     char flags_str[9] = {'\0'};
@@ -346,9 +393,16 @@ static void log_rig_command(char *tag, rig_command_t *cmd) {
 bool rc_is_ready() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         if (rig_commands[i].flags & INVALID_F) {
-            if(cat_send(rig_commands[i].cmd, SEND_TYPE_MONITOR, SEND_PRIORITY_NORMAL) == ESP_ERR_NO_MEM) {
+            command_t command;
+            memset(&command, 0, sizeof(command_t));
+            command.type = SEND_TYPE_READ;
+            strcpy(command.read, rig_commands[i].cmd);
+            command.read_len = strlen(command.read);
+
+            if(cat_queue_command(&command, SEND_PRIORITY_NORMAL) == ESP_ERR_NO_MEM) {
                 return false;
             }
+
             // ESP_LOGI(TAG, "Sending initial command: %s", rig_commands[i].cmd);
             rig_commands[i].flags &= ~INVALID_F;
             rig_commands[i].flags |= PENDING_INIT_F;
@@ -372,7 +426,13 @@ static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority
     if (cmd->flags & VALID_F) {
         info->valid++;
         if (cmd->next_refresh <= 0) {
-            if (cat_send(cmd->cmd, SEND_TYPE_MONITOR, priority) == ESP_ERR_NO_MEM) {
+            command_t command;
+            memset(&command, 0, sizeof(command_t));
+            command.type = SEND_TYPE_READ;
+            strcpy(command.read, cmd->cmd);
+            command.read_len = strlen(command.read);
+
+            if (cat_queue_command(&command, priority) == ESP_ERR_NO_MEM) {
                 return true;
             }
             info->updates++;
@@ -427,23 +487,23 @@ void rc_randomize_refresh() {
     }
 }
 
-void rc_handle_special_command(const char *cmd_str) {
-    if (cmd_str[0] == '+' || cmd_str[0] == '-') {
-        rig_command_t *command = find_command(cmd_str + 1);
-        if (command == NULL) {
+void rc_handle_special_command(command_t *command) {
+    if (command->read[0] == '+' || command->read[0] == '-') {
+        rig_command_t *rc_cmd = find_command(command->read + 1);
+        if (rc_cmd == NULL) {
             return;
         }
 
-        if (cmd_str[0] == '+') {
-            command->flags |= FAST_F;
-            ESP_LOGI(TAG, "Add fast command: %s", command->cmd);
+        if (command->read[0] == '+') {
+            rc_cmd->flags |= FAST_F;
+            ESP_LOGI(TAG, "Add fast command: %s", rc_cmd->cmd);
         } else {
-            command->flags &= ~FAST_F;
-            ESP_LOGI(TAG, "Remove fast command: %s", command->cmd);
+            rc_cmd->flags &= ~FAST_F;
+            ESP_LOGI(TAG, "Remove fast command: %s", rc_cmd->cmd);
         }
         return;
     }
-    ESP_LOGE(TAG, "Unknown special command: %s", cmd_str);
+    ESP_LOGE(TAG, "Unknown special command: %s", command->read);
 }
 
 rc_recv_command_type rc_recv_command(const char *cmd_str) {
@@ -491,10 +551,10 @@ void rc_send_refresh(void (*notify_callback)(char *)) {
 // If the response hasn't changed and countdown is active, decrement the countdown.
 // If the countdown reaches zero, clear the fast flag.
 // If the response is the same return false, otherwise return true.
-bool rc_set_last_value(result_buf_t *result, const char *value) {
-    rig_command_t *cmd = find_command(result->command_buf.data);
+bool rc_set_last_value(response_t *response) {
+    rig_command_t *cmd = find_command(response->read);
     if (cmd == NULL) {
-        ESP_LOGE(TAG, "Command not found: %s", result->command_buf.data);
+        ESP_LOGE(TAG, "Command not found: %s", response->read);
         return false;
     }
 
@@ -506,7 +566,7 @@ bool rc_set_last_value(result_buf_t *result, const char *value) {
     cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
     cmd->flags |= VALID_F;
 
-    if (rc_is_fail(value)) {
+    if (rc_is_fail(response->response)) {
         cmd->flags |= ERROR_F;
         cmd->flags &= ~FAST_F;
         cmd->last_value[0] = '\0';
@@ -517,10 +577,10 @@ bool rc_set_last_value(result_buf_t *result, const char *value) {
     
     cmd->next_refresh = cmd->flags & FAST_F ? VERY_FAST_REFRESH_TIME : cmd->refresh_time;
 
-    if (strncmp(cmd->last_value, value, RECV_BUFFER_SIZE) != 0) {
-        // ESP_LOGI(TAG, "last_value: %s, new_value: %s", cmd->last_value, value);
+    if (strncmp(cmd->last_value, response->response, RECV_BUFFER_SIZE) != 0) {
+        // ESP_LOGI(TAG, "last_value: %s, new_value: %s", cmd->last_value, response->response);
 
-        strncpy(cmd->last_value, value, RECV_BUFFER_SIZE);
+        strncpy(cmd->last_value, response->response, RECV_BUFFER_SIZE);
 
         if (cmd->flags & AUTO_FAST_F) {
             cmd->flags |= FAST_F | CHECK_FAST_UNTIL;
@@ -577,11 +637,12 @@ const char *rc_result_ping() {
     return ENHANCED_RIG_RESULT_PING;
 }
 
-bool rc_is_fail(const char *result) {
-    if (result == NULL) {
+bool rc_is_fail(const char *response) {
+    if (response == NULL) {
         return false;
     }
-    return result[0] == '?' && result[1] == ';';
+    return response[0] == '?' && response[1] == ';';
+}
 }
 
 void init_rig_commands() {
