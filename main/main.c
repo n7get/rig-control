@@ -7,7 +7,6 @@
 #include "http.h"
 #include "info.h"
 #include "rig.h"
-#include "rig_api.h"
 #include "rig_monitor.h"
 #include "rig_commands.h"
 #include "settings.h"
@@ -71,7 +70,6 @@ void app_main(void) {
 
     register_info_endpoints();
     register_settings_endpoints();
-    register_rig_endpoints();
 
     cat_init();
     
