@@ -714,7 +714,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_modes[value.substring(1, 2)];
+            return cat_modes[value];
         },
     },
     'MG': {
@@ -875,7 +875,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_preamp[value.substring(1, 2)];
+            return cat_preamp[value];
         },
     },
     // 'PB': {
@@ -1451,4 +1451,8 @@ const rig_setting = class {
     }
 };
 
-export default rig_setting;
+export {
+    cat_preamp, preamp_cat,
+    cat_modes, modes_cat,
+    rig_setting
+};

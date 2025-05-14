@@ -1,21 +1,22 @@
 <template>
 <div>
     <div class="d-flex justify-content-between">
+        <op-mode></op-mode>
         <frequency class="pt-3"></frequency>
     </div>
     <!-- <b-row v-show="isOpMode(['data-hf', 'voice-ssh'])" class="mt-2"> -->
     <div class="ml-1 my-2 pb-1 border-bottom d-flex justify-content-between w-100">
-        <!-- <tuner-status></tuner-status> -->
-        <!-- <lock-status>></lock-status> -->
-        <!-- <pre-amp-status>></pre-amp-status> -->
-        <!-- <alc-status>></alc-status> -->
-        <!-- <mode-status></mode-status> -->
+        <tuner-status></tuner-status>
+        <lock-status>></lock-status>
+        <pre-amp-status>></pre-amp-status>
+        <alc-status>></alc-status>
+        <mode-status></mode-status>
         <!-- <manual-mode-status></manual-mode-status> -->
     </div>
-    <!-- <s-meter v-show="!transmit" class="mt-2"></s-meter> -->
-    <!-- <swr-meter v-show="transmit" class="mt-2"></swr-meter> -->
-    <!-- <alc-meter v-show="transmit" class="mt-2"></alc-meter> -->
-    <div v-show="transmit" class="mt-2">
+    <s-meter v-show="!transmit.value" class="mt-2"></s-meter>
+    <!-- <swr-meter v-show="transmit.value" class="mt-2"></swr-meter> -->
+    <!-- <alc-meter v-show="transmit.value" class="mt-2"></alc-meter> -->
+    <div v-show="transmit.value" class="mt-2">
         <!-- <alc-meter v-show="meter_switch === 'ALC'"></alc-meter> -->
         <!-- <comp-meter v-show="meter_switch === 'COMP'"></comp-meter> -->
         <!-- <id-meter v-show="meter_switch === 'ID'"></id-meter> -->
@@ -86,6 +87,13 @@ import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 
 import frequency from './frequency.vue';
+import opMode from './op-mode.vue';
+import tunerStatus from './tuner-status.vue';
+import lockStatus from './lock-status.vue';
+import preAmpStatus from './pre-amp-status.vue';
+import alcStatus from './alc-status.vue';
+import modeStatus from './mode-status.vue';
+import sMeter from './s-meter-bootstrap-progressbar.vue';
 
 const transmit = useSettingsStore().transmit;
 </script>

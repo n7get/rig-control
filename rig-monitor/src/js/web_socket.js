@@ -1,4 +1,4 @@
-import rig_setting from '../js/rig_setting.js';
+import { rig_setting } from '../js/rig_setting.js';
 import { useSettingsStore } from '@/stores/settings';
 import { useStateStore } from '@/stores/state';
 
