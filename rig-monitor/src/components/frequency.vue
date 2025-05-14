@@ -69,7 +69,6 @@ const freqInputState = ref(null);
 
 const getFreq = () => {
     let value = useSettingsStore()[props.vfo].value;
-    console.log('getFreq: ', value);
     if (!value) {
         return '000000000';
     }
@@ -111,7 +110,6 @@ const freqOpenDialog = (e) => {
     freqResetModal();
 
     const f = freq_utils.format_freq(freq.value);
-    console.log('freq: ', f);
     freqInput.value = freq_utils.format_freq(freq.value);
 
     freq_model.value = true;
@@ -121,7 +119,6 @@ const freqResetModal = () => {
 }
 
 const freqHandleOk = (e) => {
-    console.log('freqHandleOk: ', freqInput.value);
     var new_freq = freq_utils.conv_freq(freqInput.value);
 
     if(new_freq) {

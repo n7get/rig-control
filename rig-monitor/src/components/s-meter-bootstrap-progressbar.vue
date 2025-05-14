@@ -29,6 +29,7 @@ const value = computed(() => {
     return s_meter.value + '%';
 });
 </script>
+
 <style scoped>
     .progress {
 	    width: 100%;

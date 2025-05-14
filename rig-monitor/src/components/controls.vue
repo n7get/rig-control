@@ -14,14 +14,13 @@
         <!-- <manual-mode-status></manual-mode-status> -->
     </div>
     <s-meter v-show="!transmit.value" class="mt-2"></s-meter>
-    <!-- <swr-meter v-show="transmit.value" class="mt-2"></swr-meter> -->
-    <!-- <alc-meter v-show="transmit.value" class="mt-2"></alc-meter> -->
+    <swr-meter v-show="transmit.value" class="mt-2"></swr-meter>
+    <alc-meter v-show="transmit.value" class="mt-2"></alc-meter>
     <div v-show="transmit.value" class="mt-2">
-        <!-- <alc-meter v-show="meter_switch === 'ALC'"></alc-meter> -->
-        <!-- <comp-meter v-show="meter_switch === 'COMP'"></comp-meter> -->
-        <!-- <id-meter v-show="meter_switch === 'ID'"></id-meter> -->
-        <!-- <po-meter v-show="meter_switch === 'PO'"></po-meter> -->
-        <!-- <vdd-meter v-show="meter_switch === 'VDD'"></vdd-meter> -->
+        <read-meter-front-panel meter="COMP" v-show="meter_sw.value === 'COMP'"></read-meter-front-panel>
+        <read-meter-front-panel meter="ID" v-show="meter_sw.value === 'ID'"></read-meter-front-panel>
+        <read-meter-front-panel meter="PO" v-show="meter_sw.value === 'PO'"></read-meter-front-panel>
+        <read-meter-front-panel meter="VDD" v-show="meter_sw.value === 'VDD'"></read-meter-front-panel>
     </div>
     <!-- <tx-timer class="mt-2"></tx-timer> -->
     <!-- <tx-count-down :warn="30"></tx-count-down> -->
@@ -94,7 +93,11 @@ import preAmpStatus from './pre-amp-status.vue';
 import alcStatus from './alc-status.vue';
 import modeStatus from './mode-status.vue';
 import sMeter from './s-meter-bootstrap-progressbar.vue';
+import swrMeter from './swr-meter.vue';
+import alcMeter from './alc-meter.vue';
+import readMeterFrontPanel from './read-meter-front-panel.vue';
 
+const meter_sw = useSettingsStore().meter_sw;
 const transmit = useSettingsStore().transmit;
 </script>
 

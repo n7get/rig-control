@@ -768,7 +768,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_meter[value.substring(0,1)];
+            return cat_meter[value];
         },
     },
     // 'MT': {
