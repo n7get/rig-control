@@ -1,7 +1,6 @@
 <template>
 <div>
     <div class="d-flex justify-content-between">
-        <!-- <op-mode></op-mode> -->
         <frequency class="pt-3"></frequency>
     </div>
     <!-- <b-row v-show="isOpMode(['data-hf', 'voice-ssh'])" class="mt-2"> -->
