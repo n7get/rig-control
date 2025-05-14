@@ -45,10 +45,10 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { sendCommand } from '@/js/web_socket.js';
+import { send_command } from '@/js/web_socket.js';
+import freq_utils from '../js/freq_utils.js';
 import { useSettingsStore } from '@/stores/settings';
 import { useStateStore } from '@/stores/state';
-import freqUtils from '../js/freq_utils.js';
 
 const props = defineProps({
     vfo: {
@@ -110,9 +110,9 @@ const freqHandleClicks = (e, v) => {
 const freqOpenDialog = (e) => {
     freqResetModal();
 
-    const f = freqUtils.formatFreq(freq.value);
+    const f = freq_utils.format_freq(freq.value);
     console.log('freq: ', f);
-    freqInput.value = freqUtils.formatFreq(freq.value);
+    freqInput.value = freq_utils.format_freq(freq.value);
 
     freq_model.value = true;
 }
@@ -122,11 +122,11 @@ const freqResetModal = () => {
 
 const freqHandleOk = (e) => {
     console.log('freqHandleOk: ', freqInput.value);
-    var new_freq = freqUtils.convFreq(freqInput.value);
+    var new_freq = freq_utils.conv_freq(freqInput.value);
 
     if(new_freq) {
         freqResetModal();
-        sendCommand(props.vfo, new_freq);
+        send_command(props.vfo, new_freq);
         // this.$nextTick(function() {
         //     this.$bvModal.hide('new-freq');
         // });

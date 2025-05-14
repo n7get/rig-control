@@ -1,9 +1,9 @@
-import RigSetting from '../js/rig_settings.js';
+import rig_setting from '../js/rig_setting.js';
 import { useSettingsStore } from '@/stores/settings';
 import { useStateStore } from '@/stores/state';
 
 let socket = null;
-function connectWebSocket() {
+function connect_ws() {
     const settings = useSettingsStore().settings;
 
     socket = new WebSocket('http://192.168.68.57/ws');
@@ -36,8 +36,8 @@ function connectWebSocket() {
             break;
 
         default:
-            const rs = RigSetting.fromCommand(data.value);
-            // console.log('RigSetting:', rs);
+            const rs = rig_setting.fromCommand(data.value);
+            // console.log('rig_setting:', rs);
 
             if (rs.isMenu) {
                 // Handle menu settings
@@ -73,10 +73,10 @@ function sendMessage(message) {
     }
 }
 
-function sendCommand(command, value) {
+function send_command(command, value) {
     if (socket && socket.readyState === WebSocket.OPEN) {
-        const rc = RigSetting.of(command, value);
-        console.log('sendCommand', rc);
+        const rc = rig_setting.of(command, value);
+        console.log('send_command', rc);
 
         sendMessage({ topic: 'command', command: rc.asSet });
     } else {
@@ -84,4 +84,4 @@ function sendCommand(command, value) {
     }
 }
 
-export { connectWebSocket, sendCommand };
+export { connect_ws, send_command };

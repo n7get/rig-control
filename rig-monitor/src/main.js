@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import { createBootstrap } from 'bootstrap-vue-next'
 import { createPinia } from 'pinia'
-import { connectWebSocket } from './js/web_socket.js'
+import { connect_ws } from './js/web_socket.js'
 
 import App from './App.vue'
 
@@ -13,6 +13,6 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(createBootstrap())
 
-connectWebSocket();
+connect_ws();
 
 app.mount('#app')

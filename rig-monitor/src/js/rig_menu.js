@@ -893,16 +893,16 @@ const mi_table = {
     },
 };
 
-class MenuItems {
+class menu_items {
     toUi(no, value) {
         const mi = mi_table[no];
 
         if(isEmptyValue(mi)) {
-            throw new Error('MenuItems.toUi(' + no + ') not found');
+            throw new Error('menu_items.toUi(' + no + ') not found');
         }
 
         if (isEmptyValue(value)) {
-            throw new Error('MenuItems.toUi(' + no + ') has no value');
+            throw new Error('menu_items.toUi(' + no + ') has no value');
         }
 
         if(mi.hasOwnProperty('rig_ui_map')) {
@@ -913,14 +913,14 @@ class MenuItems {
         else if(mi.hasOwnProperty('toUi')) {
             return mi.toUi(value);
         }
-        throw new Error('MenuItems.toUi(' + no + '): unknown value: "' + value + '"');
+        throw new Error('menu_items.toUi(' + no + '): unknown value: "' + value + '"');
     }
 
     fromUi(no, value) {
         const mi = mi_table[no];
 
         if(isEmptyValue(mi)) {
-            throw new Error('MenuItems.fromUi(' + no + ') not found');
+            throw new Error('menu_items.fromUi(' + no + ') not found');
         }
 
         if (value !== null) {
@@ -940,11 +940,11 @@ class MenuItems {
             else if(mi.hasOwnProperty('fromUi')) {
                 return mi.fromUi(value);
             }
-            throw new Error('MenuItems.fromUi(' + no + '): unknown value: "' + value + '"');
+            throw new Error('menu_items.fromUi(' + no + '): unknown value: "' + value + '"');
         }
 
-        throw new Error('MenuItems.fromUi(' + no + ') has no value');
+        throw new Error('menu_items.fromUi(' + no + ') has no value');
     }
 }
 
-export default MenuItems;
+export default menu_items;

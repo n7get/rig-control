@@ -1309,7 +1309,7 @@ function findRigCommand(arg) {
     // return findRigCommand(arg.substring(0, arg.length - 1));
 }
 
-const RigSetting = class {
+const rig_setting = class {
     constructor(rc, value, command) {
         this._rc = rc;
         this._value = value;
@@ -1401,10 +1401,10 @@ const RigSetting = class {
         }
 
         if(isEmptyValue(value)) {
-            new RigSetting(rc, null, null);
+            new rig_setting(rc, null, null);
         }
 
-        return new RigSetting(rc, value);
+        return new rig_setting(rc, value);
     }
 
     static fromCommand(arg) {
@@ -1438,17 +1438,17 @@ const RigSetting = class {
         }
 
         if(isEmptyValue(value)) {
-            return new RigSetting(rc, null, arg);
+            return new rig_setting(rc, null, arg);
         }
 
-        return new RigSetting(rc, rc.fromCommand(value), arg);
+        return new rig_setting(rc, rc.fromCommand(value), arg);
     }
 
     static *getAll() {
         for(const rc of Object.values(rig_commands)) {
-            yield new RigSetting(rc, '', '');
+            yield new rig_setting(rc, '', '');
         }
     }
 };
 
-export default RigSetting;
+export default rig_setting;

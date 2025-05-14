@@ -64,9 +64,9 @@ function freq_hz(value) {
     return freq;
 }
 
-function convFreq(arg) {
+function conv_freq(arg) {
     if(typeof(arg) === 'number') {
-	    return convFreq(arg.toString());
+	    return conv_freq(arg.toString());
     }
 
     let freq = freq_hz(arg.trim());
@@ -100,11 +100,11 @@ function convFreq(arg) {
     return null;
 }
 
-function formatFreq(freq) {
+function format_freq(freq) {
     let m, k, h;
 
     if(typeof(freq) === 'number') {
-        return formatFreq(freq.toString());
+        return format_freq(freq.toString());
     }
 
     if(freq.length === 7) {
@@ -126,4 +126,4 @@ function formatFreq(freq) {
     return trim_zeros(m + k + '.' + h);
 }
 
-export default { convFreq, formatFreq };
+export default { conv_freq, format_freq };
