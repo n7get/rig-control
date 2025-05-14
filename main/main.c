@@ -9,6 +9,7 @@
 #include "rig.h"
 #include "rig_monitor.h"
 #include "rig_commands.h"
+#include "rig_controller.h"
 #include "settings.h"
 #include "ui.h"
 #include "wifi.h"
@@ -76,6 +77,7 @@ void app_main(void) {
     init_rig_commands();
     init_rig_monitor();
     ui_init();
+    init_rig_controller();
     
     ws_init();
     

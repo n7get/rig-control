@@ -21,7 +21,8 @@ typedef enum {
     RM_EVENT_REFRESH,
     RM_EVENT_START,
     RM_EVENT_PING,
-    RM_EVENT_SPECIAL,
+    RM_TX_POLL_SET,
+    RM_TX_POLL_CLEAR,
 } rm_event_type_t;
 
 typedef struct {
@@ -253,10 +254,11 @@ static void rig_monitor_task(void *pvParameters) {
                     event_ping(in_startup, is_ready);
                     break;
 
-                case RM_EVENT_SPECIAL:
-                    if (is_ready) {
-                        rc_handle_special_command(&event.command);
-                    }
+                case RM_TX_POLL_SET:
+                    rc_set_tx_poll();
+                    break;
+                case RM_TX_POLL_CLEAR:
+                    rc_clear_tx_poll();
                     break;
 
                 default:
@@ -294,21 +296,6 @@ void rig_monitor_remove_observers(observer_callback_t callback) {
 }
 
 static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t type) {
-    if (type == SEND_TYPE_SPECIAL) {
-        if (rc_is_refresh(cmd_str)) {
-            event->type = RM_EVENT_REFRESH;
-            return ESP_OK;
-        }
-
-        if (rc_is_ping(cmd_str)) {
-            event->type = RM_EVENT_PING;
-            return ESP_OK;
-        }
-
-        ESP_LOGE(TAG, "Unknown special command: %s", cmd_str);
-        return ESP_FAIL;
-    }
-
     event->type = RM_EVENT_SEND;
     event->priority = type == SEND_PRIORITY_HIGH;
     esp_err_t err = setup_command(&event->command, cmd_str, type);
@@ -335,6 +322,34 @@ esp_err_t rm_queue_command(const char *cmd_str, send_type_t type) {
     }
 
     return ESP_OK;
+}
+
+void rm_queue_refresh() {
+    rm_event_t event;
+    event.type = RM_EVENT_REFRESH;
+    while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to send refresh event to rig monitor task");
+    }
+}
+void rm_queue_ping() {
+    rm_event_t event;
+    event.type = RM_EVENT_PING;
+    while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to send ping event to rig monitor task");
+    }
+}
+
+void rm_queue_tx_poll(bool tx_poll) {
+    rm_event_t event;
+    if (tx_poll) {
+        event.type = RM_TX_POLL_SET;
+    } else {
+        event.type = RM_TX_POLL_CLEAR;
+    }
+
+    while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
+        ESP_LOGE(TAG, "Failed to send tx poll event to rig monitor task");
+    }
 }
 
 void rm_queue_response(response_t *response) {

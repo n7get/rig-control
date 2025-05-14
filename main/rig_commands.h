@@ -6,12 +6,6 @@
 
 #define POLL_INTERVAL 25
 
-typedef enum {
-    RC_COMMAND_NORMAL = 0,
-    RC_COMMAND_SPECIAL,
-    RC_COMMAND_INVALID,
-} rc_recv_command_type;
-
 /**
  * Initialize the rig commands.
  */
@@ -41,24 +35,6 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick);
  * The idea is to spread out the refresh time of all commands
  */
 void rc_randomize_refresh();
-
-/**
- * rc_handle_special_command
- * 
- * This function handles special commands that are not part 
- * of the CAT command set.
- */
-void rc_handle_special_command(command_t *command);
-
-/**
- * rc_recv_command
- * 
- * This function checks if the command is a valid command.
- * If the command is valid, it returns RC_COMMAND_NORMAL.
- * the command is a special command, handle it and return RC_COMMAND_IGNORE.
- * If the command is not valid, it returns RC_COMMAND_INVALID.
- */
-rc_recv_command_type rc_recv_command(const char *cmd_str);
 
 /**
  * rc_reset
@@ -141,5 +117,18 @@ const char *rc_ping_command();
 bool rc_is_ping(const char *value);
 
 char *rc_to_json();
+
+/**
+ * When in TX:
+ * Set read meter commands to poll.
+ * Inhibit polling the s meter.
+ */
+void rc_set_tx_poll();
+/**
+ * When not in TX:
+ * Inhibit read meter commands to poll.
+ * Allow polling the s meter.
+ */
+void rc_clear_tx_poll();
 
 esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t type);

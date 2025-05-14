@@ -8,6 +8,7 @@ idf_component_register(
 		"main.c"
 		"observer.c"
 		"rig_commands.c"
+		"rig_controller.c"
 		"rig_monitor.c"
 		"rig_uart.c"
 		"settings.c"

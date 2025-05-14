@@ -47,3 +47,12 @@ void rig_monitor_add_observers(uint32_t observed, observer_callback_t callback, 
  * @param callback The callback function to remove.
  */
 void rig_monitor_remove_observers(observer_callback_t callback);
+
+void rm_queue_refresh();
+
+void rm_queue_ping();
+
+/**
+ * Enable or disable TX polling.
+ */
+void rm_queue_tx_poll(bool tx_poll);

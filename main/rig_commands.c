@@ -33,21 +33,20 @@
 #define AUTO_FAST_F 0x40    // This flag is never cleared
 #define CHECK_FAST_UNTIL 0x80
 
-#define RESET_MASK (AUTO_FAST_F)
+#define POLL_SKIP_F 0x100   // Skip polling for this command
+
+#define RESET_MASK (AUTO_FAST_F|POLL_SKIP_F)
 
 // Define a structure to represent each command
 typedef struct {
     const char *cmd;                    // Command string
     uint8_t len;                        // Length of the command string (excluding the semicolon)
-    uint8_t flags;                      // Flags to indicate the status of the command
+    uint16_t flags;                      // Flags to indicate the status of the command
     TickType_t fast_until;              // Fast count for the command
     int16_t refresh_time;               // Refresh time in ticks
     int16_t next_refresh;               // Next refresh time in ticks
     char last_value[RECV_BUFFER_SIZE];  // Last value, initialized to NULL
 } rig_command_t;
-
-#define ENHANCED_RIG_COMMAND_REFRESH "@R;"
-#define ENHANCED_RIG_COMMAND_PING "@P;"
 
 #define ENHANCED_RIG_RESULT_NOT_READY "!N;"
 #define ENHANCED_RIG_RESULT_READY "!R;"
@@ -75,13 +74,13 @@ static rig_command_t rig_commands[] = {
     {"CS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CT0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     // {"DA;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"FA;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"FA;", 2, INVALID_F|AUTO_FAST_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"FB;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"FS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"FT;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"GT0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     // {"ID;", 2, INVALID_F, 0, DEFAULT_REFRESH_TIME, 0, {'\0'}},
-    {"IF;", 2, INVALID_F|AUTO_FAST_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"IF;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"IS0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"KP;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"KR;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -115,21 +114,22 @@ static rig_command_t rig_commands[] = {
     {"RI7;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"RIA;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"RL0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    // {"RM1;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    // {"RM2;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    // {"RM3;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    {"RM4;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    // {"RM5;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    {"RM6;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    // {"RM7;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    // {"RM8;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"RM0;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM1;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM2;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM3;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"RM4;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM5;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"RM6;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM7;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    // {"RM8;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"RT;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SD;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SH0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SM0;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"SQ0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"TS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"TX;", 2, INVALID_F|AUTO_FAST_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"TX;", 2, INVALID_F, 0, VERY_FAST_REFRESH_TIME, 0, {'\0'}},
     {"UL;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"VD;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"VG;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -419,6 +419,9 @@ bool rc_is_ready() {
 }
 
 static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority, int elapsed_ticks) {
+    if (cmd->flags & POLL_SKIP_F) {
+        return false;
+    }
     if (cmd->flags & PENDING_F) {
         info->pending++;
         return false;
@@ -488,44 +491,6 @@ void rc_randomize_refresh() {
     }
 }
 
-void rc_handle_special_command(command_t *command) {
-    if (command->read[0] == '+' || command->read[0] == '-') {
-        rig_command_t *rc_cmd = find_command(command->read + 1);
-        if (rc_cmd == NULL) {
-            return;
-        }
-
-        if (command->read[0] == '+') {
-            rc_cmd->flags |= FAST_F;
-            ESP_LOGI(TAG, "Add fast command: %s", rc_cmd->cmd);
-        } else {
-            rc_cmd->flags &= ~FAST_F;
-            ESP_LOGI(TAG, "Remove fast command: %s", rc_cmd->cmd);
-        }
-        return;
-    }
-    ESP_LOGE(TAG, "Unknown special command: %s", command->read);
-}
-
-rc_recv_command_type rc_recv_command(const char *cmd_str) {
-    if (cmd_str[0] == '+' || cmd_str[0] == '-') {
-        rig_command_t *command = find_command(cmd_str + 1);
-        if (command == NULL) {
-            ESP_LOGE(TAG, "Command not found: %s", cmd_str + 1);
-            return RC_COMMAND_INVALID;
-        }
-        return RC_COMMAND_SPECIAL;
-    }
-
-    rig_command_t *command = find_command(cmd_str);
-    if (command == NULL) {
-        ESP_LOGE(TAG, "Command not found: %s", cmd_str);
-        return RC_COMMAND_INVALID;
-    }
-
-    return RC_COMMAND_NORMAL;
-}
-
 void rc_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         rig_commands[i].flags &= RESET_MASK;
@@ -567,6 +532,10 @@ bool rc_set_last_value(response_t *response) {
     cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
     cmd->flags |= VALID_F;
 
+    // if (memcmp(cmd->cmd, "RM4", 3) == 0) {
+    //     ESP_LOGI(TAG, "%s: %s, new_value: %s", cmd->cmd, cmd->last_value, response->response);
+    // }
+
     if (rc_is_fail(response->response)) {
         cmd->flags |= ERROR_F;
         cmd->flags &= ~FAST_F;
@@ -606,20 +575,6 @@ const char *rc_id_command() {
 }
 const char *rc_is_id() {
     return "ID0670;";
-}
-
-const char *rc_refresh_command() {
-    return ENHANCED_RIG_COMMAND_REFRESH;
-}
-bool rc_is_refresh(const char *value) {
-    return strcmp(value, ENHANCED_RIG_COMMAND_REFRESH) == 0;
-}
-
-const char *rc_ping_command() {
-    return ENHANCED_RIG_COMMAND_PING;
-}
-bool rc_is_ping(const char *value) {
-    return strcmp(value, ENHANCED_RIG_COMMAND_PING) == 0;
 }
 
 const char *rc_result_not_ready() {
@@ -675,6 +630,30 @@ char *rc_to_json() {
     }
 
     return json_string; // Caller must free this string using free()
+}
+
+void rc_set_tx_poll() {
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        if (rig_commands[i].cmd[0] == 'R' && rig_commands[i].cmd[1] == 'M') {
+            rig_commands[i].flags &= ~POLL_SKIP_F;
+            rig_commands[i].flags |= FAST_F;
+        }
+        if (rig_commands[i].cmd[0] == 'S' && rig_commands[i].cmd[1] == 'M') {
+            rig_commands[i].flags |= POLL_SKIP_F;
+        }
+    }
+}
+
+void rc_clear_tx_poll() {
+    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
+        if (rig_commands[i].cmd[0] == 'R' && rig_commands[i].cmd[1] == 'M') {
+            rig_commands[i].flags &= ~FAST_F;
+            rig_commands[i].flags |= POLL_SKIP_F;
+        }
+        if (rig_commands[i].cmd[0] == 'S' && rig_commands[i].cmd[1] == 'M') {
+            rig_commands[i].flags &= ~POLL_SKIP_F;
+        }
+    }
 }
 
 void init_rig_commands() {

@@ -97,15 +97,15 @@ void handle_json(cJSON *json_obj) {
         ESP_LOGI(TAG, "Received event: %s", event);
         
         if (strcmp(event, "refresh") == 0) {
-            rm_queue_command(rc_refresh_command(), SEND_TYPE_SPECIAL);
+            rm_queue_refresh();
             return;
         }
         
         if (strcmp(event, "ping") == 0) {
-            rm_queue_command(rc_ping_command(), SEND_TYPE_SPECIAL);
+            rm_queue_ping();
             return;
         }
-        
+
         ESP_LOGE(TAG, "Control event not implemented: %s", event);
     }
 
