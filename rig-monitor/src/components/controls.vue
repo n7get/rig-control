@@ -24,50 +24,50 @@
     </div>
     <!-- <tx-timer class="mt-2"></tx-timer> -->
     <!-- <tx-count-down :warn="30"></tx-count-down> -->
-    <!-- <power-level  class="mt-2 mb-2"></power-level> -->
-    <!-- <s-level 
-        v-show="mode === 'FM' || mode === 'C4FM' || mode === 'LSB' || mode === 'USB'"
+    <power-level class="mt-2 mb-2"></power-level>
+    <s-level 
+        v-show="mode.value === 'FM' || mode.value === 'C4FM' || mode.value === 'LSB' || mode.value === 'USB'"
         label="Mic-G"
         event="mic_gain"
-        class="mt-2 mb-2"></s-level> -->
-    <!-- <s-level
-        v-show="mode === 'FM' || mode === 'C4FM'"
+        class="mt-2 mb-2"></s-level>
+    <s-level
+        v-show="mode.value === 'FM' || mode.value === 'C4FM'"
         label="SQ"
-        event="squelclh_level"
-        class="mt-2 mb-2"></s-level> -->
-    <!-- <s-level
-        v-show="mode === 'DATA-USB'"
+        event="squelch_level"
+        class="mt-2 mb-2"></s-level>
+    <s-level
+        v-show="mode.value === 'DATA-LSB' || mode.value === 'DATA-USB'"
         label="Mon"
         event="monitor_level"
-        toggle="monitor_on"
-        class="mt-2 mb-2"></s-level> -->
-    <!-- <s-level
-        v-show="mode === 'LSB' || mode === 'USB'"
+        toggle="monitor"
+        class="mt-2 mb-2"></s-level>
+    <s-level
+        v-show="mode.value === 'LSB' || mode.value === 'USB'"
         label="NB"
         event="noise_blanker_level"
         toggle="noise_blanker_status"
         :max="10"
-        class="mt-2 mb-2"></s-level> -->
-    <!-- <s-level
-        v-show="mode === 'LSB' || mode === 'USB'"
+        class="mt-2 mb-2"></s-level>
+    <s-level
+        v-show="mode.value === 'LSB' || mode.value === 'USB'"
         label="NR"
         event="noise_reduction_level"
         toggle="noise_reduction"
         :min="1"
         :max="15"
-        class="mt-2 mb-2"></s-level> -->
+        class="mt-2 mb-2"></s-level>
     <!-- <mi-level
-        v-show="mode === 'DATA-USB'"
+        v-show="mode.value === 'DATA-USB'"
         :no="73"
         label="D-LVL"
         class="mt-2 mb-2"></mi-level> -->
     <!-- <mi-level
-        v-show="mode === 'DATA-FM'"
+        v-show="mode.value === 'DATA-FM'"
         :no="75"
         label="FM OUT"
         class="mt-2 mb-2"></mi-level> -->
     <!-- <mi-level
-        v-show="mode === 'DATA-FM'"
+        v-show="mode.value === 'DATA-FM'"
         :no="78"
         label="FM TX GAIN"
         class="mt-2 mb-2"></mi-level> -->
@@ -96,8 +96,11 @@ import sMeter from './s-meter-bootstrap-progressbar.vue';
 import swrMeter from './swr-meter.vue';
 import alcMeter from './alc-meter.vue';
 import readMeterFrontPanel from './read-meter-front-panel.vue';
+import powerLevel from './power-level.vue';
+import sLevel from './s-level.vue';
 
 const meter_sw = useSettingsStore().meter_sw;
+const mode = useSettingsStore().mode;
 const transmit = useSettingsStore().transmit;
 </script>
 

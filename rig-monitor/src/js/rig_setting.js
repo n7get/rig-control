@@ -820,7 +820,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1, 2));
+            return fromBoolean(value);
         },
     },
     'NL0': {
@@ -844,7 +844,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1, 2));
+            return fromBoolean(value);
         },
     },
     'OI': {
@@ -1039,7 +1039,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return intValue(value.substring(1, 3));
+            return intValue(value);
         },
     },
     'RM0': {
