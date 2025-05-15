@@ -48,6 +48,13 @@ function connect_ws() {
                     // console.log('no:', rs.value.no, 'menu:', value);
                     // console.log('menu:', menus[rs.value.no]);
                 }
+            } else if (rs.name === 'information') {
+                // console.log('information:', rs.value);
+                settings.memory_channel.value = rs.value.memory_channel;
+                settings.vfo_a.value = rs.value.vfo_a;
+                settings.mode.value = rs.value.mode;
+            } else if (rs.name === 'opposite_band_information') {
+                // console.log('opposite_band_information:', rs.value);
             } else if (settings.hasOwnProperty(rs.name)) {
                 settings[rs.name].value = rs.value;
 

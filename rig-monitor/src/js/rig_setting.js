@@ -186,14 +186,14 @@ function asInteger() {
 function band_info(value) {
     return {
         raw: value,
-        mem_chan: intValue(value.substring(0,3)),
-        freq: intValue(value.substring(3,12)),
-        clarifier: value.substring(12,17),
+        memory_channel: intValue(value.substring(0,3)),
+        vfo_a: intValue(value.substring(3,12)),
+        clar: value.substring(12,17),
         rx_clar: value.substring(17, 18) != '0',
         tx_clar: value.substring(18, 19) != '0',
         mode: cat_modes[value.substring(19, 20)] || value.substring(21, 22),
         p7: value.substring(20, 21),
-        tone: value.substring(21, 22),
+        ctcss: cat_to_CT[value.substring(21, 22)]   ,
         offset: cat_offset[value.substring(24, 25)],
         tag: value.substring(26),
     };
