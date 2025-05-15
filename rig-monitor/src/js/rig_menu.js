@@ -28,10 +28,10 @@ function pad(len) {
     };
 }
 const pad1 = pad(1);
-// const pad2 = pad(2);
-// const pad3 = pad(3);
-// const pad4 = pad(4);
-// const pad9 = pad(9);
+const pad2 = pad(2);
+const pad3 = pad(3);
+const pad4 = pad(4);
+const pad9 = pad(9);
 
 // UI Iterface functions
 
@@ -893,16 +893,16 @@ const mi_table = {
     },
 };
 
-class menu_items {
-    toUi(no, value) {
+class rig_menu {
+    static toUi(no, value) {
         const mi = mi_table[no];
 
         if(isEmptyValue(mi)) {
-            throw new Error('menu_items.toUi(' + no + ') not found');
+            throw new Error('rig_menu.toUi(' + no + ') not found');
         }
 
         if (isEmptyValue(value)) {
-            throw new Error('menu_items.toUi(' + no + ') has no value');
+            throw new Error('rig_menu.toUi(' + no + ') has no value');
         }
 
         if(mi.hasOwnProperty('rig_ui_map')) {
@@ -913,14 +913,14 @@ class menu_items {
         else if(mi.hasOwnProperty('toUi')) {
             return mi.toUi(value);
         }
-        throw new Error('menu_items.toUi(' + no + '): unknown value: "' + value + '"');
+        throw new Error('rig_menu.toUi(' + no + '): unknown value: "' + value + '"');
     }
 
-    fromUi(no, value) {
+    static fromUi(no, value) {
         const mi = mi_table[no];
 
         if(isEmptyValue(mi)) {
-            throw new Error('menu_items.fromUi(' + no + ') not found');
+            throw new Error('rig_menu.fromUi(' + no + ') not found');
         }
 
         if (value !== null) {
@@ -940,11 +940,11 @@ class menu_items {
             else if(mi.hasOwnProperty('fromUi')) {
                 return mi.fromUi(value);
             }
-            throw new Error('menu_items.fromUi(' + no + '): unknown value: "' + value + '"');
+            throw new Error('rig_menu.fromUi(' + no + '): unknown value: "' + value + '"');
         }
 
-        throw new Error('menu_items.fromUi(' + no + ') has no value');
+        throw new Error('rig_menu.fromUi(' + no + ') has no value');
     }
 }
 
-export default menu_items;
+export { rig_menu };

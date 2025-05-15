@@ -1,5 +1,7 @@
 'use strict;'
 
+import { rig_menu } from '../js/rig_menu.js';
+
 function isEmptyValue(value) {
     if(typeof(value) === 'string' && value.length === 0) {
         return true;
@@ -518,16 +520,18 @@ const rig_commands = {
         desc: 'MENU',
         isMenu: true,
         asSetValue() {
-            return this._rc.cmd + pad3(this.value.no) + this.value.value + ';';
+            const cmd_value = rig_menu.fromUi(this.value.no, this.value.value);
+
+            return this._rc.cmd + pad3(this.value.no) + cmd_value + ';';
         },
         asReadValue() {
             return this._rc.cmd + pad3(this.value.no) + ';';
         },
-        fromCommand(value) {
-            return {
-                no: intValue(value.substring(0, 3)),
-                value: value.substring(3)
-            };
+        fromCommand(raw_value) {
+            const no = intValue(raw_value.substring(0, 3));
+            const value = rig_menu.toUi(no, raw_value.substring(3));
+
+            return { no, value };
         },
     },
     'FA': {
@@ -1406,6 +1410,18 @@ const rig_setting = class {
 
         return new rig_setting(rc, value);
     }
+
+    // static toMenuCommand(no, value) {
+    //     if(!Number.isInteger(no) || no < 1 || no > 153) {
+    //         throw new Error('Menu number must be an integer between 1 and 153');
+    //     }
+
+    //     if(value === null || value === undefined) {
+    //         throw new Error('Menu value must not be null or undefined');
+    //     }
+
+    //     return new rig_setting(rig_commands['EX'], { no: no, value: value });
+    // }
 
     static fromCommand(arg) {
         let rc = null;

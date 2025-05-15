@@ -56,21 +56,21 @@
         :min="1"
         :max="15"
         class="mt-2 mb-2"></s-level>
-    <!-- <mi-level
+    <mi-level
         v-show="mode.value === 'DATA-USB'"
         :no="73"
         label="D-LVL"
-        class="mt-2 mb-2"></mi-level> -->
-    <!-- <mi-level
+        class="mt-2 mb-2"></mi-level>
+    <mi-level
         v-show="mode.value === 'DATA-FM'"
         :no="75"
         label="FM OUT"
-        class="mt-2 mb-2"></mi-level> -->
-    <!-- <mi-level
+        class="mt-2 mb-2"></mi-level>
+    <mi-level
         v-show="mode.value === 'DATA-FM'"
         :no="78"
         label="FM TX GAIN"
-        class="mt-2 mb-2"></mi-level> -->
+        class="mt-2 mb-2"></mi-level>
     <div class="mb-2">
         <div>
         <!-- <s-button event="swap_vfo" label="Swap VFO" class="mt-2"></s-button> -->
@@ -99,9 +99,9 @@ import readMeterFrontPanel from './read-meter-front-panel.vue';
 import powerLevel from './power-level.vue';
 import sLevel from './s-level.vue';
 
-const meter_sw = useSettingsStore().meter_sw;
-const mode = useSettingsStore().mode;
-const transmit = useSettingsStore().transmit;
+const meter_sw = useSettingsStore().settings.meter_sw;
+const mode = useSettingsStore().settings.mode;
+const transmit = useSettingsStore().settings.transmit;
 </script>
 
 <!-- <script>
