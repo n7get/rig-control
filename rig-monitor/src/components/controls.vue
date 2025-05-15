@@ -71,12 +71,10 @@
         :no="78"
         label="FM TX GAIN"
         class="mt-2 mb-2"></mi-level>
-    <div class="mb-2">
-        <div>
-        <!-- <s-button event="swap_vfo" label="Swap VFO" class="mt-2"></s-button> -->
-        <!-- <s-button event="vfo_a_to_b" label="VFO A > B" class="mt-2"></s-button> -->
-        <!-- <s-button event="vfo_b_to_a" label="VFO B > A" class="mt-2"></s-button> -->
-        </div>
+    <div class="d-flex gap-2 mb-2">
+        <s-button event="swap_vfo" label="Swap VFO" class="mt-2"></s-button>
+        <s-button event="vfo_a_to_vfo_b" label="VFO A > B" class="mt-2"></s-button>
+        <s-button event="vfo_b_to_vfo_a" label="VFO B > A" class="mt-2"></s-button>
     </div>
 </div>
 </template>
@@ -98,68 +96,9 @@ import alcMeter from './alc-meter.vue';
 import readMeterFrontPanel from './read-meter-front-panel.vue';
 import powerLevel from './power-level.vue';
 import sLevel from './s-level.vue';
+import sButton from './s-button.vue';
 
 const meter_sw = useSettingsStore().settings.meter_sw;
 const mode = useSettingsStore().settings.mode;
 const transmit = useSettingsStore().settings.transmit;
 </script>
-
-<!-- <script>
-module.exports = {
-    mixins: [window.noderig.op_mode_mixin],
-    components: {
-        'alc-meter':        httpVueLoader('alc-meter.vue'),
-        'alc-status':       httpVueLoader('alc-status.vue'),
-        'comp-meter':        httpVueLoader('comp-meter.vue'),
-        'frequency':        httpVueLoader('frequency.vue'),
-        'id-meter':         httpVueLoader('id-meter.vue'),
-        'lock-status':      httpVueLoader('lock-status.vue'),
-        'manual-mode-status': httpVueLoader('manual-mode-status.vue'),
-        'mi-level':         httpVueLoader('mi-level.vue'),
-        'mode-status':      httpVueLoader('mode-status.vue'),
-        'op-mode':          httpVueLoader('op-mode.vue'),
-        'po-meter':         httpVueLoader('po-meter.vue'),
-        'power-level':      httpVueLoader('power-level.vue'),
-        'pre-amp-status':   httpVueLoader('pre-amp-status.vue'),
-        's-button':         httpVueLoader('s-button.vue'),
-        's-level':          httpVueLoader('s-level.vue'),
-        's-meter':          httpVueLoader('s-meter-vue-bootstrap-progressbar.vue'),
-//      's-toggle':         httpVueLoader('s-toggle.vue'),
-        'swr-meter':        httpVueLoader('swr-meter.vue'),
-        'tuner-status':     httpVueLoader('tuner-status.vue'),
-        'tx-count-down':    httpVueLoader('tx-count-down.vue'),
-        'tx-timer':         httpVueLoader('tx-timer.vue'),
-        'vdd-meter':        httpVueLoader('vdd-meter.vue'),
-    },
-    data: function() {
-        return {
-            meter_switch: '',
-            tx_on: false,
-            mode: undefined,
-        }
-    },
-    mounted: function() {
-        var self = this;
-
-        uibuilder.onChange('msg', msg => {
-            var p = msg.payload;
-
-            if(p.name === 'transmit') {
-                if(p.hasOwnProperty('value')) {
-                    self.tx_on = p.value;
-                }
-            }
-            else if(p.name === 'meter_switch') {
-                if(p.hasOwnProperty('value')) {
-                    self.meter_switch = p.value;
-                }
-            }
-            else if(p.name === 'mode') {
-                if(p.hasOwnProperty('value')) {
-                    self.mode = p.value;
-                }
-            }
-        });
-    },
-}
-</script> -->

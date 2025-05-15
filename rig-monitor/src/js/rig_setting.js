@@ -200,12 +200,12 @@ function band_info(value) {
 }
 
 const rig_commands = {
-    // 'AB': {                       // TODO: Needs testing
-    //     cmd: 'AB',
-    //     name: 'vfo_a_to_vfo_b',
-    //     desc: 'VFO-A_TO_VFO-B',
-    //     asSet: sendCmd,
-    // },
+    'AB': {                       // TODO: Needs testing
+        cmd: 'AB',
+        name: 'vfo_a_to_vfo_b',
+        desc: 'VFO-A_TO_VFO-B',
+        asSet: sendCmd,
+    },
     'AC': {
         cmd: 'AC',
         name: 'tuner',
@@ -245,16 +245,18 @@ const rig_commands = {
     //     asRead: sendCmd,
     //     fromCommand: fromBoolean,
     // },
-    // 'AM': {                       // TODO: Needs testing
-    //     cmd: 'AM',
-    //     desc: 'VFO-A_TO_MEMORY_CHANNEL',
-    //     asSet: sendCmd,
-    // },
-    // 'BA': {                       // TODO: Needs testing
-    //     cmd: 'BA',
-    //     desc: 'VFO-B_TO_VFO-A',
-    //     asSet: sendCmd,
-    // },
+    'AM': {                       // TODO: Needs testing
+        cmd: 'AM',
+        name: 'vfo]a_to_memory_channel',
+        desc: 'VFO-A_TO_MEMORY_CHANNEL',
+        asSet: sendCmd,
+    },
+    'BA': {                       // TODO: Needs testing
+        cmd: 'BA',
+        name: 'vfo_b_to_vfo_a',
+        desc: 'VFO-B_TO_VFO-A',
+        asSet: sendCmd,
+    },
     'BC0': {
         cmd: 'BC0',
         name: 'auto_notch',
@@ -267,11 +269,12 @@ const rig_commands = {
             return fromBoolean(value.substring(1, 2));
         }
     },
-    // 'BD0': {                       // TODO: Needs testing
-    //     cmd: 'BD0',
-    //     desc: 'BAND_DOWN',
-    //     asSet: sendCmd,
-    // },
+    'BD0': {                       // TODO: Needs testing
+        cmd: 'BD0',
+        name: 'band_down',
+        desc: 'BAND_DOWN',
+        asSet: sendCmd,
+    },
     'BI': {
         cmd: 'BI',
         name: 'break_in',
@@ -312,22 +315,24 @@ const rig_commands = {
             return r * 10;
         },
     },
-    // 'BS': {                       // TODO: Needs testing
-    //     cmd: 'BS',
-    //     desc: 'BAND_SELECT',
-    //     asSetValue() {
-    //         if(band_to_cat.hasOwnProperty(this.value)) {
-    //             return this._rc.cmd + band_to_cat[this.value] + ';';
-    //         }
+    'BS': {                       // TODO: Needs testing
+        cmd: 'BS',
+        name: 'band_select',
+        desc: 'BAND_SELECT',
+        asSetValue() {
+            if(band_to_cat.hasOwnProperty(this.value)) {
+                return this._rc.cmd + band_to_cat[this.value] + ';';
+            }
 
-    //         throw new Error('Unknown band type: ' + this.value);
-    //     },
-    // },
-    // 'BU0': {                       // TODO: Needs testing
-    //     cmd: 'BU0',
-    //     desc: 'BAND_UP',
-    //     asSet: sendCmd,
-    // },
+            throw new Error('Unknown band type: ' + this.value);
+        },
+    },
+    'BU0': {                       // TODO: Needs testing
+        cmd: 'BU0',
+        name: 'band_up',
+        desc: 'BAND_UP',
+        asSet: sendCmd,
+    },
     'BY': {                       // TODO: Needs testing
         cmd: 'BY',
 	name: 'busy',
@@ -337,16 +342,18 @@ const rig_commands = {
             return fromBoolean(value.substring(1,2));
         },
     },
-    // 'CH0': {                       // TODO: Needs testing
-    //     cmd: 'CH0',
-    //     desc: 'CHANNEL_UP',
-    //     asSet: sendCmd,
-    // },
-    // 'CH1': {                       // TODO: Needs testing
-    //     cmd: 'CH1',
-    //     desc: 'CHANNEL_DOWN',
-    //     asSet: sendCmd,
-    // },
+    'CH0': {                       // TODO: Needs testing
+        cmd: 'CH0',
+        name: 'channel_up',
+        desc: 'CHANNEL_UP',
+        asSet: sendCmd,
+    },
+    'CH1': {                       // TODO: Needs testing
+        cmd: 'CH1',
+        name: 'channel_down',
+        desc: 'CHANNEL_DOWN',
+        asSet: sendCmd,
+    },
     'CN00': {
         cmd: 'CN00',
         name: 'ctcss_tone_frequency',
@@ -448,6 +455,7 @@ const rig_commands = {
     // 'DA': {
     //     cmd: 'DA',
     //     name: 'dimmer',
+    //     name: 'dimmer',
     //     desc: 'DIMMER',
     //     asSetValue() {
     //         return this._rc.cmd + '00' + pad2(this.value.led) + pad2(this.value.tft) + ';';
@@ -460,11 +468,12 @@ const rig_commands = {
     //         };
     //     },
     // },
-    // 'DN': {                       // TODO: Needs testing
-    //     cmd: 'DN',
-    //     desc: 'MIC_DOWN',
-    //     asSet: sendCmd,
-    // },
+    'DN': {                       // TODO: Needs testing
+        cmd: 'DN',
+        name: 'mic_down',
+        desc: 'MIC_DOWN',
+        asSet: sendCmd,
+    },
     // 'DT0': {
     //     cmd: 'DT0',
     //     name: 'date',
@@ -503,15 +512,18 @@ const rig_commands = {
     // },
     // 'ED': {                       // TODO:
     //     cmd: 'ED',
+    //     name: 'encorder_down',
     //     desc: 'ENCORDER_DOWN',
     // },
-    // 'EK': {                       // TODO: Needs testing
-    //     cmd: 'EK',
-    //     desc: 'ENT_KEY',
-    //     asSet: sendCmd,
-    // },
+    'EK': {                       // TODO: Needs testing
+        cmd: 'EK',
+        name: 'ent_key',
+        desc: 'ENT_KEY',
+        asSet: sendCmd,
+    },
     // 'EU': {                       // TODO:
     //     cmd: 'EU',
+    //     name: 'encorder_up',
     //     desc: 'ENCORDER_UP',
     // },
     'EX': {
@@ -599,6 +611,7 @@ const rig_commands = {
     },
     // 'ID': {
     //     cmd: 'ID',
+    //     name: 'identification',
     //     desc: 'IDENTIFICATION',
     //     asRead: sendCmd,
     //     fromCommand(value) {
@@ -626,6 +639,7 @@ const rig_commands = {
     },
     // 'KM': {
     //     cmd: 'KM',
+    //     name: 'keyer_memory',
     //     desc: 'KEYER_MEMORY',
     //     asSetValue() {
     //         return this._rc.cmd + this.value.no.toString() + this.value.message + ';';
@@ -668,13 +682,14 @@ const rig_commands = {
         asRead: sendCmd,
         fromCommand: fromInteger,
     },
-    // 'KY': {
-    //     cmd: 'KY',
-    //     desc: 'CW_KEYING',
-    //     asSetValue() {
-    //         return this._rc.cmd + this.value.toString() + ';';
-    //     },
-    // },
+    'KY': {
+        cmd: 'KY',
+        name: 'cw_keying',
+        desc: 'CW_KEYING',
+        asSetValue() {
+            return this._rc.cmd + this.value.toString() + ';';
+        },
+    },
     'LK': {
         cmd: 'LK',
         name: 'lock',
@@ -697,10 +712,12 @@ const rig_commands = {
             throw new Error(_rc.cmd + ' Not implemented yet');
         },
     },
-    // 'MA': {
-    //     cmd: 'MA',
-    //     desc: 'MEMORY_CHANNEL_TO_VFO-A',
-    // },
+    'MA': {
+        cmd: 'MA',
+        name: 'memory_channel_to_vfo_a',
+        desc: 'MEMORY_CHANNEL_TO_VFO-A',
+        asSet: sendCmd,
+    },
     'MC': {
         cmd: 'MC',
         name: 'memory_channel',
@@ -755,6 +772,7 @@ const rig_commands = {
     },
     // 'MR': {
     //     cmd: 'MR',
+    //     name: 'memory_channel_read',
     //     desc: 'MEMORY_CHANNEL_READ',
     //     asSetValue() {
     //         throw new Error(this._rc.cmd + ' Not implemented yet');
@@ -777,6 +795,7 @@ const rig_commands = {
     },
     // 'MT': {
     //     cmd: 'MT',
+    //     name: 'memory_channel_write/tag',
     //     desc: 'MEMORY_CHANNEL_WRITE/TAG',
     //     asSetValue() {
     //         throw new Error(this._rc.cmd + ' Not implemented yet');
@@ -787,6 +806,7 @@ const rig_commands = {
     // },
     // 'MW': {
     //     cmd: 'MW',
+    //     name: 'memory_channel_write',
     //     desc: 'MEMORY_CHANNEL_WRITE',
     //     asSetValue() {
     //         throw new Error(this._rc.cmd + ' Not implemented yet');
@@ -884,6 +904,7 @@ const rig_commands = {
     },
     // 'PB': {
     //     cmd: 'PB',
+    //     name: 'play_back',
     //     desc: 'PLAY_BACK',
     //     asSetValue() {
     //         throw new Error(this._rc.cmd + ' Not implemented yet');
@@ -929,26 +950,30 @@ const rig_commands = {
     },
     // 'PS': {
     //     cmd: 'PS',
+    //     name: 'power_switch',
     //     desc: 'POWER_SWITCH',
     //     asSetValue: toCatBoolean,
     //     asRead: sendCmd,
     //     fromCommand: fromBoolean,
     // },
-    // 'QI': {
-    //     cmd: 'QI',
-    //     desc: 'QMB_STORE',
-    //     asSet: sendCmd,
-    // },
-    // 'QR': {
-    //     cmd: 'QR',
-    //     desc: 'QMB_RECALL',
-    //     asSet: sendCmd,
-    // },
-    // 'QS': {
-    //     cmd: 'QS',
-    //     desc: 'QUICK_SPLIT',
-    //     asSet: sendCmd,
-    // },
+    'QI': {
+        cmd: 'QI',
+        name: 'qmb_store',
+        desc: 'QMB_STORE',
+        asSet: sendCmd,
+    },
+    'QR': {
+        cmd: 'QR',
+        name: 'qmb_recall',
+        desc: 'QMB_RECALL',
+        asSet: sendCmd,
+    },
+    'QS': {
+        cmd: 'QS',
+        name: 'quick_split',
+        desc: 'QUICK_SPLIT',
+        asSet: sendCmd,
+    },
     'RA0': {
         cmd: 'RA0',
         name: 'rf_attenuator',
@@ -961,18 +986,20 @@ const rig_commands = {
             return fromBoolean(value.substring(1, 2));
         },
     },
-    // 'RC': {
-    //     cmd: 'RC',
-    //     desc: 'CLAR_CLEAR',
-    //     asSet: sendCmd,
-    // },
-    // 'RD': {
-    //     cmd: 'RD',
-    //     desc: 'CLAR_DOWN',
-    //     asSetValue() {
-    //         return this._rc.cmd + pad4(this.value) + ';';
-    //     },
-    // },
+    'RC': {
+        cmd: 'RC',
+        name: 'clar_clear',
+        desc: 'CLAR_CLEAR',
+        asSet: sendCmd,
+    },
+    'RD': {
+        cmd: 'RD',
+        name: 'clar_down',
+        desc: 'CLAR_DOWN',
+        asSetValue() {
+            return this._rc.cmd + pad4(this.value) + ';';
+        },
+    },
     'RG0': {
         cmd: 'RG0',
         name: 'rf_gain',
@@ -1125,24 +1152,26 @@ const rig_commands = {
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
-    // 'RU': {
-    //     cmd: 'RU',
-    //     desc: 'RX_CLARIFIER_PLUS_OFFSET',
-    //     asSetValue() {
-    //         return this._rc.cmd + pad4(this.value) + ';';
-    //     },
-    // },
-    // 'SC': {
-    //     cmd: 'SC',
-    //     desc: 'SCAN',
-    //     asSetValue() {
-    //         switch(this.value) {
-    //         case 'off': return this._rc.cmd + '0' + ';';
-    //         case 'up':  return this._rc.cmd + '1' + ';';
-    //         case 'down':return this._rc.cmd + '2' + ';';
-    //         }
-    //     },
-    // },
+    'RU': {
+        cmd: 'RU',
+        name: 'rx_clarifier_plus_offset',
+        desc: 'RX_CLARIFIER_PLUS_OFFSET',
+        asSetValue() {
+            return this._rc.cmd + pad4(this.value) + ';';
+        },
+    },
+    'SC': {
+        cmd: 'SC',
+        name: 'scan',
+        desc: 'SCAN',
+        asSetValue() {
+            switch(this.value) {
+            case 'off': return this._rc.cmd + '0' + ';';
+            case 'up':  return this._rc.cmd + '1' + ';';
+            case 'down':return this._rc.cmd + '2' + ';';
+            }
+        },
+    },
     'SD': {
         cmd: 'SD',
         name: 'cw_break_in_delay_time',
@@ -1186,11 +1215,12 @@ const rig_commands = {
             return intValue(value.substring(1, 4));
         },
     },
-    // 'SV': {
-    //     cmd: 'SV',
-    //     desc: 'SWAP_VFO',
-    //     asSet: sendCmd,
-    // },
+    'SV': {
+        cmd: 'SV',
+        name: 'swap_vfo',
+        desc: 'SWAP_VFO',
+        asSet: sendCmd,
+    },
     'TS': {
         cmd: 'TS',
         name: 'txw',
@@ -1220,11 +1250,12 @@ const rig_commands = {
             return value === '0' ? 'Lock' : 'Unlock';
         },
     },
-    // 'UP': {
-    //     cmd: 'UP',
-    //     desc: 'UP',
-    //     asSet: sendCmd,
-    // },
+    'UP': {
+        cmd: 'UP',
+        name: 'up',
+        desc: 'UP',
+        asSet: sendCmd,
+    },
     'VD': {
         cmd: 'VD',
         name: 'vox_delay_time',
@@ -1243,12 +1274,12 @@ const rig_commands = {
         asRead: sendCmd,
         fromCommand: fromInteger,
     },
-    // 'VM': {
-    //     cmd: 'VM',
-    //     name: 'v/m_key_function',
-    //     desc: 'V/M_KEY_FUNCTION',
-    //     asSet: sendCmd,
-    // },
+    'VM': {
+        cmd: 'VM',
+        name: 'v_m_key_function',
+        desc: 'V/M_KEY_FUNCTION',
+        asSet: sendCmd,
+    },
     'VX': {
         cmd: 'VX',
         name: 'vox_status',
@@ -1265,12 +1296,12 @@ const rig_commands = {
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
-    // 'ZI': {
-    //     cmd: 'ZI',
-    //     name: 'zero_in',
-    //     desc: 'ZERO_IN',
-    //     asSet: sendCmd,
-    // }
+    'ZI': {
+        cmd: 'ZI',
+        name: 'zero_in',
+        desc: 'ZERO_IN',
+        asSet: sendCmd,
+    }
 };
 
 const commands = Object.values(rig_commands);
