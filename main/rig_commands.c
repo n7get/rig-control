@@ -34,8 +34,9 @@
 #define CHECK_FAST_UNTIL 0x80
 
 #define POLL_SKIP_F 0x100   // Skip polling for this command
+#define SET_ONLY_F 0x200 // Command is only sent, no response expected
 
-#define RESET_MASK (AUTO_FAST_F|POLL_SKIP_F)
+#define RESET_MASK (AUTO_FAST_F|POLL_SKIP_F|SET_ONLY_F)
 
 // Define a structure to represent each command
 typedef struct {
@@ -58,13 +59,21 @@ typedef struct {
 
 // Updated rig_command_t initialization to include 'len' field, calculated as the length of cmd - 1
 static rig_command_t rig_commands[] = {
+    {"AB", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"AC;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"AG0;", 2, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
+    {"AM", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"BA", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"BC0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"BD0", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"BI;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"BP00;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"BP01;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"BS", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"BU", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"BY;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"CH0", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"CH1", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"CN00;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CN01;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CO00;", 4, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -74,6 +83,10 @@ static rig_command_t rig_commands[] = {
     {"CS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"CT0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     // {"DA;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"DN", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"ED", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"EK", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"EU", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"FA;", 2, INVALID_F|AUTO_FAST_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"FB;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"FS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -85,7 +98,9 @@ static rig_command_t rig_commands[] = {
     {"KP;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"KR;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"KS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"KY", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"LK;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"MA", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"MC;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MD0;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MG;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
@@ -104,7 +119,12 @@ static rig_command_t rig_commands[] = {
     {"PL;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"PR0;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"PR1;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"QI", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"QR", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"QS", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"RA0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"RC", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"RD", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"RG0;", 2, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"RI0;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"RI3;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -124,17 +144,23 @@ static rig_command_t rig_commands[] = {
     // {"RM7;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     // {"RM8;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"RT;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"RU", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
+    {"SC", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"SD;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SH0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SM0;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     {"SQ0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"SV", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"TS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"TX;", 2, INVALID_F, 0, VERY_FAST_REFRESH_TIME, 0, {'\0'}},
     {"UL;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"UP", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"VD;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"VG;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"VM", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"VX;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"XT;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"ZI", 2, SET_ONLY_F, 0, 0, 0, {'\0'}},
     {"EX001;", 5, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"EX002;", 5, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"EX003;", 5, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -301,7 +327,7 @@ static rig_command_t *find_command(const char *cmd) {
     return NULL;
 }
 
-esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t type) {
+esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t type) {
     size_t command_size = strnlen(cmd_str, SEND_BUFFER_SIZE);
     if (command_size == 0) {
         ESP_LOGE(TAG, "Command is empty");
@@ -324,21 +350,27 @@ esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t typ
 
     command->type = type;
     switch(type) {
-    case SEND_TYPE_COMMAND:
+    case SEND_TYPE_SET:
         strncpy(command->command, cmd_str, SEND_BUFFER_SIZE);
         command->command_len = command_size;
-        strcpy(command->read, rc_cmd->cmd);
-        command->read_len = strlen(command->read);
+        if (rc_cmd->flags & SET_ONLY_F) {
+            command->read[0] = '\0';
+            command->read_len = 0;
+        } else {
+            // Add a read command to get the new value into the event handlers
+            strcpy(command->read, rc_cmd->cmd);
+            command->read_len = strlen(command->read);
+        }
         break;
 
     case SEND_TYPE_READ:
+        if (rc_cmd->flags & SET_ONLY_F) {
+            ESP_LOGE(TAG, "Command %s is a command-only type and cannot be read", cmd_str);
+            return ESP_FAIL;
+        }
         strncpy(command->read, cmd_str, SEND_BUFFER_SIZE);
         command->read_len = strlen(cmd_str);
         break;
-
-    case SEND_TYPE_SPECIAL:
-        ESP_LOGE(TAG, "Special command %s is not valid here", cmd_str);
-        return ESP_FAIL;
 
     default:
         ESP_LOGE(TAG, "Invalid command type %d", type);
@@ -411,7 +443,7 @@ bool rc_is_ready() {
     }
 
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (!(rig_commands[i].flags & VALID_F)) {
+        if (!(rig_commands[i].flags & SET_ONLY_F) && !(rig_commands[i].flags & VALID_F)) {
             return false;
         }
     }
@@ -419,7 +451,7 @@ bool rc_is_ready() {
 }
 
 static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority, int elapsed_ticks) {
-    if (cmd->flags & POLL_SKIP_F) {
+    if (cmd->flags & POLL_SKIP_F || cmd->flags & SET_ONLY_F) {
         return false;
     }
     if (cmd->flags & PENDING_F) {
@@ -493,16 +525,18 @@ void rc_randomize_refresh() {
 
 void rc_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        rig_commands[i].flags &= RESET_MASK;
-        rig_commands[i].flags |= INVALID_F;
-        rig_commands[i].next_refresh = 0;
-        rig_commands[i].last_value[0] = '\0';
+        if (!(rig_commands[i].flags & SET_ONLY_F)) {
+            rig_commands[i].flags &= RESET_MASK;
+            rig_commands[i].flags |= INVALID_F;
+            rig_commands[i].next_refresh = 0;
+            rig_commands[i].last_value[0] = '\0';
+        }
     }
 }
 
 void rc_send_refresh(void (*notify_callback)(char *)) {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (rig_commands[i].flags & VALID_F && !(rig_commands[i].flags & ERROR_F)) {
+        if (!(rig_commands[i].flags & SET_ONLY_F) && rig_commands[i].flags & VALID_F && !(rig_commands[i].flags & ERROR_F)) {
             notify_callback(rig_commands[i].last_value);
         }
     }
@@ -598,38 +632,6 @@ bool rc_is_fail(const char *response) {
         return false;
     }
     return response[0] == '?' && response[1] == ';';
-}
-
-char *rc_to_json() {
-    cJSON *json_array = cJSON_CreateArray();
-    if (json_array == NULL) {
-        ESP_LOGE(TAG, "Failed to create JSON array");
-        return NULL;
-    }
-
-    for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        // Add last_value to the JSON array
-        if (rig_commands[i].flags & VALID_F) {
-            cJSON *json_value = cJSON_CreateString(rig_commands[i].last_value);
-            if (json_value == NULL) {
-                ESP_LOGE(TAG, "Failed to create JSON string for command: %s", rig_commands[i].cmd);
-                cJSON_Delete(json_array);
-                return NULL;
-            }
-            cJSON_AddItemToArray(json_array, json_value);
-        }
-    }
-
-    // Convert the JSON array to a string
-    char *json_string = cJSON_PrintUnformatted(json_array);
-    cJSON_Delete(json_array); // Free the JSON array object
-
-    if (json_string == NULL) {
-        ESP_LOGE(TAG, "Failed to convert JSON array to string");
-        return NULL;
-    }
-
-    return json_string; // Caller must free this string using free()
 }
 
 void rc_set_tx_poll() {

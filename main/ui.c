@@ -83,7 +83,7 @@ void handle_json(cJSON *json_obj) {
         char *command = cmdValue->valuestring;
         ESP_LOGI(TAG, "Received command: %s", command);
 
-        rm_queue_command(command, SEND_TYPE_COMMAND);
+        rm_queue_command(command, SEND_TYPE_SET);
         return;
     }
     

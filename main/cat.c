@@ -14,6 +14,7 @@
 
 typedef enum {
     RESULT_OK = 0,
+    RESULT_NO_RESPONSE,
     RESULT_TIMEOUT,
     RESULT_ERROR,
 } process_command_result_t;
@@ -25,15 +26,27 @@ static process_command_result_t process_command(response_t *response) {
 
     // Combine command and read into a single send buffer
 
+    if (response->command_len + response->read_len > SEND_BUFFER_SIZE * 2) {
+        ESP_LOGE(TAG, "Command and read buffer size exceeds maximum allowed size");
+        response->result = RECV_RESULT_ERROR;
+        return RESULT_ERROR;
+    }
+    if (response->command_len == 0 && response->read_len == 0) {
+        ESP_LOGE(TAG, "Both command and read buffers are empty");
+        response->result = RECV_RESULT_ERROR;
+        return RESULT_ERROR;
+    }
+
     char send_buf[SEND_BUFFER_SIZE * 2];
     int send_buf_len = 0;
     if (response->command_len > 0) {
         memcpy(send_buf, response->command, response->command_len);
         send_buf_len = response->command_len;
     }
-    memcpy(send_buf + send_buf_len, response->read, response->read_len);
-    send_buf[response->command_len + response->read_len] = '\0';
-    send_buf_len += response->read_len;
+    if (response->read_len > 0) {
+        memcpy(send_buf + send_buf_len, response->read, response->read_len);
+        send_buf_len += response->read_len;
+    }
 
     if (response->command_len != 0) {
         ESP_LOGI(TAG, "Sending command: %s", send_buf);
@@ -47,6 +60,10 @@ static process_command_result_t process_command(response_t *response) {
 
     if (bytes_written > info->max_send_len) {
         info->max_send_len = bytes_written;
+    }
+
+    if (response->read_len == 0) {
+        return RESULT_NO_RESPONSE;
     }
 
     size_t i = 0;
@@ -116,14 +133,22 @@ static void cat_task(void *arg) {
             for(;;) {
                 response_t response;
                 memset(&response, 0, sizeof(response_t));
+
                 response.type = command.type;
-                strncpy(response.command, command.command, SEND_BUFFER_SIZE);
-                response.command_len = command.command_len;
-                strncpy(response.read, command.read, SEND_BUFFER_SIZE);
-                response.read_len = command.read_len;
                 response.result = -1;
 
+                memcpy(response.command, command.command, command.command_len);
+                response.command_len = command.command_len;
+
+                memcpy(response.read, command.read, command.read_len);
+                response.read_len = command.read_len;
+
                 process_command_result_t pcr = process_command(&response);
+
+                if (pcr == RESULT_NO_RESPONSE) {
+                    break;
+                }
+
                 if (pcr == RESULT_OK) {
                     if (!rc_is_fail(response.response) && memcmp(response.response, response.read, response.read_len - 1) != 0) {
                         ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", response.read, response.response);
@@ -193,7 +218,7 @@ esp_err_t cat_queue_command(command_t *command, int priority) {
             ESP_LOGE(TAG, "Failed to enqueue normal priority command");
         }
     } else {
-        ESP_LOGE(TAG, "Command: %s, Invalid priority: %d", command->read, priority);
+        ESP_LOGE(TAG, "Invalid priority: %d", priority);
         return ESP_FAIL;
     }
 
@@ -236,14 +261,11 @@ esp_err_t cat_init(void) {
 void log_response(const char *tag, response_t *response) {
     char *type_str;
     switch(response->type) {
-        case SEND_TYPE_COMMAND:
-            type_str = "COMMAND";
+        case SEND_TYPE_SET:
+            type_str = "SET";
             break;
         case SEND_TYPE_READ:
             type_str = "READ";
-            break;
-        case SEND_TYPE_SPECIAL:
-            type_str = "SPECIAL";
             break;
         default:
             type_str = "UNKNOWN";

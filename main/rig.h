@@ -9,9 +9,8 @@
 #define SEND_PRIORITY_HIGH 1
 
 typedef enum {
-    SEND_TYPE_COMMAND = 0,
+    SEND_TYPE_SET = 0,
     SEND_TYPE_READ,
-    SEND_TYPE_SPECIAL,
 } send_type_t;
 
 typedef enum {

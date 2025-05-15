@@ -116,8 +116,6 @@ const char *rc_ping_command();
  */
 bool rc_is_ping(const char *value);
 
-char *rc_to_json();
-
 /**
  * When in TX:
  * Set read meter commands to poll.
@@ -131,4 +129,4 @@ void rc_set_tx_poll();
  */
 void rc_clear_tx_poll();
 
-esp_err_t setup_command(command_t *command, const char *cmd_str, send_type_t type);
+esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t type);
