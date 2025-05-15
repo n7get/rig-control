@@ -15,8 +15,11 @@ typedef struct {
     int pending;
     int valid;
     int updates;
-    int send_queue_full;
-    int send_queue_fast_full;
+    int rm_queue_polls;
+    int rm_queue_count;
+    int last_rm_queue_event;
+    int cat_queue_full;
+    int cat_queue_fast_full;
     int uart_max_read_len;
     int uart_buffer_full;
     int uart_fifo_ovf;

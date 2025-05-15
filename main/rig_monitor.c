@@ -184,11 +184,15 @@ static void event_ping(bool in_startup, bool is_ready) {
 static void rig_monitor_task(void *pvParameters) {
     bool in_startup = true;
     bool is_ready = false;
+    info_t *info = get_info();
 
     while(1) {
         rm_event_t event;
 
+        info->rm_queue_count = uxQueueMessagesWaiting(rm_event_queue);
         if (xQueueReceive(rm_event_queue, &event, portMAX_DELAY) == pdPASS) {
+            info->rm_queue_polls++;
+            info->last_rm_queue_event = event.type;
 #ifdef LOG_EVENTS            
             log_event(&event, in_startup, is_ready);
 #endif
@@ -219,7 +223,7 @@ static void rig_monitor_task(void *pvParameters) {
                     } else {
                         if (cat_queue_command(&event.command, event.priority) == ESP_ERR_NO_MEM) {
                             notify_status(rc_result_busy());
-                            get_info()->send_queue_full++;
+                            get_info()->cat_queue_full++;
                         }
                     }
                     break;

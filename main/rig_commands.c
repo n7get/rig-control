@@ -465,7 +465,7 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         if (rig_commands[i].flags & FAST_F) {
             if (send_if_update_needed(&rig_commands[i], info, SEND_PRIORITY_HIGH, elapsed_ticks)) {
-                info->send_queue_fast_full++;
+                info->cat_queue_fast_full++;
                 break;
             }
             // ESP_LOGI(TAG, "Fast command: %s", rig_commands[i].cmd);
@@ -476,7 +476,7 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
         if (!(rig_commands[i].flags & FAST_F)) {
             if (send_if_update_needed(&rig_commands[i], info, SEND_PRIORITY_NORMAL, elapsed_ticks)) {
-                info->send_queue_full++;
+                info->cat_queue_full++;
                 break;
             }
         }
