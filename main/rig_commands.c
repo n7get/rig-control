@@ -15,7 +15,7 @@
 #define MEDIUM_REFRESH_TIME pdMS_TO_TICKS(2000)
 #define SLOW_REFRESH_TIME pdMS_TO_TICKS(10000)
 
-#define AUTO_FAST_REFRESH_TICKS pdMS_TO_TICKS(5000)
+#define AUTO_FAST_REFRESH_TICKS pdMS_TO_TICKS(10000)
 
 // These flags are used to initialization of the command values
 #define INVALID_F 0x1       // Command not initialized
@@ -88,15 +88,15 @@ static rig_command_t rig_commands[] = {
     {"LK;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MC;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MD0;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
-    {"MG;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"ML0;", 3, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
-    {"ML1;", 3, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"MG;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"ML0;", 3, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"ML1;", 3, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MS;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MX;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"NA0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"NB0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"NL0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"NR0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"NB0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"NL0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"NR0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"OI;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"OS0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"PA0;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
@@ -113,7 +113,7 @@ static rig_command_t rig_commands[] = {
     {"RI6;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"RI7;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"RIA;", 3, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
-    {"RL0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"RL0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"RM0;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     // {"RM1;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
     // {"RM2;", 3, INVALID_F|POLL_SKIP_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
@@ -127,7 +127,7 @@ static rig_command_t rig_commands[] = {
     {"SD;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SH0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"SM0;", 3, INVALID_F, 0, FAST_REFRESH_TIME, 0, {'\0'}},
-    {"SQ0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
+    {"SQ0;", 2, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"TS;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"TX;", 2, INVALID_F, 0, VERY_FAST_REFRESH_TIME, 0, {'\0'}},
     {"UL;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
