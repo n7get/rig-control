@@ -40,6 +40,8 @@ static void init_info() {
     info.uart_buffer_full = 0;
     info.uart_fifo_ovf = 0;
     info.input_queue_full = 0;
+    info.ws_queue_polls = 0;
+    info.ws_queue_count = 0;
 }
 
 static esp_err_t get_info_handler(httpd_req_t *req) {
@@ -83,6 +85,8 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     cJSON_AddNumberToObject(json, "uart_buffer_full", info.uart_buffer_full);
     cJSON_AddNumberToObject(json, "uart_fifo_ovf", info.uart_fifo_ovf);
     cJSON_AddNumberToObject(json, "input_queue_full", info.input_queue_full);
+    float avg_ws_queue_size = (float)info.ws_queue_count / (float)info.ws_queue_polls;
+    cJSON_AddNumberToObject(json, "avg_ws_queue_size", avg_ws_queue_size);
 
     cJSON_AddNumberToObject(json, "free_heap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(json, "min_free_heap", esp_get_minimum_free_heap_size());

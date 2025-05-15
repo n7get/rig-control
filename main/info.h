@@ -23,6 +23,8 @@ typedef struct {
     int uart_max_read_len;
     int uart_buffer_full;
     int uart_fifo_ovf;
+    int ws_queue_polls;
+    int ws_queue_count;
     int input_queue_full;
 } info_t;
 

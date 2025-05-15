@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "http.h"
+#include "info.h"
 #include "ui.h"
 #include "ws.h"
 #include <esp_netif_types.h>
@@ -60,12 +61,15 @@ static void send_message(void *arg) {
 static void ws_send_task(void *arg) {
     httpd_handle_t *server = (httpd_handle_t *)arg;
     char message[WS_BUFFER_SIZE];
+    info_t *info = get_info();
 
     while (1) {
+        info->ws_queue_count = uxQueueMessagesWaiting(ws_queue);
         if (xQueueReceive(ws_queue, message, portMAX_DELAY) != pdTRUE) {
             ESP_LOGE(TAG, "Failed to receive WebSocket message");
             continue;
         }
+        info->ws_queue_polls++;
         
         size_t clients = max_clients;
         int    client_fds[max_clients];
