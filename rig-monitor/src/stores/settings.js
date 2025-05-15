@@ -80,17 +80,5 @@ export const useSettingsStore = defineStore('settings', () => {
     width: ref({ desc: 'WIDTH', value: null, changed: false, fav: false, saved: false}),
 	};
 
-  const result = {};
-  for (const key in settings) {
-    result[key] = computed(() => settings[key].value);
-  }
-  result.settings = settings;
-
-  // result.s_meter_percent = computed(() => {
-  //   const sMeterReading = settings.s_meter_reading.value;
-  //   if (sMeterReading === null) return null;
-  //   return Math.round((sMeterReading / 100) * 100);
-  // });
-
-  return result;
+  return { settings };
 })

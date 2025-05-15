@@ -61,14 +61,14 @@ const props = defineProps({
 });
 // const vfo = props.vfo;
 
-const transmit = useSettingsStore().transmit;
+const transmit = useSettingsStore().settings.transmit;
 
 const freq_model = ref(false);
 const freqInput = ref('');
 const freqInputState = ref(null);
 
 const getFreq = () => {
-    let value = useSettingsStore()[props.vfo].value;
+    let value = useSettingsStore().settings[props.vfo].value;
     if (!value) {
         return '000000000';
     }

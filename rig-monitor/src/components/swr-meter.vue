@@ -13,7 +13,7 @@
 import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 
-const read_meter_swr = useSettingsStore().read_meter_swr;
+const read_meter_swr = useSettingsStore().settings.read_meter_swr;
 
 const value = computed(() => {
     return read_meter_swr.value + '%';

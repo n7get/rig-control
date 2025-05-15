@@ -9,7 +9,7 @@ import { cat_preamp, preamp_cat } from '../js/rig_setting.js';
 import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
-const pre_amp = useSettingsStore().pre_amp;
+const pre_amp = useSettingsStore().settings.pre_amp;
 
 const sendClick = (e) => {
     let cat = preamp_cat[pre_amp.value];

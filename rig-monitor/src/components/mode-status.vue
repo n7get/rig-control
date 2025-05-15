@@ -23,7 +23,7 @@ import { cat_modes, modes_cat } from '../js/rig_setting.js';
 import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
-const mode = useSettingsStore().mode;
+const mode = useSettingsStore().settings.mode;
 const modeOptions = computed(() => {
     return Object.keys(modes_cat).map(m => {
         return m;
