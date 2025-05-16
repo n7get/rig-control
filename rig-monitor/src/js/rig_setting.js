@@ -108,9 +108,9 @@ const cat_to_agc = {
     '1': 'FAST',
     '2': 'MID',
     '3': 'SLOW',
-    '4': 'AUTO-FAST',
-    '5': 'AUTO-MID',
-    '6': 'AUTO-SLOW'
+    '4': 'AUTO',
+    '5': 'AUTO',
+    '6': 'AUTO',
 };
 const agc_to_cat = {
     'OFF': '0',
@@ -596,17 +596,16 @@ const rig_commands = {
             return value === '0' ? 'VFO-A Band Transmitter: TX' : 'VFO-B Band Transmitter: TX';
         }
     },
-    'GT': {                       // TODO: Needs testing
-        cmd: 'GT',
+    'GT0': {                       // TODO: Needs testing
+        cmd: 'GT0',
         name: 'agc',
         desc: 'AGC_FUNCTION',
         asSetValue() {
-            console.log('AGC: ' + this.value)
             return this._rc.cmd + agc_to_cat[this.value] + ';';
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_to_agc[value.substring(1, 2)];
+            return cat_to_agc[value];
         },
     },
     // 'ID': {
@@ -1009,7 +1008,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return intValue(value.substring(1, 4));
+            return intValue(value);
         },
     },
     'RI0': {
@@ -1499,7 +1498,8 @@ const rig_setting = class {
 };
 
 export {
-    cat_preamp, preamp_cat,
+    agc_to_cat,
     cat_modes, modes_cat,
+    cat_preamp, preamp_cat,
     rig_setting
 };

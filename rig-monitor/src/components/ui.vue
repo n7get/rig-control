@@ -2,7 +2,7 @@
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <controls class="px-3"></controls>
-            <!-- <settings></settings> -->
+            <settings></settings>
             <!-- <menu-item></menu-item> -->
             <!-- <rbn></rbn> -->
             <!-- <config></config> -->
@@ -29,6 +29,8 @@
 
 <script setup>
 import controls from './controls.vue'
+
+import settings from './settings.vue'
 
 const handleOk = (e) => {
     // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});
