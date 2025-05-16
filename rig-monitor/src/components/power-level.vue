@@ -26,7 +26,7 @@ import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
 const pl_buttons = ref(true);
-const power_level = useSettingsStore().settings.power_level;
+const power_level = useSettingsStore().power_level;
 
 const toggle = () => {
     pl_buttons.value = !pl_buttons.value;

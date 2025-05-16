@@ -13,7 +13,7 @@
 import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 
-const read_meter_alc = useSettingsStore().settings.read_meter_alc;
+const read_meter_alc = useSettingsStore().read_meter_alc;
 
 const value = computed(() => {
     return read_meter_alc.value + '%';

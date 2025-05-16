@@ -52,9 +52,9 @@ const disabled = computed(() => {
     if(!props.toggle) {
         return false;
     }
-    return !useSettingsStore().settings[props.toggle].value;
+    return !useSettingsStore()[props.toggle].value;
 });
-const value = useSettingsStore().settings[props.event];
+const value = useSettingsStore()[props.event];
 
 const sendChange = () => {
     send_command(props.event, value.value);

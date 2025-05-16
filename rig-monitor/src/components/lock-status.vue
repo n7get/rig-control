@@ -10,7 +10,7 @@ import { computed } from 'vue';
 import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
-const lock = useSettingsStore().settings.lock;
+const lock = useSettingsStore().lock;
 
 const on = computed(() => {
     return lock.value;

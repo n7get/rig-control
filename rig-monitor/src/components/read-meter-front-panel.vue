@@ -22,7 +22,7 @@ const props = defineProps({
         },
     }
 });
-const read_meter_front_panel = useSettingsStore().settings.read_meter_front_panel;
+const read_meter_front_panel = useSettingsStore().read_meter_front_panel;
 
 const value = computed(() => {
     return read_meter_front_panel.value + '%';

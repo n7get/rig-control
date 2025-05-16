@@ -1,12 +1,12 @@
 import { rig_setting } from '../js/rig_setting.js';
 import { useMenuStore } from '@/stores/menu.js';
 import { useSettingsStore } from '@/stores/settings';
-import { useStateStore } from '@/stores/state';
+import { useGlobalStore } from '@/stores/global';
 
 let socket = null;
 function connect_ws() {
     const menus = useMenuStore().menus;
-    const settings = useSettingsStore().settings;
+    const settings = useSettingsStore();
 
     socket = new WebSocket('http://192.168.68.57/ws');
 
@@ -21,19 +21,19 @@ function connect_ws() {
         
         switch (data.value) {
         case '!R;':
-            if (!useStateStore().isReady) {
+            if (!useGlobalStore().isReady) {
                 console.log('Rig is ready');
                 // for (const key in settings) {
                 //     console.log(key, settings[key].value);
                 // }
-                useStateStore().setReady(true);
+                useGlobalStore().setReady(true);
             }
             break;
 
         case '!N;':
-            if (useStateStore().isReady) {
+            if (useGlobalStore().isReady) {
                 console.log('Rig is not ready');
-                useStateStore().setReady(false);
+                useGlobalStore().setReady(false);
             }
             break;
 

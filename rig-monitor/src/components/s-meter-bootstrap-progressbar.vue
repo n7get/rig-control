@@ -23,8 +23,8 @@
 import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 
-const s_meter = useSettingsStore().settings.s_meter_reading;
-const tx_on = useSettingsStore().settings.transmit;
+const s_meter = useSettingsStore().s_meter_reading;
+const tx_on = useSettingsStore().transmit;
 const value = computed(() => {
     return s_meter.value + '%';
 });

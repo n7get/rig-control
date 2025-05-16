@@ -9,7 +9,7 @@ import { computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 
 const on = computed(() => {
-    return useSettingsStore().settings.read_meter_alc.value;
+    return useSettingsStore().read_meter_alc.value;
 });
 </script>
 

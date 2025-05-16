@@ -1,8 +1,8 @@
 <template>
 <div>
-    <div class="d-flex justify-content-between">
+    <div class="d-flex justify-content-between mt-4">
         <op-mode></op-mode>
-        <frequency class="pt-3"></frequency>
+        <frequency></frequency>
     </div>
     <!-- <b-row v-show="isOpMode(['data-hf', 'voice-ssh'])" class="mt-2"> -->
     <div class="ml-1 my-2 pb-1 border-bottom d-flex justify-content-between w-100">
@@ -98,7 +98,8 @@ import powerLevel from './power-level.vue';
 import sLevel from './s-level.vue';
 import sButton from './s-button.vue';
 
-const meter_sw = useSettingsStore().settings.meter_sw;
-const mode = useSettingsStore().settings.mode;
-const transmit = useSettingsStore().settings.transmit;
+const meter_sw = useSettingsStore().meter_sw;
+const mode = useSettingsStore().mode;
+const transmit = useSettingsStore().transmit;
+console.log('controls.vue', meter_sw, mode, transmit);
 </script>

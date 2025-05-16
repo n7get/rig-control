@@ -10,7 +10,7 @@ import { computed } from 'vue';
 import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
-const tuner = useSettingsStore().settings.tuner;
+const tuner = useSettingsStore().tuner;
 
 const on = computed(() => {
     return tuner.value === 'on';
