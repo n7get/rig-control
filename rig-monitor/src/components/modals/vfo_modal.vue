@@ -5,6 +5,7 @@
             @show="setup_modal"
             @shown="modal_ready"
             @ok="handle_ok"
+            @esc="close_modal"
             @cancel="close_modal"
             v-model="freq_model"
             :title="title"
