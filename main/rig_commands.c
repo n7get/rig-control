@@ -25,7 +25,6 @@
 #define VALID_F 0x4         // Command has been initialized
 #define PENDING_F 0x8       // Command sent, waiting for response
 #define FAST_F 0x10         // Command is set for fast refresh
-#define ERROR_F 0x20        // Last response was an error
 
 // These flags for for commands that once they have changed,
 // kick into automatic fast refresh mode.  Once the count down
@@ -409,9 +408,6 @@ static void log_rig_command(char *tag, rig_command_t *cmd) {
     if (cmd->flags & CHECK_FAST_UNTIL) {
         strcat(flags_str, "C");
     }
-    if (cmd->flags & ERROR_F) {
-        strcat(flags_str, "E");
-    }
     ESP_LOGI(tag, "rig_command_t, cmd: %s, len: %d, status: %s, refresh_time: %d, next_refresh: %d, last_value: %s", cmd->cmd, cmd->len, status_str, cmd->refresh_time, cmd->next_refresh, cmd->last_value);
 }
 #endif
@@ -538,10 +534,22 @@ void rc_reset() {
     }
 }
 
+static void prepare_notify(char *buffer, rig_command_t *cmd) {
+    if (rc_is_fail(cmd->last_value)) {
+        strcpy(buffer, "?");
+        strncpy(buffer + 1, cmd->cmd, RECV_BUFFER_SIZE - 2);
+    } else {
+        strncpy(buffer, cmd->last_value, RECV_BUFFER_SIZE - 1);
+    }
+}
+
 void rc_send_refresh(void (*notify_callback)(char *)) {
+    char buffer[RECV_BUFFER_SIZE];
+
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (!(rig_commands[i].flags & SET_ONLY_F) && rig_commands[i].flags & VALID_F && !(rig_commands[i].flags & ERROR_F)) {
-            notify_callback(rig_commands[i].last_value);
+        if (!(rig_commands[i].flags & SET_ONLY_F) && rig_commands[i].flags & VALID_F) {
+            prepare_notify(buffer, &rig_commands[i]);
+            notify_callback(buffer);
         }
     }
 }
@@ -555,33 +563,20 @@ void rc_send_refresh(void (*notify_callback)(char *)) {
 // If the response hasn't changed and countdown is active, decrement the countdown.
 // If the countdown reaches zero, clear the fast flag.
 // If the response is the same return false, otherwise return true.
-bool rc_set_last_value(response_t *response) {
+void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t type, char *value, bool updated)) {
     rig_command_t *cmd = find_command(response->read);
     if (cmd == NULL) {
         ESP_LOGE(TAG, "Command not found: %s", response->read);
-        return false;
+        return;
     }
 
     if (!(cmd->flags & PENDING_F) && !(cmd->flags & PENDING_INIT_F)) {
-        return false;
+        return;
     }
 
     // ESP_LOGI(TAG, "rc_set_last_value, cmd: %s, status: %d", cmd->cmd, cmd->status);
     cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
     cmd->flags |= VALID_F;
-
-    // if (memcmp(cmd->cmd, "RM4", 3) == 0) {
-    //     ESP_LOGI(TAG, "%s: %s, new_value: %s", cmd->cmd, cmd->last_value, response->response);
-    // }
-
-    if (rc_is_fail(response->response)) {
-        cmd->flags |= ERROR_F;
-        cmd->flags &= ~FAST_F;
-        cmd->last_value[0] = '\0';
-        cmd->next_refresh = cmd->refresh_time;
-        return false;
-    }
-    cmd->flags &= ~ERROR_F;
     
     cmd->next_refresh = cmd->flags & FAST_F ? VERY_FAST_REFRESH_TIME : cmd->refresh_time;
 
@@ -596,7 +591,9 @@ bool rc_set_last_value(response_t *response) {
             ESP_LOGI(TAG, "Auto fast command: %s", cmd->cmd);
         }
 
-        return true;
+        char buffer[RECV_BUFFER_SIZE];
+        prepare_notify(buffer, cmd);
+        notify_callback(response->type, buffer, true);
     } else if (cmd->flags & CHECK_FAST_UNTIL) {
         if (xTaskGetTickCount() > cmd->fast_until) {
             cmd->flags &= ~(FAST_F | CHECK_FAST_UNTIL);
@@ -604,8 +601,6 @@ bool rc_set_last_value(response_t *response) {
             ESP_LOGI(TAG, "Auto fast command expired: %s", cmd->cmd);
         }
     }
-
-    return false;
 }
 
 const char *rc_id_command() {
@@ -620,9 +615,6 @@ const char *rc_result_not_ready() {
 }
 const char *rc_result_ready() {
     return ENHANCED_RIG_RESULT_READY;
-}
-const char *rc_result_error() {
-    return ENHANCED_RIG_RESULT_ERROR;
 }
 const char *rc_result_busy() {
     return ENHANCED_RIG_RESULT_BUSY;

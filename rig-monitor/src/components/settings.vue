@@ -16,7 +16,7 @@
                     :key="name"
                     @click="editSetting(name)">
 
-                    <template v-if="s.value !== undefined">
+                    <template v-if="!s.unavailable && s.all">
                         <div>{{ s.desc }}<span v-if="s.changed">*</span></div>
                         <div>{{ s.value }}</div>
                     </template>

@@ -70,7 +70,7 @@ bool rc_is_fail(const char *result);
  * 
  * This function sets the last value of a command if it is different from the current value.
  */
-bool rc_set_last_value(response_t *result);
+void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t type, char *value, bool updated));
 
 /**
  * Value for monitor not ready.
@@ -81,11 +81,6 @@ const char *rc_result_not_ready();
  * Vaalue for monitor ready.
  */
 const char *rc_result_ready();
-
-/**
- * Value for monitor encountered an error.
- */
-const char *rc_result_error();
 
 /**
  * Value for monitor busy.

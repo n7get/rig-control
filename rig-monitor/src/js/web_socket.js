@@ -38,10 +38,19 @@ function connect_ws() {
             break;
 
         default:
-            const rs = rig_setting.fromCommand(data.value);
+            let unavailable = false;
+            let command = data.value;
+            if (data.value.substring(0,1) === '?') {
+                unavailable = true;
+                command = data.value.substring(1);
+            }
+            const rs = rig_setting.fromCommand(command);
             // console.log('rig_setting:', rs);
 
             if (rs.isMenu) {
+                if (unavailable) {
+                    console.warn('menu setting unavailable?:', command);
+                }
                 menus[rs.value.no].value = rs.value.value;
 
                 if (rs.value.no === 73) {
@@ -57,6 +66,12 @@ function connect_ws() {
                 // console.log('opposite_band_information:', rs.value);
             } else if (settings.hasOwnProperty(rs.name)) {
                 settings[rs.name].value = rs.value;
+                if (settings[rs.name].unavailable && !unavailable) {
+                    console.log('Has become available:', rs.name);
+                } else if (!settings[rs.name].unavailable && unavailable) {
+                    console.log('Has become unavailable:', rs.name);
+                }
+                settings[rs.name].unavailable = unavailable;
 
                 // if (rs.name === 'monitor') {
                 //     console.log(rs.name, rs.value);

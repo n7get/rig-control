@@ -106,7 +106,6 @@ function setup_modal() {
 }
 
 function modal_ready() {
-    console.log('freq_ref: ', freq_ref.value.focus);
     freq_ref.value.focus();
     // freq_ref.value.select();
 }

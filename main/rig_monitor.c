@@ -55,12 +55,12 @@ static void send_rig_id_command() {
     cat_queue_command(&command, SEND_PRIORITY_HIGH);
 }
 
-void notify_observers(response_t *response, bool updated) {
-    if (response->type == SEND_TYPE_SET) {
-        subject_notify(command_subject, (void *)response->response);
+static void notify_observers(send_type_t type, char *value, bool updated) {
+    if (type == SEND_TYPE_SET) {
+        subject_notify(command_subject, (void *)value);
     }
-    if (response->type == SEND_TYPE_READ && updated) {
-        subject_notify(updates_subject, (void *)response->response);
+    if (type == SEND_TYPE_READ && updated) {
+        subject_notify(updates_subject, (void *)value);
     }
 }
 
@@ -128,8 +128,6 @@ static void log_event(rm_event_t *event, bool in_startup, bool is_ready) {
  * If command is from monitor source, notify the monitor subject if result if the command has changed.
  */
 static bool event_received(bool in_startup, response_t *response) {
-    // log_response("event_received", response);
-
     if (in_startup) {
         if (response->result == RECV_RESULT_OK) {
             if (strcmp(response->response, rc_is_id()) == 0) {
@@ -146,9 +144,7 @@ static bool event_received(bool in_startup, response_t *response) {
         return true;
     }
 
-    bool updated = rc_set_last_value(response);
-
-    notify_observers(response, updated);
+    rc_set_last_value(response, notify_observers);
 
     return false;
 }

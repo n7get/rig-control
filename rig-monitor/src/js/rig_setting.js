@@ -1462,22 +1462,10 @@ const rig_setting = class {
         }
 
         if(rc === null) {
-            // It looks like Winlink Express has a bug:
-            // At one point it sends a MD0C; with four leading
-            // ASCII nul (0x0) characters
-
-            console.warn('Failed to find rig command on first try, stripping any non-printable characters and retrying.')
-            // logNonPrintable(arg);
-
-            arg = arg.replace(/[^\x20-\x7E]+/g, "");
-            rc = findRigCommand(arg.substring(0, max_menu_length));
+            throw new Error('Command not found in rig_commands: "' + arg + '"');
         }
 
-        if(rc === null) {
-            throw new Error('Input not found in rig_commands: "' + arg + '"');
-        }
-
-        const value = arg.substring(arg.length - 1) === ';' ?  arg.substring(rc.cmd.length, arg.length - 1) : arg.substring(rc.cmd.length);
+        const value = arg.substring(rc.cmd.length, arg.length - 1);
 
         if(!rc.hasOwnProperty('fromCommand')) {
             throw new Error(rc.cmd + '.fromCommand() not implemented');
