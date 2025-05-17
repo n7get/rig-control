@@ -101,5 +101,4 @@ import sButton from './s-button.vue';
 const meter_sw = useSettingsStore().meter_sw;
 const mode = useSettingsStore().mode;
 const transmit = useSettingsStore().transmit;
-console.log('controls.vue', meter_sw, mode, transmit);
 </script>

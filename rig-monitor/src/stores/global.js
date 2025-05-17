@@ -17,6 +17,7 @@ export const useGlobalStore = defineStore('global', () => {
 	})
 
 	function openModal(name) {
+		console.log('openModal', modal.value)
 		modal.value.name = name
 		modal.value.open = true
 	}

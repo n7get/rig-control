@@ -47,7 +47,6 @@ const props = defineProps({
 
 const global = useGlobalStore();
 const settings = useSettingsStore()[props.name];
-console.log('settings', settings);
 const open_modal = ref(true);
 const input_value = ref('');
 const input_state = ref(null);

@@ -37,7 +37,6 @@ const props = defineProps({
 
 const global = useGlobalStore();
 const settings = useSettingsStore()[props.name];
-console.log('settings', settings);
 const open_modal = ref(true);
 const input_value = ref(settings.value);
 const input_state = ref(null);
@@ -54,7 +53,6 @@ for (const [v, k] of Object.entries(props.list)) {
         text: v,
     });
 }
-console.log('list_options', list_options);
 
 function modal_ready() {
     input_ref.value.focus();
