@@ -266,7 +266,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1, 2));
+            return fromBoolean(value);
         }
     },
     'BD0': {                       // TODO: Needs testing
@@ -287,7 +287,7 @@ const rig_commands = {
     },
     'BP00': {                       // TODO: Needs testing
         cmd: 'BP00',
-        name: 'manual_notch_on',
+        name: 'manual_notch',
         desc: 'MANUAL_NOTCH_ON/OFF',
         asSetValue() {
             return this._rc.cmd + '00' + (this.value ? '1' : '0') + ';';
@@ -335,11 +335,11 @@ const rig_commands = {
     },
     'BY': {                       // TODO: Needs testing
         cmd: 'BY',
-	name: 'busy',
+	    name: 'busy',
         desc: 'BUSY',
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1,2));
+            return fromBoolean(value);
         },
     },
     'CH0': {                       // TODO: Needs testing
@@ -449,7 +449,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_to_CT[value.substring(1, 2)];
+            return cat_to_CT[value];
         },
     },
     // 'DA': {
@@ -831,13 +831,13 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1, 2));
+            return fromBoolean(value);
         },
     },
     'NB0': {
         cmd: 'NB0',
-        name: 'noise_blanker_status',
-        desc: 'NOISE_BLANKER_STATUS',
+        name: 'noise_blanker',
+        desc: 'NOISE_BLANKER',
         asSetValue() {
             return this._rc.cmd + (this.value ? '1' : '0') + ';';
         },
@@ -886,7 +886,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_offset[value.substring(1, 2)];
+            return cat_offset[value];
         },
     },
     'PA0': {
@@ -982,7 +982,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return fromBoolean(value.substring(1, 2));
+            return fromBoolean(value);
         },
     },
     'RC': {
@@ -1281,8 +1281,8 @@ const rig_commands = {
     },
     'VX': {
         cmd: 'VX',
-        name: 'vox_status',
-        desc: 'VOX_STATUS',
+        name: 'vox',
+        desc: 'VOX',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
         fromCommand: fromBoolean,

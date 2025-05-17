@@ -10,6 +10,7 @@
 import { useGlobalStore } from '@/stores/global';
 import { agc_to_cat } from '@/js/rig_setting.js';
 
+import booleanModal from './boolean_modal.vue';
 import listModal from './list_modal.vue';
 import numberModal from './number_modal.vue';
 import vfoModal from './vfo_modal.vue';

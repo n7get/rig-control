@@ -45,7 +45,7 @@
         v-show="mode.value === 'LSB' || mode.value === 'USB'"
         label="NB"
         event="noise_blanker_level"
-        toggle="noise_blanker_status"
+        toggle="noise_blanker"
         :max="10"
         class="mt-2 mb-2"></s-level>
     <s-level

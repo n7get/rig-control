@@ -28,19 +28,45 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { send_command } from '@/js/web_socket.js';
 import { useGlobalStore } from '@/stores/global';
 import { useSettingsStore } from '@/stores/settings';
 
 const show_settings = ref(true);
-
 const settings = useSettingsStore();
+const boolean_settings = [
+    'break_in',
+    'lock',
+    'manual_notch',
+    'monitor',
+    'narrow',
+    'noise_blanker',
+    'noise_reduction',
+    'parametric_microphone_equalizer',
+    'preamp',
+    'rf_attenuator',
+    'speech_processor',
+    'transmit',
+    'tx_clar',
+    'txw',
+    'vox',
+];
 
 const toggleShowSettings = () => {
     show_settings.value = !show_settings.value;
 }
 
 const editSetting = (name) => {
+    if (boolean_settings.includes(name)) {
+        toggle_boolean(name);
+        return;
+    }
     useGlobalStore().openModal(name);
+}
+
+const toggle_boolean = (name) => {
+    const value = !settings[name].value;
+    send_command(name, value);
 }
 
 // module.exports = {
