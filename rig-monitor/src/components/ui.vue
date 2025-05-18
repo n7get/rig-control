@@ -2,6 +2,7 @@
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <controls class="px-3"></controls>
+            <mode-dialogs></mode-dialogs>
             <settings></settings>
             <!-- <menu-item></menu-item> -->
             <!-- <rbn></rbn> -->
@@ -29,8 +30,8 @@
 
 <script setup>
 import controls from './controls.vue'
-
 import settings from './settings.vue'
+import modeDialogs from './mode-dialogs.vue'
 
 const handleOk = (e) => {
     // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});

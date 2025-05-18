@@ -13,7 +13,7 @@ export const useSettingsStore = defineStore('settings', () => {
     clar: ref({ desc: 'CLAR', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),
     contour_freq: ref({ desc: 'CONTOUR FREQ', value: null, all: false, changed: false, fav: false, saved: false, unavailable: false}),
     contour_on: ref({ desc: 'CONTOUR ON/OFF', value: null, all: false, changed: false, fav: false, saved: false, unavailable: false}),
-    ctcss: ref({ desc: 'CTCSS', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),
+    ctcss: ref({ desc: 'CTCSS MODE', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),
     ctcss_tone_frequency: ref({ desc: 'CTCSS TONE FREQUENCY', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),
     cw_break_in_delay_time: ref({ desc: 'CW BREAK-IN DELAY TIME', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),
     cw_spot: ref({ desc: 'CW SPOT', value: null, all: true, changed: false, fav: false, saved: false, unavailable: false}),

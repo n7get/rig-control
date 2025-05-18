@@ -47,7 +47,7 @@ function map_reverse(obj) {
     return result;
 }
 
-const cat_to_ctcss = {
+const cat_to_ctcss_tone_frequency = {
     '000': '67.0', '001': '69.3', '002': '71.9', '003': '74.4',
     '004': '77.0', '005': '79.7', '006': '82.5', '007': '85.4',
     '008': '88.5', '009': '91.5', '010': '94.8', '011': '97.4',
@@ -62,16 +62,16 @@ const cat_to_ctcss = {
     '044': '225.7', '045': '229.1', '046': '233.6', '047': '241.8',
     '048': '250.3', '049': '254.1'
 };
-const ctcss_to_cat = map_reverse(cat_to_ctcss);
+const ctcss_tone_frequency_to_cat = map_reverse(cat_to_ctcss_tone_frequency);
 
-const cat_to_CT = {
+const cat_to_ctcss = {
     '0': 'CTCSS OFF',
     '1': 'CTCSS ENC/DEC',
     '2': 'CTCSS ENC',
     '3': 'DCS ENC/DEC',
     '4': 'DCS ENC'
 };
-const CT_to_cat = map_reverse(cat_to_CT);
+const ctcss_to_cat = map_reverse(cat_to_ctcss);
 
 const cat_to_dcs = [
      23,  25,  26,  31,  32,  36,  43,  47,  51,  53,  54,  65,  71,  72,
@@ -193,7 +193,7 @@ function band_info(value) {
         tx_clar: value.substring(18, 19) != '0',
         mode: cat_modes[value.substring(19, 20)] || value.substring(21, 22),
         p7: value.substring(20, 21),
-        ctcss: cat_to_CT[value.substring(21, 22)]   ,
+        ctcss: cat_to_ctcss[value.substring(21, 22)]   ,
         offset: cat_offset[value.substring(24, 25)],
         tag: value.substring(26),
     };
@@ -359,11 +359,11 @@ const rig_commands = {
         name: 'ctcss_tone_frequency',
         desc: 'CTCSS_TONE_FREQUENCY',
         asSetValue() {
-            return this._rc.cmd + ctcss_to_cat[this.value] + ';';
+            return this._rc.cmd + ctcss_tone_frequency_to_cat[this.value] + ';';
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_to_ctcss[value];
+            return cat_to_ctcss_tone_frequency[value];
         },
     },
     'CN01': {
@@ -445,11 +445,11 @@ const rig_commands = {
         name: 'ctcss',
         desc: 'CTCSS',
         asSetValue() {
-            return this._rc.cmd + CT_to_cat[this.value] + ';';
+            return this._rc.cmd + ctcss_to_cat[this.value] + ';';
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return cat_to_CT[value];
+            return cat_to_ctcss[value];
         },
     },
     // 'DA': {
@@ -1318,13 +1318,6 @@ for(const [key, value] of Object.entries(rig_commands)) {
 
 const max_menu_length = Object.keys(rig_commands).map( k => k.length ).reduce( (a, v) => a > v ? a : v );
 
-// function logNonPrintable(arg) {
-//     console.log('arg length: ' + arg.length);
-//     for (var i = 0; i < arg.length; i++) {
-//         console.log('arg[' + i + ']: ' + arg.charCodeAt(i));
-//     }
-// }
-
 function findRigCommand(arg) {
     for (const rc of commands) {
         if(rc.cmd === arg.substring(0, rc.cmd.length)) {
@@ -1487,7 +1480,9 @@ const rig_setting = class {
 
 export {
     agc_to_cat,
-    cat_modes, modes_cat,
     cat_preamp, preamp_cat,
+    ctcss_to_cat, ctcss_tone_frequency_to_cat, cat_to_dcs,
+    modes_cat,
+    offset_cat,
     rig_setting
 };

@@ -34,6 +34,10 @@ const props = defineProps({
         type: Object,
         required: true,
     },
+    type: {
+        type: String,
+        default: 'object',
+    },
 });
 
 const global = useGlobalStore();
@@ -47,12 +51,11 @@ const title = computed(() => {
     return `Set ${settings.desc}`;
 });
 
-const list_options = [];
-for (const [v, k] of Object.entries(props.list)) {
-    list_options.push({
-        value: v,
-        text: v,
-    });
+let list_options;
+if (props.type === 'list') {
+    list_options = props.list.map((k) => ({ value: k, text: k }));
+} else {
+    list_options = Object.keys(props.list).map((k) => ({ value: k, text: k }));
 }
 
 function modal_ready() {

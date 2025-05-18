@@ -71,7 +71,7 @@
         :no="78"
         label="FM TX GAIN"
         class="mt-2 mb-2"></mi-level>
-    <div class="d-flex gap-2 mb-2">
+    <div class="d-flex justify-content-center gap-2 mb-2">
         <s-button event="swap_vfo" label="Swap VFO" class="mt-2"></s-button>
         <s-button event="vfo_a_to_vfo_b" label="VFO A > B" class="mt-2"></s-button>
         <s-button event="vfo_b_to_vfo_a" label="VFO B > A" class="mt-2"></s-button>
