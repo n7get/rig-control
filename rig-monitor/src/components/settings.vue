@@ -40,6 +40,7 @@ const boolean_settings = [
     'keyer',
     'manual_notch',
     'monitor',
+    'mox_set',
     'narrow',
     'noise_blanker',
     'noise_reduction',
@@ -58,6 +59,10 @@ const toggleShowSettings = () => {
 }
 
 const editSetting = (name) => {
+    if (name === 'antenna_tuner_control') {
+        send_command('antenna_tuner_control', settings[name].value === 'on' ? 'off' : 'on');
+        return;
+    }
     if (boolean_settings.includes(name)) {
         toggle_boolean(name);
         return;
@@ -67,6 +72,7 @@ const editSetting = (name) => {
 
 const toggle_boolean = (name) => {
     const value = !settings[name].value;
+    console.log(`Toggling setting ${name} to ${value}`);
     send_command(name, value);
 }
 

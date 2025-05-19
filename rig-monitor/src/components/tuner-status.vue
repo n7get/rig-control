@@ -10,7 +10,7 @@ import { computed } from 'vue';
 import { send_command } from '@/js/web_socket.js';
 import { useSettingsStore } from '@/stores/settings';
 
-const tuner = useSettingsStore().tuner;
+const tuner = useSettingsStore().antenna_tuner_control;
 
 const on = computed(() => {
     return tuner.value === 'on';
@@ -18,7 +18,7 @@ const on = computed(() => {
 
 const sendClick = (e) => {
     console.log('sendClick: ', e);
-    send_command('tuner', tuner.value === 'on' ? 'off' : 'on');
+    send_command('antenna_tuner_control', tuner.value === 'on' ? 'off' : 'on');
 }
 </script>
 

@@ -208,7 +208,7 @@ const rig_commands = {
     },
     'AC': {
         cmd: 'AC',
-        name: 'tuner',
+        name: 'antenna_tuner_control',
         desc: 'ANTENNA_TUNER_CONTROL',
         asSetValue() {
             switch(this.value) {
@@ -1213,7 +1213,7 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return intValue(value.substring(1, 4));
+            return intValue(value);
         },
     },
     'SV': {
@@ -1484,6 +1484,7 @@ export {
     agc_to_cat,
     cat_preamp, preamp_cat,
     ctcss_to_cat, ctcss_tone_frequency_to_cat, cat_to_dcs,
+    meter_cat,
     modes_cat,
     offset_cat,
     rig_setting
