@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { computed, defineProps, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useMenuStore } from '@/stores/menu.js';
 import { send_command } from '@/js/web_socket.js';
 

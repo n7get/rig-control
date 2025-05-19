@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { defineProps, ref } from 'vue';
+import { ref } from 'vue';
 import { send_command } from '@/js/web_socket';
 
 /*

@@ -16,7 +16,6 @@ import { useSettingsStore } from '@/stores/settings';
 import { useGlobalStore } from '@/stores/global';
 
 const mode = useSettingsStore().mode;
-console.log('mode', mode.value);
 
 const open_modal = (name) => {
     useGlobalStore().openModal(name);
