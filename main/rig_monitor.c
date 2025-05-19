@@ -48,7 +48,7 @@ static TickType_t last_scan_tick;
 static void send_rig_id_command() {
     command_t command;
     memset(&command, 0, sizeof(command_t));
-    command.type = SEND_TYPE_READ;
+    command.type = SEND_TYPE_POLL;
     strncpy(command.read, rc_id_command(), SEND_BUFFER_SIZE);
     command.read_len = strlen(command.read);
 
@@ -56,10 +56,10 @@ static void send_rig_id_command() {
 }
 
 static void notify_observers(send_type_t type, char *value, bool updated) {
-    if (type == SEND_TYPE_SET) {
+    if (type == SEND_TYPE_COMMAND) {
         subject_notify(command_subject, (void *)value);
     }
-    if (type == SEND_TYPE_READ && updated) {
+    if (type == SEND_TYPE_POLL && updated) {
         subject_notify(updates_subject, (void *)value);
     }
 }

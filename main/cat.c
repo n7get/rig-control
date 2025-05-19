@@ -261,10 +261,10 @@ esp_err_t cat_init(void) {
 void log_response(const char *tag, response_t *response) {
     char *type_str;
     switch(response->type) {
-        case SEND_TYPE_SET:
+        case SEND_TYPE_COMMAND:
             type_str = "SET";
             break;
-        case SEND_TYPE_READ:
+        case SEND_TYPE_POLL:
             type_str = "READ";
             break;
         default:

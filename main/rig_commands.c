@@ -353,7 +353,7 @@ esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t 
 
     command->type = type;
     switch(type) {
-    case SEND_TYPE_SET:
+    case SEND_TYPE_COMMAND:
         strncpy(command->command, cmd_str, SEND_BUFFER_SIZE);
         command->command_len = command_size;
         if (rc_cmd->flags & SET_ONLY_F) {
@@ -366,7 +366,7 @@ esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t 
         }
         break;
 
-    case SEND_TYPE_READ:
+    case SEND_TYPE_POLL:
         if (rc_cmd->flags & SET_ONLY_F) {
             ESP_LOGE(TAG, "Command %s is a command-only type and cannot be read", cmd_str);
             return ESP_FAIL;
@@ -428,7 +428,7 @@ bool rc_is_ready() {
         if (rig_commands[i].flags & INVALID_F) {
             command_t command;
             memset(&command, 0, sizeof(command_t));
-            command.type = SEND_TYPE_READ;
+            command.type = SEND_TYPE_POLL;
             strcpy(command.read, rig_commands[i].cmd);
             command.read_len = strlen(command.read);
 
@@ -464,7 +464,7 @@ static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority
         if (cmd->next_refresh <= 0) {
             command_t command;
             memset(&command, 0, sizeof(command_t));
-            command.type = SEND_TYPE_READ;
+            command.type = SEND_TYPE_POLL;
             strcpy(command.read, cmd->cmd);
             command.read_len = strlen(command.read);
 
@@ -570,15 +570,22 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
         return;
     }
 
-    if (!(cmd->flags & PENDING_F) && !(cmd->flags & PENDING_INIT_F)) {
-        return;
-    }
+    switch(response->type) {
+    case SEND_TYPE_COMMAND:
+        ESP_LOGI(TAG, "rc_set_last_value: %s", response->response);
+        break;
 
-    // ESP_LOGI(TAG, "rc_set_last_value, cmd: %s, status: %d", cmd->cmd, cmd->status);
-    cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
-    cmd->flags |= VALID_F;
-    
-    cmd->next_refresh = cmd->flags & FAST_F ? VERY_FAST_REFRESH_TIME : cmd->refresh_time;
+    case SEND_TYPE_POLL:
+        if (!(cmd->flags & PENDING_F) && !(cmd->flags & PENDING_INIT_F)) {
+            return;
+        }
+
+        cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
+        cmd->flags |= VALID_F;
+        
+        cmd->next_refresh = cmd->flags & FAST_F ? VERY_FAST_REFRESH_TIME : cmd->refresh_time;
+        break;
+    }
 
     if (strncmp(cmd->last_value, response->response, RECV_BUFFER_SIZE) != 0) {
         // ESP_LOGI(TAG, "last_value: %s, new_value: %s", cmd->last_value, response->response);
