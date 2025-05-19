@@ -37,6 +37,7 @@ const settings = useSettingsStore();
 const boolean_settings = [
     'break_in',
     'lock',
+    'keyer',
     'manual_notch',
     'monitor',
     'narrow',
