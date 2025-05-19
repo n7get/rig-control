@@ -1,22 +1,18 @@
 <template>
     <b-modal
-        id="new-freq"
-        size="sm"
-        @show="setup_modal"
-        @shown="modal_ready"
-        @ok="handle_ok"
+        focus="form-input"
+        @ok="close_modal"
         @esc="close_modal"
-        @cancel="close_modal"
         v-model="open_modal"
         :title="title"
+        ok-only
+        ok-title="Close"
     >
         <b-form-input
-            id="freq-input"
+            id="form-input"
             type="range"
-            ref="input_ref"
-            @keyup.enter="handle_ok"
+            @change="set(input_value)"
             v-model="input_value"
-            :state="input_state"
             :min="min"
             :max="max"
             :step="step"
@@ -61,9 +57,7 @@ const global = useGlobalStore();
 const settings = useSettingsStore()[props.name];
 
 const open_modal = ref(true);
-const input_value = ref(0);
-const input_state = ref(null);
-const input_ref = ref(null);
+const input_value = ref(parseInt(settings.value, 10) || 0);
 
 const min = parseInt(props.min, 10);
 const max = parseInt(props.max, 10);
@@ -74,59 +68,24 @@ const title = computed(() => {
 });
 
 function set(value) {
-    if (value < min || value > max) {
-        input_state.value = false;
+    if (value < min) {
+        input_value.value = min;
+    } else if (value > max) {
+        input_value.value = max;
     } else {
         input_value.value = value;
-        input_state.value = true;
     }
+    send_command(props.name, input_value.value);
 }
 function decrement(dec) {
-    if (isNaN(input_value.value)) {
-        input_value.value = min;
-    } else {
-        input_value.value = Math.max(min, input_value.value - dec);
-    }
-    if (input_value.value < min) {
-        input_value.value = min;
-    }
+    set(input_value.value - dec);
 }
 function increment(inc) {
-    if (isNaN(input_value.value)) {
-        input_value.value = min;
-    } else {
-        input_value.value = Math.min(max, input_value.value + inc);
-    }
-    if (input_value.value > max) {
-        input_value.value = max;
-    }
-}
-function setup_modal() {
-    input_value.value = parseInt(settings.value, 10);
-    input_state.value = null;
-}
-
-function modal_ready() {
-    input_ref.value.focus();
-    // input_ref.value.select();
-}
-
-const handle_ok = (e) => {
-    const number = parseInt(input_value.value, 10);
-
-    if(number >= min && number <= max) {
-        close_modal();
-        send_command(props.name, input_value.value);
-    }
-    else {
-        input_state.value = false;
-        e.preventDefault();
-    }
+    set(input_value.value + inc);
 }
 
 function close_modal() {
     global.closeModal();
-    input_state.value = null;
 }
 
 </script>

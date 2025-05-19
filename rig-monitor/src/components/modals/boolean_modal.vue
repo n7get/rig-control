@@ -1,22 +1,21 @@
 <template>
         <b-modal
-            id="new-freq"
-            size="sm"
-            @shown="modal_ready"
-            @ok="handle_ok"
+            focus="form-input"
+            @ok="close_modal"
             @esc="close_modal"
             @cancel="close_modal"
             v-model="open_modal"
             :title="title"
+            ok-only
+            ok-title="Close"
         >
             <div class="d-flex gap-3 justify-content-center">
                 <b-form-checkbox
+                    id="form-input"
+                    @change="set"
                     reverse switch
                     size="lg"
-                    id="freq-input"
-                    ref="input_ref"
                     v-model="input_value"
-                    :state="input_state"
                 >{{ settings.desc }}</b-form-checkbox>
             </div>
         </b-modal>
@@ -39,24 +38,16 @@ const global = useGlobalStore();
 const settings = useSettingsStore()[props.name];
 const open_modal = ref(true);
 const input_value = ref(settings.value);
-const input_state = ref(null);
-const input_ref = ref(null);
 
 const title = computed(() => {
     return `Set ${settings.desc}`;
 });
 
-function modal_ready() {
-    input_ref.value.focus();
-    // input_ref.value.select();
-}
-
-const handle_ok = (e) => {
+const set = (e) => {
     send_command(props.name, input_value.value);
 }
 
 function close_modal() {
     global.closeModal();
 }
-
 </script>

@@ -1,9 +1,7 @@
 <template>
         <b-modal
-            id="new-freq"
-            size="sm"
+            focus="freq-input"
             @show="setup_modal"
-            @shown="modal_ready"
             @ok="handle_ok"
             @esc="close_modal"
             @cancel="close_modal"
@@ -24,14 +22,6 @@
                     :state="freq_input_state"
                     required
                 ></b-form-input>
-                <!-- <b-form-input
-                    id="freq-input"
-                    ref="freq_input"
-                    @keyup.enter="handle_ok"
-                    v-model="freq_input"
-                    :state="freq_input_state"
-                    required
-                ></b-form-input> -->
             </b-form-group>
         </b-modal>
 </template>
@@ -58,7 +48,6 @@ const global = useGlobalStore();
 const freq_model = ref(true);
 const freq_input = ref('');
 const freq_input_state = ref(null);
-const freq_ref = ref(null);
 
 const title = computed(() => {
     return `Set ${props.vfo.toUpperCase()} Frequency`;
@@ -103,11 +92,6 @@ const hz = computed(() => {
 function setup_modal() {
     const f = freq_utils.format_freq(freq.value);
     freq_input.value = freq_utils.format_freq(freq.value);
-}
-
-function modal_ready() {
-    freq_ref.value.focus();
-    // freq_ref.value.select();
 }
 
 const handle_ok = (e) => {

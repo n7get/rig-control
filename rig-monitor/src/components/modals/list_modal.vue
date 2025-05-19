@@ -1,21 +1,26 @@
 <template>
         <b-modal
-            id="new-freq"
-            size="sm"
-            @shown="modal_ready"
-            @ok="handle_ok"
+            @ok="close_modal"
             @esc="close_modal"
-            @cancel="close_modal"
             v-model="open_modal"
             :title="title"
+            ok-only
+            ok-title="Close"
         >
-            <b-form-select
-                id="freq-input"
-                ref="input_ref"
-                v-model="input_value"
-                :options="list_options"
-                :state="input_state"
-            />
+            <div class="d-flex justify-content-center">
+                <div>
+                    <div class="pl-5" v-for="option in list_options" :key="option.value">
+                        <b-form-radio
+                            v-model="input_value"
+                            name="list-options"
+                            :value="option.value"
+                            @change="select_item(option.value)"
+                        >
+                            {{ option.text }}
+                        </b-form-radio>
+                    </div>
+                </div>
+            </div>
         </b-modal>
 </template>
 
@@ -44,7 +49,6 @@ const global = useGlobalStore();
 const settings = useSettingsStore()[props.name];
 const open_modal = ref(true);
 const input_value = ref(settings.value);
-const input_state = ref(null);
 const input_ref = ref(null);
 
 const title = computed(() => {
@@ -58,25 +62,13 @@ if (props.type === 'list') {
     list_options = Object.keys(props.list).map((k) => ({ value: k, text: k }));
 }
 
-function modal_ready() {
-    input_ref.value.focus();
-    // input_ref.value.select();
-}
-
-const handle_ok = (e) => {
-    if(props.list.hasOwnProperty(input_value.value)) {
-        close_modal();
-        send_command(props.name, input_value.value);
-    }
-    else {
-        input_state.value = false;
-        e.preventDefault();
-    }
+const select_item = (value) => {
+    close_modal();
+    send_command(props.name, input_value.value);
 }
 
 function close_modal() {
     global.closeModal();
-    input_state.value = null;
 }
 
 </script>
