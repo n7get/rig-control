@@ -285,7 +285,7 @@ const rig_commands = {
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
-    'BP00': {                       // TODO: Needs testing
+    'BP00': {
         cmd: 'BP00',
         name: 'manual_notch',
         desc: 'MANUAL_NOTCH_ON/OFF',
@@ -297,7 +297,7 @@ const rig_commands = {
             return fromBoolean(value.substring(2,3));
         },
     },
-    'BP01': {                       // TODO: Needs testing
+    'BP01': {
         cmd: 'BP01',
         name: 'manual_notch_level',
         desc: 'MANUAL_NOTCH_LEVEL',
@@ -629,11 +629,13 @@ const rig_commands = {
         name: 'if_shift',
         desc: 'IF-SHIFT',
         asSetValue() {
-            return this._rc.cmd + this.value + ';';
+            const v = parseInt(this.value, 10);
+            return this._rc.cmd + (v < 0 ? '-' : '+') + pad4(Math.abs(v)) + ';';
         },
         asRead: sendCmd,
         fromCommand(value) {
-            return value.substring(1);
+            console.log('rig_setting: IS0 fromCommand', value);
+            return parseInt(value, 10);
         },
     },
     // 'KM': {

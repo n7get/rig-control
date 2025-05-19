@@ -5,6 +5,9 @@
     <list-modal name="offset" :list="offset_cat" v-if="modal.name === 'offset'" />
     <list-modal name="ctcss_tone_frequency" :list="ctcss_tone_frequency_to_cat" v-if="modal.name === 'ctcss_tone_frequency'" />
     <list-modal name="dcs_tone_frequency" :list="cat_to_dcs" type="list" v-if="modal.name === 'dcs_tone_frequency'" />
+    <number-modal name="if_shift" min="-1200" max="1200" step="20" v-if="modal.name === 'if_shift'" />
+    <number-modal name="manual_notch_level" min="10" max="3200" step="10" v-if="modal.name === 'manual_notch_level'" />
+    <number-modal name="monitor_level" min="0" max="100" step="1" v-if="modal.name === 'monitor_level'" />
     <number-modal name="rf_gain" v-if="modal.name === 'rf_gain'" />
     <vfo-modal vfo="vfo_a" v-if="modal.name === 'vfo_a'" />
     <vfo-modal vfo="vfo_b" v-if="modal.name === 'vfo_b'" />
