@@ -7,9 +7,9 @@
     <!-- <b-row v-show="isOpMode(['data-hf', 'voice-ssh'])" class="mt-2"> -->
     <div class="ml-1 my-2 pb-1 border-bottom d-flex justify-content-between w-100">
         <tuner-status></tuner-status>
-        <lock-status>></lock-status>
-        <pre-amp-status>></pre-amp-status>
-        <alc-status>></alc-status>
+        <lock-status></lock-status>
+        <pre-amp-status></pre-amp-status>
+        <alc-status></alc-status>
         <mode-status></mode-status>
         <!-- <manual-mode-status></manual-mode-status> -->
     </div>
@@ -35,42 +35,42 @@
         label="SQ"
         event="squelch_level"
         class="mt-2 mb-2"></s-level>
-    <s-level
+    <s-level-toggle
         v-show="mode.value === 'DATA-LSB' || mode.value === 'DATA-USB'"
         label="Mon"
         event="monitor_level"
         toggle="monitor"
-        class="mt-2 mb-2"></s-level>
-    <s-level
+        class="mt-2 mb-2"></s-level-toggle>
+    <s-level-toggle
         v-show="mode.value === 'LSB' || mode.value === 'USB'"
         label="NB"
         event="noise_blanker_level"
         toggle="noise_blanker"
         :max="10"
-        class="mt-2 mb-2"></s-level>
-    <s-level
+        class="mt-2 mb-2"></s-level-toggle>
+    <s-level-toggle
         v-show="mode.value === 'LSB' || mode.value === 'USB'"
         label="NR"
         event="noise_reduction_level"
         toggle="noise_reduction"
         :min="1"
         :max="15"
-        class="mt-2 mb-2"></s-level>
-    <mi-level
+        class="mt-2 mb-2"></s-level-toggle>
+    <s-level
         v-show="mode.value === 'DATA-USB'"
-        :no="73"
+        event="73"
         label="D-LVL"
-        class="mt-2 mb-2"></mi-level>
-    <mi-level
+        class="mt-2 mb-2"></s-level>
+    <s-level
         v-show="mode.value === 'DATA-FM'"
-        :no="75"
+        event="75"
         label="FM OUT"
-        class="mt-2 mb-2"></mi-level>
-    <mi-level
+        class="mt-2 mb-2"></s-level>
+    <s-level
         v-show="mode.value === 'DATA-FM'"
-        :no="78"
+        event="78"
         label="FM TX GAIN"
-        class="mt-2 mb-2"></mi-level>
+        class="mt-2 mb-2"></s-level>
     <div class="d-flex justify-content-center gap-2 mb-2">
         <s-button event="swap_vfo" label="Swap VFO" class="mt-2"></s-button>
         <s-button event="vfo_a_to_vfo_b" label="VFO A > B" class="mt-2"></s-button>
@@ -81,7 +81,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
 import frequency from './frequency.vue';
 import opMode from './op-mode.vue';
@@ -96,9 +96,10 @@ import alcMeter from './alc-meter.vue';
 import readMeterFrontPanel from './read-meter-front-panel.vue';
 import powerLevel from './power-level.vue';
 import sLevel from './s-level.vue';
+import sLevelToggle from './s-level-toggle.vue';
 import sButton from './s-button.vue';
 
-const meter_sw = useSettingsStore().meter_sw;
-const mode = useSettingsStore().mode;
-const transmit = useSettingsStore().transmit;
+const meter_sw = rig_property('meter_sw');
+const mode = rig_property('mode');
+const transmit = rig_property('transmit');
 </script>

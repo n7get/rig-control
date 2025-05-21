@@ -31,7 +31,30 @@ const pad1 = pad(1);
 const pad2 = pad(2);
 const pad3 = pad(3);
 const pad4 = pad(4);
+const pad5 = pad(5);
+const pad8 = pad(8);
 const pad9 = pad(9);
+
+function pad_w_sign(len) {
+    return function (value) {
+        if (isEmptyValue(value)) {
+            return null;
+        }
+
+        let sign = '+';
+        if (value < 0) {
+            sign = '-';
+            value = -value;
+        }
+
+        const f_pad = pad(len - 1);
+        return sign + f_pad(Math.floor(value));
+    };
+}
+
+const pad3_w_sign = pad_w_sign(3);
+const pad4_w_sign = pad_w_sign(4);
+const pad5_w_sign = pad_w_sign(5);
 
 // UI Iterface functions
 
@@ -63,7 +86,7 @@ function fromUiIntBy20(value) {
         return null;
     }
 
-    return pad4(value - (v % 20));
+    return pad4(value - (value % 20));
 }
 
 function toCutFreq(value, offset) {
@@ -91,6 +114,66 @@ function toUiHCutFreq(value) {
 }
 function fromUiHCutFreq(value) {
     return fromCutFreq(value, 13);
+}
+
+function sprintf(format) {
+  let args = Array.prototype.slice.call(arguments, 1);
+  let i = 0;
+
+  return format.replace(/%([+\-\#0 ]*)(\d+)?(\.\d+)?([b-fouxX])/g, function(match, flags, width, precision, specifier) {
+    let arg = args[i++];
+    let str = '';
+    
+    switch (specifier) {
+      case 'b':
+        str = Number(arg).toString(2);
+        break;
+      case 'c':
+        str = String.fromCharCode(Number(arg));
+        break;
+      case 'd':
+      case 'i':
+        str = Number(arg).toFixed(0);
+        break;
+      case 'f':
+        str = Number(arg).toFixed(precision ? parseInt(precision.slice(1)) : 6);
+        break;
+      case 'o':
+        str = Number(arg).toString(8);
+        break;
+      case 'u':
+        str = Math.abs(Number(arg)).toFixed(0);
+        break;
+      case 'x':
+        str = Number(arg).toString(16).toLowerCase();
+        break;
+      case 'X':
+          str = Number(arg).toString(16).toUpperCase();
+          break;
+    }
+
+    if (flags.includes('+') && Number(arg) >= 0) {
+        str = '+' + str;
+    } else if (flags.includes('-') && Number(arg) < 0) {
+        str = '-' + str;
+    } else if (flags.includes(' ') && Number(arg) >= 0) {
+        str = ' ' + str
+    }
+    
+    if (width) {
+        let padding = ' ';
+        if (flags.includes('0')) {
+            padding = '0';
+        }
+        while (str.length < width) {
+            if (flags.includes('-'))
+                str = str + padding
+            else
+                str = padding + str;
+        }
+    }
+    return str;
+  });
 }
 
 // Start of maps
@@ -161,51 +244,37 @@ const standard_colors_map = {
 };
 
 
-const prmtrc_eq1_freq_map = {
-    '00': 'OFF',
-    '01': '100 Hz',
-    '02': '200 Hz',
-    '03': '300 Hz',
-    '04': '400 Hz',
-    '05': '500 Hz',
-    '06': '600 Hz',
-    '07': '700 Hz',
-};
+const prmtrc_eq1_freq_map = {'00': 'OFF',};
+for (let i = 1; i <= 7; i++) {
+    prmtrc_eq1_freq_map[pad2(i)] = `${i * 100} Hz`;
+}
 
-const prmtrc_eq2_freq_map = {
-    '00': 'OFF',
-    '01': '700 Hz',
-    '02': '800 Hz',
-    '03': '900 Hz',
-    '04': '1000 Hz',
-    '05': '1100 Hz',
-    '06': '1200 Hz',
-    '07': '1300 Hz',
-    '08': '1400 Hz',
-    '09': '1500 Hz',
-};
+const prmtrc_eq2_freq_map = {'00': 'OFF',};
+for (let i = 1; i <= 9; i++) {
+    prmtrc_eq2_freq_map[pad2(i)] = `${(i + 6) * 100} Hz`;
+}
 
-const prmtrc_eq3_freq_map = {
+const prmtrc_eq3_freq_map = {'00': 'OFF',};
+for (let i = 1; i <= 18; i++) {
+    prmtrc_eq3_freq_map[pad2(i)] = `${i * 100 + 1400} Hz`;
+}
+
+const lcut_freq_map = {'00': 'OFF',};
+for (let i = 1; i <= 19; i++) {
+    lcut_freq_map[pad2(i)] = `${i * 50 + 50} Hz`;
+}
+
+const hcut_freq_map = {
     '00': 'OFF',
-    '01': '1500 Hz',
-    '02': '1600 Hz',
-    '03': '1700 Hz',
-    '04': '1800 Hz',
-    '05': '1900 Hz',
-    '06': '2000 Hz',
-    '07': '2100 Hz',
-    '08': '2200 Hz',
-    '09': '2300 Hz',
-    '10': '2400 Hz',
-    '11': '2500 Hz',
-    '12': '2600 Hz',
-    '13': '2700 Hz',
-    '14': '2800 Hz',
-    '15': '2900 Hz',
-    '16': '3000 Hz',
-    '17': '3100 Hz',
-    '18': '3800 Hz',
 };
+for (let i = 1; i <= 67; i++) {
+    hcut_freq_map[pad2(i)] = `${i * 50 + 650} Hz`;
+}
+
+const tx_tot_map = {'00': 'OFF'};
+for (let i = 1; i <= 30; i++) {
+    tx_tot_map[pad2(i)] = `${i} sec`;
+}
 
 // End of maps
 
@@ -213,14 +282,20 @@ const mi_table = {
     1: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
+	    range: {min:'20', max:'4000', step:'20'},
+        suffix: ' ms',
     },
     2: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
+	    range: {min:'20', max:'4000', step:'20'},
+        suffix: ' ms',
     },
     3: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
+	    range: {min:'20', max:'4000', step:'20'},
+        suffix: ' ms',
     },
     4: {
         rig_ui_map: {
@@ -231,6 +306,14 @@ const mi_table = {
     5: {
         toUi: toUiInt,
         fromUi: pad1,
+        rig_ui_map: {
+            '0': 'OFF',
+            '1': '1 sec',
+            '2': '2 sec',
+            '3': '3 sec',
+            '4': '4 sec',
+            '5': '5 sec',
+        },
     },
     6: {
         rig_ui_map: standard_colors_map,
@@ -244,22 +327,25 @@ const mi_table = {
     8: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min:'0', max:'15'},
     },
     9: {
         rig_ui_map: {
             '0': 'OFF',
-            '1': '0.5sec',
-            '2': '1.0sec',
-            '3': '2.0sec',
+            '1': '0.5 sec',
+            '2': '1.0 sec',
+            '3': '2.0 sec',
         },
     },
     10: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     11: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     12: {
         rig_ui_map: {
@@ -275,12 +361,19 @@ const mi_table = {
         rig_ui_map: normal_reverse_map,
     },
     14: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        sorted_list: null,
+        rig_ui_map: {
+            '25': '2.5', '26': '2.6', '27': '2.7', '28': '2.8', '29': '2.9',
+            '30': '3.0', '31': '3.1', '32': '3.2', '33': '3.3', '34': '3.4',
+            '35': '3.5', '36': '3.6', '37': '3.7', '38': '3.8', '39': '3.9',
+            '40': '4.0', '41': '4.1', '42': '4.2', '43': '4.3', '44': '4.4',
+            '45': '4.5',
+        },
     },
     15: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad3,
+        range: {min:'0', max:'698'},
     },
     16: {
         rig_ui_map: {
@@ -296,6 +389,7 @@ const mi_table = {
     17: {
         toUi: toUiInt,
         fromUi: pad4,
+        range: {min:'0', max:'9999'},
     },
     18: {
         rig_ui_map: cw_memory_map,
@@ -329,14 +423,34 @@ const mi_table = {
     25: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min:'0', max:'10'},
     },
     26: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     27: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        rig_ui_map: {
+            '-1200': '-12:00', '-1130': '-11:30', '-1100': '-11:00',
+            '-1030': '-10:30', '-1000': '-10:00', '-0930': '-09:30',
+            '-0900': '-09:00', '-0830': '-08:30', '-0800': '-08:00',
+            '-0730': '-07:30', '-0700': '-07:00', '-0630': '-06:30',
+            '-0600': '-06:00', '-0530': '-05:30', '-0500': '-05:00',
+            '-0430': '-04:30', '-0400': '-04:00', '-0330': '-03:30',
+            '-0300': '-03:00', '-0230': '-02:30', '-0200': '-02:00',
+            '-0130': '-01:30', '-0100': '-01:00', '-0030': '-00:30',
+            '+0000': '00:00', '+0030': '+00:30', '+0100': '+01:00',
+            '+0130': '+01:30', '+0200': '+02:00', '+0230': '+02:30',
+            '+0300': '+03:00', '+0330': '+03:30', '+0400': '+04:00',
+            '+0430': '+04:30', '+0500': '+05:00', '+0530': '+05:30',
+            '+0600': '+06:00', '+0630': '+06:30', '+0700': '+07:00',
+            '+0730': '+07:30', '+0800': '+08:00', '+0830': '+08:30',
+            '+0900': '+09:00', '+0930': '+09:30', '+1000': '+10:00',
+            '+1030': '+10:30', '+1100': '+11:00', '+1130': '+11:30',
+            '+1200': '+12:00', '+1230': '+12:30', '+1300': '+13:00',
+            '+1330': '+13:30', '+1400': '+14:00',
+        },
     },
     28: {
         rig_ui_map: {
@@ -364,12 +478,26 @@ const mi_table = {
         rig_ui_map: enable_disable_map,
     },
     35: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        rig_ui_map: {
+            '-20': '-20 kHz', '-19': '-19 kHz', '-18': '-18 kHz',
+            '-17': '-17 kHz', '-16': '-16 kHz', '-15': '-15 kHz',
+            '-14': '-14 kHz', '-13': '-13 kHz', '-12': '-12 kHz',
+            '-11': '-11 kHz', '-10': '-10 kHz', '-09': '-9 kHz',
+            '-08': '-8 kHz', '-07': '-7 kHz', '-06': '-6 kHz',
+            '-05': '-5 kHz', '-04': '-4 kHz', '-03': '-3 kHz',
+            '-02': '-2 kHz', '-01': '-1 kHz', '-00': '0 kHz',
+            '+00': '0 kHz', '+01': '1 kHz', '+02': '2 kHz',
+            '+03': '3 kHz', '+04': '4 kHz', '+05': '5 kHz',
+            '+06': '6 kHz', '+07': '7 kHz', '+08': '8 kHz',
+            '+09': '9 kHz', '+10': '10 kHz', '+11': '11 kHz',
+            '+12': '12 kHz', '+13': '13 kHz', '+14': '14 kHz',
+            '+15': '15 kHz', '+16': '16 kHz', '+17': '17 kHz',
+            '+18': '18 kHz', '+19': '19 kHz', '+20': '20 kHz',
+        },
     },
     36: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        sorted_list: null,
+        rig_ui_map: tx_tot_map,
     },
     37: {
         rig_ui_map: enable_disable_map,
@@ -381,8 +509,9 @@ const mi_table = {
         },
     },
     39: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad3_w_sign,
+        range: {min:'-25', max:'25'},
     },
     40: {
         rig_ui_map: {
@@ -392,15 +521,15 @@ const mi_table = {
         },
     },
     41: {
-        toUi: toUiLCutFreq,
-        fromUi: fromUiLCutFreq,
+        sorted_list: null,
+        rig_ui_map: lcut_freq_map,
     },
     42: {
         rig_ui_map: slope_map,
     },
     43: {
-        toUi: toUiHCutFreq,
-        fromUi: fromUiHCutFreq,
+        sorted_list: null,
+        rig_ui_map: hcut_freq_map,
     },
     44: {
         rig_ui_map: slope_map,
@@ -411,6 +540,7 @@ const mi_table = {
     46: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     47: {
         rig_ui_map: ptt_select_map,
@@ -421,17 +551,18 @@ const mi_table = {
     49: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     50: {
-        toUi: toUiLCutFreq,
-        fromUi: fromUiLCutFreq,
+        sorted_list: null,
+        rig_ui_map: lcut_freq_map,
     },
     51: {
         rig_ui_map: slope_map,
     },
     52: {
-        toUi: toUiHCutFreq,
-        fromUi: fromUiHCutFreq,
+        sorted_list: null,
+        rig_ui_map: hcut_freq_map,
     },
     53: {
         rig_ui_map: slope_map,
@@ -439,6 +570,7 @@ const mi_table = {
     54: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     55: {
         rig_ui_map: {
@@ -454,8 +586,10 @@ const mi_table = {
         },
     },
     57: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'300', max:'3000', step:'10'},
+        suffix: ' ms',
     },
     58: {
         rig_ui_map: {
@@ -501,23 +635,25 @@ const mi_table = {
         },
     },
     64: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad5_w_sign,
+        range: {min:'-3000', max:'3000', step:'10'},
     },
     65: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad5_w_sign,
+        range: {min:'-3000', max:'3000', step:'10'},
     },
     66: {
-        toUi: toUiLCutFreq,
-        fromUi: fromUiLCutFreq,
+        sorted_list: null,
+        rig_ui_map: lcut_freq_map,
     },
     67: {
         rig_ui_map: slope_map,
     },
     68: {
-        toUi: toUiHCutFreq,
-        fromUi: fromUiHCutFreq,
+        sorted_list: null,
+        rig_ui_map: hcut_freq_map,
     },
     69: {
         rig_ui_map: slope_map,
@@ -534,6 +670,7 @@ const mi_table = {
     73: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     74: {
         rig_ui_map: mic_select_map,
@@ -541,6 +678,7 @@ const mi_table = {
     75: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     76: {
         rig_ui_map: ptt_select_map,
@@ -551,6 +689,7 @@ const mi_table = {
     78: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     79: {
         rig_ui_map: {
@@ -559,20 +698,24 @@ const mi_table = {
         },
     },
     80: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'0', max:'1000', step:'10'},
     },
     81: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'0', max:'4000', step:'10'},
     },
     82: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'0', max:'4000', step:'10'},
     },
     83: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad5,
+        range: {min:'0', max:'10000', step:'10'},
     },
     84: {
         rig_ui_map: on_off_map,
@@ -616,15 +759,15 @@ const mi_table = {
         rig_ui_map: on_off_map,
     },
     92: {
-        toUi: toUiLCutFreq,
-        fromUi: fromUiLCutFreq,
+        sorted_list: null,
+        rig_ui_map: lcut_freq_map,
     },
     93: {
         rig_ui_map: slope_map,
     },
     94: {
-        toUi: toUiHCutFreq,
-        fromUi: fromUiHCutFreq,
+        sorted_list: null,
+        rig_ui_map: hcut_freq_map,
     },
     95: {
         rig_ui_map: slope_map,
@@ -645,6 +788,7 @@ const mi_table = {
     99: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     100: {
         rig_ui_map: {
@@ -661,15 +805,15 @@ const mi_table = {
         },
     },
     102: {
-        toUi: toUiLCutFreq,
-        fromUi: fromUiLCutFreq,
+        sorted_list: null,
+        rig_ui_map: lcut_freq_map,
     },
     103: {
         rig_ui_map: slope_map,
     },
     104: {
-        toUi: toUiHCutFreq,
-        fromUi: fromUiHCutFreq,
+        sorted_list: null,
+        rig_ui_map: hcut_freq_map,
     },
     105: {
         rig_ui_map: slope_map,
@@ -680,6 +824,7 @@ const mi_table = {
     107: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     108: {
         rig_ui_map: ptt_select_map,
@@ -704,12 +849,14 @@ const mi_table = {
         },
     },
     112: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad3_w_sign,
+        range: {min:'-40', max:'20'},
     },
     113: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {max: '11'},
     },
     114: {
         rig_ui_map: {
@@ -725,11 +872,11 @@ const mi_table = {
     },
     116: {
         rig_ui_map: {
-            '03': '50 kHx',
-            '04': '100 kHx',
-            '05': '200 kHx',
-            '06': '500 kHx',
-            '07': '1000 kHx',
+            '03': '50 kHz',
+            '04': '100 kHz',
+            '05': '200 kHz',
+            '06': '500 kHz',
+            '07': '1000 kHz',
         },
     },
     117: {
@@ -748,70 +895,87 @@ const mi_table = {
         },
     },
     119: {
+        sorted_list: null,
         rig_ui_map: prmtrc_eq1_freq_map,
     },
     120: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     121: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     122: {
+        sorted_list: null,
         rig_ui_map: prmtrc_eq2_freq_map,
     },
     123: {
         toUi: toUiInt,
-        fromUi: defaultFromUi,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     124: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     125: {
+        sorted_list: null,
         rig_ui_map: prmtrc_eq3_freq_map,
     },
     126: {
         toUi: toUiInt,
-        fromUi: defaultFromUi,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     127: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     128: {
         rig_ui_map: prmtrc_eq1_freq_map,
     },
     129: {
         toUi: toUiInt,
-        fromUi: defaultFromUi,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     130: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     131: {
+        sorted_list: null,
         rig_ui_map: prmtrc_eq2_freq_map,
     },
     132: {
         toUi: toUiInt,
-        fromUi: defaultFromUi,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     133: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     134: {
+        sorted_list: null,
         rig_ui_map: prmtrc_eq3_freq_map,
     },
     135: {
         toUi: toUiInt,
-        fromUi: defaultFromUi,
+        fromUi: pad3_w_sign,
+        range: {min:'-20', max:'10'},
     },
     136: {
         toUi: toUiInt,
         fromUi: pad2,
+        range: {min: '1', max: '10'},
     },
     137: {
         toUi: toUiInt,
@@ -849,24 +1013,31 @@ const mi_table = {
         fromUi: pad3,
     },
     144: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'30', max:'3000', step:'10'},
+        suffix: ' ms',
     },
     145: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     146: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     147: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad4,
+        range: {min:'30', max:'3000'},
+        suffix: ' ms',
     },
     148: {
         toUi: toUiInt,
         fromUi: pad3,
+        range: {},
     },
     149: {
         rig_ui_map: enable_disable_map,
@@ -878,8 +1049,9 @@ const mi_table = {
         },
     },
     151: {
-        toUi: defaultToUi,
-        fromUi: defaultFromUi,
+        toUi: toUiInt,
+        fromUi: pad8,
+        range: {min:'00030000', max:'47000000'},
     },
     152: {
         rig_ui_map: {
@@ -893,58 +1065,92 @@ const mi_table = {
     },
 };
 
-class rig_menu {
-    static toUi(no, value) {
-        const mi = mi_table[no];
+function to_ui(no, value) {
+    const mi = mi_table[no];
 
-        if(isEmptyValue(mi)) {
-            throw new Error('rig_menu.toUi(' + no + ') not found');
-        }
-
-        if (isEmptyValue(value)) {
-            throw new Error('rig_menu.toUi(' + no + ') has no value');
-        }
-
-        if(mi.hasOwnProperty('rig_ui_map')) {
-            if(mi.rig_ui_map.hasOwnProperty(value)) {
-                return mi.rig_ui_map[value];
-            }
-        }
-        else if(mi.hasOwnProperty('toUi')) {
-            return mi.toUi(value);
-        }
-        throw new Error('rig_menu.toUi(' + no + '): unknown value: "' + value + '"');
+    if(isEmptyValue(mi)) {
+        throw new Error('rig_menu.toUi(' + no + ') not found');
     }
 
-    static fromUi(no, value) {
-        const mi = mi_table[no];
-
-        if(isEmptyValue(mi)) {
-            throw new Error('rig_menu.fromUi(' + no + ') not found');
-        }
-
-        if (value !== null) {
-            if(mi.hasOwnProperty('rig_ui_map')) {
-                if(!mi.hasOwnProperty('ui_rig_map')) {
-                    mi.ui_rig_map = {};
-
-                    for(const [k,v] of Object.entries(mi.rig_ui_map)) {
-                        mi.ui_rig_map[v] = k;
-                    }
-                }
-
-                if(mi.ui_rig_map.hasOwnProperty(value)) {
-                    return mi.ui_rig_map[value];
-                }
-            }
-            else if(mi.hasOwnProperty('fromUi')) {
-                return mi.fromUi(value);
-            }
-            throw new Error('rig_menu.fromUi(' + no + '): unknown value: "' + value + '"');
-        }
-
-        throw new Error('rig_menu.fromUi(' + no + ') has no value');
+    if (isEmptyValue(value)) {
+        throw new Error('rig_menu.toUi(' + no + ') has no value');
     }
+
+    if(mi.hasOwnProperty('rig_ui_map')) {
+        if(mi.rig_ui_map.hasOwnProperty(value)) {
+            return mi.rig_ui_map[value];
+        }
+    }
+    else if(mi.hasOwnProperty('toUi')) {
+        return mi.toUi(value);
+    }
+    throw new Error('rig_menu.toUi(' + no + '): unknown value: "' + value + '"');
 }
 
-export { rig_menu };
+function from_ui(no, value) {
+    const mi = mi_table[no];
+
+    if(isEmptyValue(mi)) {
+        throw new Error('rig_menu.fromUi(' + no + ') not found');
+    }
+
+    if (value !== null) {
+        if(mi.hasOwnProperty('rig_ui_map')) {
+            if(!mi.hasOwnProperty('ui_rig_map')) {
+                mi.ui_rig_map = {};
+
+                for(const [k,v] of Object.entries(mi.rig_ui_map)) {
+                    mi.ui_rig_map[v] = k;
+                }
+            }
+
+            if(mi.ui_rig_map.hasOwnProperty(value)) {
+                return mi.ui_rig_map[value];
+            }
+        }
+        else if(mi.hasOwnProperty('fromUi')) {
+            return mi.fromUi(value);
+        }
+        throw new Error('rig_menu.fromUi(' + no + '): unknown value: "' + value + '"');
+    }
+
+    throw new Error('rig_menu.fromUi(' + no + ') has no value');
+}
+
+function menu_list(no) {
+    const mi = mi_table[no];
+
+    if (mi.hasOwnProperty('sorted_list')) {
+        if (mi.sorted_list === null) {
+            mi.sorted_list = Object.keys(mi.rig_ui_map)
+                .sort((keyA, keyB) => keyA.localeCompare(keyB))
+                .map(key => (mi.rig_ui_map[key] ));
+        }
+        return mi.sorted_list;
+    }
+
+    if(mi.hasOwnProperty('rig_ui_map')) {
+        return Object.keys(mi.rig_ui_map).map(k => ( mi.rig_ui_map[k] ));
+    }
+    return null;
+}
+
+function menu_range(no) {
+    const mi = mi_table[no];
+
+    if(mi.hasOwnProperty('range')) {
+        return mi.range;
+    }
+    return null;
+}
+
+function menu_suffix(no) {
+    const mi = mi_table[no];
+
+    if(mi.hasOwnProperty('suffix')) {
+        return mi.suffix;
+    }
+    return null;
+}
+
+export { to_ui, from_ui, menu_list, menu_range, menu_suffix };

@@ -6,10 +6,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
 const on = computed(() => {
-    return useSettingsStore().read_meter_alc.value;
+    return rig_property('read_meter_alc').value;
 });
 </script>
 

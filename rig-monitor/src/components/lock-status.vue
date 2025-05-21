@@ -7,17 +7,16 @@
 
 <script setup>
 import { computed } from 'vue';
-import { send_command } from '@/js/web_socket.js';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
-const lock = useSettingsStore().lock;
+const lock = rig_property('lock');
 
 const on = computed(() => {
     return lock.value;
 });
 
 const toggle = (e) => {
-    send_command('lock', !lock.value);
+    lock.update(!lock.value);
 }
 </script>
 

@@ -42,7 +42,6 @@ function click(new_value) {
         pressed.value = false;
     }, 1000);
 
-    console.log(`Button clicked: ${props.event}`);
     send_command(props.event, new_value);
 };
 </script>

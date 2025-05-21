@@ -28,10 +28,9 @@
 
 <script setup>
 import { computed, useTemplateRef, ref } from 'vue';
-import { send_command } from '@/js/web_socket.js';
+import { rig_property } from '@/js/rig_property.js';
 import freq_utils from '@/js/freq_utils.js';
 import { useGlobalStore } from '@/stores/global';
-import { useSettingsStore } from '@/stores/settings';
 
 const props = defineProps({
     vfo: {
@@ -44,17 +43,19 @@ const props = defineProps({
 });
 // const vfo = props.vfo;
 
-const global = useGlobalStore();
 const freq_model = ref(true);
 const freq_input = ref('');
 const freq_input_state = ref(null);
+
+const rp = rig_property(props.vfo);
+freq_input.value = rp.value;
 
 const title = computed(() => {
     return `Set ${props.vfo.toUpperCase()} Frequency`;
 });
 
 const getFreq = () => {
-    let value = useSettingsStore()[props.vfo].value;
+    let value = rp.value;
     if (!value) {
         return '000000000';
     }
@@ -99,7 +100,7 @@ const handle_ok = (e) => {
 
     if(new_freq) {
         close_modal();
-        send_command(props.vfo, new_freq);
+        rp.update(new_freq);
     }
     else {
         freq_input_state.value = false;
@@ -108,10 +109,9 @@ const handle_ok = (e) => {
 }
 
 function close_modal() {
-    global.closeModal();
+    useGlobalStore().closeModal();
     freq_input_state.value = null;
 }
-
 </script>
 
 <style>

@@ -11,12 +11,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
-
-const read_meter_alc = useSettingsStore().read_meter_alc;
+import { rig_property } from '@/js/rig_property.js';
 
 const value = computed(() => {
-    return read_meter_alc.value + '%';
+    return rig_property('read_meter_alc').value + '%';
 });
 </script>
 

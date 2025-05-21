@@ -6,9 +6,9 @@
 <script setup>
 import { computed } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
-const pre_amp = useSettingsStore().pre_amp;
+const pre_amp = rig_property('pre_amp');
 
 const open_modal = () => {
     useGlobalStore().openModal('pre_amp');

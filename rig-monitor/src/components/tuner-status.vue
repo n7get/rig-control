@@ -1,24 +1,22 @@
 
 <template>
-    <div :class="{tuner: true, on: on}" @click="sendClick">
+    <div :class="{tuner: true, on: on}" @click="send_update">
         TUNER
     </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import { send_command } from '@/js/web_socket.js';
-import { useSettingsStore } from '@/stores/settings';
+import { computed, ref } from 'vue';
+import { rig_property } from '@/js/rig_property.js';
 
-const tuner = useSettingsStore().antenna_tuner_control;
+const antenna_tuner_control = rig_property('antenna_tuner_control');
 
 const on = computed(() => {
-    return tuner.value === 'on';
+    return antenna_tuner_control.value === 'on';
 });
 
-const sendClick = (e) => {
-    console.log('sendClick: ', e);
-    send_command('antenna_tuner_control', tuner.value === 'on' ? 'off' : 'on');
+const send_update = (e) => {
+    antenna_tuner_control.update(antenna_tuner_control.value === 'on' ? 'off' : 'on');
 }
 </script>
 

@@ -2,12 +2,14 @@
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <controls class="px-3"></controls>
-            <mode-dialogs></mode-dialogs>
-            <settings></settings>
-            <!-- <menu-item></menu-item> -->
+            <fm-settings class="px-3"></fm-settings>
+            <all-settings class="px-3"></all-settings>
+            <all-menus class="px-3"></all-menus>
             <!-- <rbn></rbn> -->
             <!-- <config></config> -->
         </div>
+  
+        <settings-modal />
 
         <b-modal
             id="alert"
@@ -29,9 +31,15 @@
 </template>
 
 <script setup>
-import controls from './controls.vue'
-import settings from './settings.vue'
-import modeDialogs from './mode-dialogs.vue'
+import controls from '@/components/controls.vue'
+import { useGlobalStore } from '@/stores/global'
+import settings from '@/components/settings.vue'
+import allSettings from '@/components/all-settings.vue'
+import fmSettings from '@/components/fm-settings.vue'
+import allMenus from '@/components/all-menus.vue'
+import settingsModal from '@/components/modals/settings_modal.vue';
+
+const ready = useGlobalStore().ready;
 
 const handleOk = (e) => {
     // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});

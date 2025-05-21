@@ -1,13 +1,14 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useSettingsStore } from './settings'
 
 export const useGlobalStore = defineStore('global', () => {
 	const ready = ref(false)
 	const isReady = computed(() => {
+		console.log('Checking if ready:', ready.value)
 		return ready.value
 	})
 	const setReady = (value) => {
+		console.log('Setting ready:', value)
 		ready.value = value
 	}
 
@@ -28,6 +29,6 @@ export const useGlobalStore = defineStore('global', () => {
 	
 	return {
 		ready, setReady, isReady, 
-		modal, openModal, closeModal
+		modal, openModal, closeModal,
 	 };
 })

@@ -30,9 +30,8 @@
 
 <script setup>
 import { computed, useTemplateRef, ref } from 'vue';
-import { send_command } from '@/js/web_socket.js';
 import { useGlobalStore } from '@/stores/global';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property';
 
 const props = defineProps({
     name: {
@@ -53,18 +52,16 @@ const props = defineProps({
     },
 });
 
-const global = useGlobalStore();
-const settings = useSettingsStore()[props.name];
-
+const rp = rig_property(props.name);
 const open_modal = ref(true);
-const input_value = ref(parseInt(settings.value, 10) || 0);
+const input_value = ref(parseInt(rp.value, 10) || 0);
 
 const min = parseInt(props.min, 10);
 const max = parseInt(props.max, 10);
 const step = parseInt(props.step, 10);
 
 const title = computed(() => {
-    return `Set ${settings.desc}: ${input_value.value}`;
+    return `Set ${rp.desc}: ${input_value.value}${rp.suffix}`;
 });
 
 function set(value) {
@@ -75,7 +72,7 @@ function set(value) {
     } else {
         input_value.value = value;
     }
-    send_command(props.name, input_value.value);
+    rp.update(input_value.value);
 }
 function decrement(dec) {
     set(input_value.value - dec);
@@ -85,7 +82,7 @@ function increment(inc) {
 }
 
 function close_modal() {
-    global.closeModal();
+    useGlobalStore().closeModal();
 }
 
 </script>

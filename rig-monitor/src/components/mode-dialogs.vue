@@ -12,10 +12,10 @@
 </template>
 
 <script setup>
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
 
-const mode = useSettingsStore().mode;
+const mode = rig_property('mode');
 
 const open_modal = (name) => {
     useGlobalStore().openModal(name);

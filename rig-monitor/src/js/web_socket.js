@@ -1,13 +1,9 @@
 import { rig_setting } from '../js/rig_setting.js';
-import { useMenuStore } from '@/stores/menu.js';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
 
 let socket = null;
 function connect_ws() {
-    const menus = useMenuStore().menus;
-    const settings = useSettingsStore();
-
     socket = new WebSocket('http://192.168.68.57/ws');
 
     socket.onopen = () => {
@@ -16,8 +12,10 @@ function connect_ws() {
     };
 
     socket.onmessage = (event) => {
-        // console.log('WebSocket message received:', event.data);
         const data = JSON.parse(event.data);
+        // if (data.value.substring(0, 2) !== 'SM') {
+        //     console.log('WebSocket message received:', data.value);
+        // }
         
         switch (data.value) {
         case '!R;':
@@ -51,7 +49,8 @@ function connect_ws() {
                 if (unavailable) {
                     console.warn('menu setting unavailable?:', command);
                 }
-                menus[rs.value.no].value = rs.value.value;
+                const rp = rig_property(rs.value.no);
+                rp.value = rs.value.value;
 
                 if (rs.value.no === 73) {
                     // console.log('no:', rs.value.no, 'menu:', value);
@@ -59,25 +58,25 @@ function connect_ws() {
                 }
             } else if (rs.name === 'information') {
                 // console.log('information:', rs.value);
-                settings.memory_channel.value = rs.value.memory_channel;
-                settings.vfo_a.value = rs.value.vfo_a;
-                settings.mode.value = rs.value.mode;
+                rig_property('memory_channel').value = rs.value.memory_channel;
+                rig_property('vfo_a').value = rs.value.vfo_a;
+                rig_property('mode').value = rs.value.mode;
             } else if (rs.name === 'opposite_band_information') {
                 // console.log('opposite_band_information:', rs.value);
-            } else if (settings.hasOwnProperty(rs.name)) {
-                settings[rs.name].value = rs.value;
-                if (settings[rs.name].unavailable && !unavailable) {
-                    console.log('Has become available:', rs.name);
-                } else if (!settings[rs.name].unavailable && unavailable) {
-                    console.log('Has become unavailable:', rs.name);
-                }
-                settings[rs.name].unavailable = unavailable;
-
-                // if (rs.name === 'monitor') {
-                //     console.log(rs.name, rs.value);
-                // }
             } else {
-                console.warn('Unknown setting:', data.value);
+                const rp = rig_property(rs.name);
+                if (rp) {
+                    rp.value = rs.value;
+
+                    if (rp.unavailable && !unavailable) {
+                        console.log('Has become available:', rs.name);
+                    } else if (!rp.unavailable && unavailable) {
+                        console.log('Has become unavailable:', rs.name);
+                    }
+                    rp.unavailable = unavailable;
+                } else {
+                    console.warn('Unknown setting:', data.value);
+                }
             }
             break;
         }

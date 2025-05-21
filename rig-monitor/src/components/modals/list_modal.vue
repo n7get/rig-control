@@ -26,9 +26,8 @@
 
 <script setup>
 import { computed, useTemplateRef, ref } from 'vue';
-import { send_command } from '@/js/web_socket.js';
 import { useGlobalStore } from '@/stores/global';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
 const props = defineProps({
     name: {
@@ -45,30 +44,24 @@ const props = defineProps({
     },
 });
 
-const global = useGlobalStore();
-const settings = useSettingsStore()[props.name];
 const open_modal = ref(true);
-const input_value = ref(settings.value);
-const input_ref = ref(null);
+const input_value = ref('');
+const rp = rig_property(props.name);
+input_value.value = rp.value;
 
 const title = computed(() => {
-    return `Set ${settings.desc}`;
+    return `Set ${rp.desc}`;
 });
 
-let list_options;
-if (props.type === 'list') {
-    list_options = props.list.map((k) => ({ value: k, text: k }));
-} else {
-    list_options = Object.keys(props.list).map((k) => ({ value: k, text: k }));
-}
+let list_options = props.list.map((k) => ({ value: k, text: k }));
 
 const select_item = (value) => {
     close_modal();
-    send_command(props.name, input_value.value);
+    rp.update(input_value.value);
 }
 
 function close_modal() {
-    global.closeModal();
+    useGlobalStore().closeModal();
 }
 
 </script>

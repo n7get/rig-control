@@ -11,7 +11,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
 const props = defineProps({
     meter: {
@@ -22,7 +22,7 @@ const props = defineProps({
         },
     }
 });
-const read_meter_front_panel = useSettingsStore().read_meter_front_panel;
+const read_meter_front_panel = rig_property('read_meter_front_panel');
 
 const value = computed(() => {
     return read_meter_front_panel.value + '%';

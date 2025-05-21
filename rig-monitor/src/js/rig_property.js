@@ -1,0 +1,123 @@
+import { useMenusStore } from '@/stores/menus.js';
+import { useSettingsStore } from '@/stores/settings.js';
+import { menu_list, menu_range, menu_suffix } from '@/js/rig_menu.js';
+import { rig_setting } from '@/js/rig_setting.js';
+import { send_command } from '@/js/web_socket';
+
+const boolean_settings = [
+    'break_in',
+    'lock',
+    'keyer',
+    'manual_notch',
+    'monitor',
+    'mox_set',
+    'narrow',
+    'noise_blanker',
+    'noise_reduction',
+    'parametric_microphone_equalizer',
+    'preamp',
+    'rf_attenuator',
+    'speech_processor',
+    'transmit',
+    'tx_clar',
+    'txw',
+    'vox',
+];
+
+class rig_property_base {
+    constructor(name, value) {
+        this._name = name;
+        this._value = value;
+    }
+
+    get name() { return this._name; }
+    get desc() { return this._value.desc; }
+    get value() { return this._value.value; }
+    get all() { return this._value.all; }
+    get changed() { return this._value.changed; }
+    get fav() { return this._value.fav; }
+    get saved() { return this._value.saved; }
+    get unavailable() { return this._value.unavailable; }
+    get suffix() { return ''; }
+
+    set value(value) {
+        this._value.value = value;
+    }
+    set unavailable(value) {
+        this._value.unavailable = value;
+    }
+    setting() { return false; }
+    menu() { return false; }
+}
+
+class manu_property extends rig_property_base {
+    constructor(name, value) {
+        super(name, value);
+    }
+
+    get desc() {
+        return super.desc + ' (' + this._name + ')';
+    }
+    get list() { return menu_list(this._name); }
+    get range() { return menu_range(this._name); }
+    get suffix() { return menu_suffix(this._name) || ''; }
+    update(value) {
+        send_command('menu', { no: this._name, value: value });
+    }
+    get unavailable() { return false; }
+    menu() { return true; }
+}
+
+class setting_property extends rig_property_base {
+    constructor(name, value) {
+        super(name, value);
+    }
+
+    get list() {
+        const rc = rig_setting.of(this._name);
+        return rc.list;
+    }
+    get range() {
+        const rc = rig_setting.of(this._name);
+        return rc.range;
+    }
+    update(value) {
+        send_command(this._name, value);
+    }
+    setting() { return true; }
+}
+
+    
+function rig_property(name) {
+    if (useSettingsStore().settings.hasOwnProperty(name)) {
+        return new setting_property(name, useSettingsStore().settings[name])
+    }
+
+    if (useMenusStore().menus.hasOwnProperty(name)) {
+        return new manu_property(name, useMenusStore().menus[name])
+    }
+
+    debugger;
+    return undefined
+}
+
+function get_property_list(list) {
+    const prop_list = list.map((name) => {
+        return rig_property(name)
+    })
+    return prop_list
+}
+function get_all_settings_list() {
+    return Object.keys(useSettingsStore().settings)
+}
+function get_all_menus_list() {
+    return Object.keys(useMenusStore().menus)
+}
+
+export {
+    boolean_settings,
+    rig_property,
+    get_property_list,
+    get_all_settings_list,
+    get_all_menus_list
+};

@@ -1,6 +1,6 @@
 'use strict;'
 
-import { rig_menu } from '../js/rig_menu.js';
+import { from_ui, to_ui } from '../js/rig_menu.js';
 
 function isEmptyValue(value) {
     if(typeof(value) === 'string' && value.length === 0) {
@@ -229,6 +229,7 @@ const rig_commands = {
     'AG0': {
         cmd: 'AG0',
         name: 'af_gain',
+	    range: {},
         desc: 'AF_GAIN',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -300,6 +301,7 @@ const rig_commands = {
     'BP01': {
         cmd: 'BP01',
         name: 'manual_notch_level',
+	    range: {min:'10', max:'3200', step:'10'},
         desc: 'MANUAL_NOTCH_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value / 10) + ';';
@@ -357,6 +359,7 @@ const rig_commands = {
     'CN00': {
         cmd: 'CN00',
         name: 'ctcss_tone_frequency',
+	    list: Object.keys(ctcss_tone_frequency_to_cat),
         desc: 'CTCSS_TONE_FREQUENCY',
         asSetValue() {
             return this._rc.cmd + ctcss_tone_frequency_to_cat[this.value] + ';';
@@ -369,6 +372,7 @@ const rig_commands = {
     'CN01': {
         cmd: 'CN01',
         name: 'dcs_tone_frequency',
+	    list: cat_to_dcs,
         desc: 'DCS_TONE_FREQUENCY',
         asSetValue() {
             return this._rc.cmd + pad3(cat_to_dcs.indexOf(intValue(this.value))) + ';';
@@ -443,6 +447,7 @@ const rig_commands = {
     'CT0': {
         cmd: 'CT0',
         name: 'ctcss',
+	    list: Object.keys(ctcss_to_cat),
         desc: 'CTCSS',
         asSetValue() {
             return this._rc.cmd + ctcss_to_cat[this.value] + ';';
@@ -532,7 +537,7 @@ const rig_commands = {
         desc: 'MENU',
         isMenu: true,
         asSetValue() {
-            const cmd_value = rig_menu.fromUi(this.value.no, this.value.value);
+            const cmd_value = from_ui(this.value.no, this.value.value);
 
             return this._rc.cmd + pad3(this.value.no) + cmd_value + ';';
         },
@@ -541,7 +546,7 @@ const rig_commands = {
         },
         fromCommand(raw_value) {
             const no = intValue(raw_value.substring(0, 3));
-            const value = rig_menu.toUi(no, raw_value.substring(3));
+            const value = to_ui(no, raw_value.substring(3));
 
             return { no, value };
         },
@@ -599,6 +604,7 @@ const rig_commands = {
     'GT0': {                       // TODO: Needs testing
         cmd: 'GT0',
         name: 'agc',
+	    list: Object.keys(agc_to_cat),
         desc: 'AGC_FUNCTION',
         asSetValue() {
             return this._rc.cmd + agc_to_cat[this.value] + ';';
@@ -627,6 +633,7 @@ const rig_commands = {
     'IS0': {
         cmd: 'IS0',
         name: 'if_shift',
+	    range: {min:'-1200', max:'1200', step:'20'},
         desc: 'IF-SHIFT',
         asSetValue() {
             const v = parseInt(this.value, 10);
@@ -658,6 +665,7 @@ const rig_commands = {
     'KP': {                       // TODO: Needs testing
         cmd: 'KP',
         name: 'key_pitch',
+	    range: {min:'300', max:'1050', step:'10'},
         desc: 'KEY_PITCH',
         asSetValue() {
             return this._rc.cmd + pad2(this.value / 10 - 30) + ';';
@@ -678,6 +686,7 @@ const rig_commands = {
     'KS': {
         cmd: 'KS',
         name: 'key_speed',
+	    range: {min:'4', max:'60', step:'1'},
         desc: 'KEY_SPEED',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -730,6 +739,7 @@ const rig_commands = {
     'MD0': {
         cmd: 'MD0',
         name: 'mode',
+	    list: Object.keys(modes_cat),
         desc: 'MODE',
         asSetValue() {
             return this._rc.cmd + modes_cat[this.value] + ';';
@@ -742,6 +752,7 @@ const rig_commands = {
     'MG': {
         cmd: 'MG',
         name: 'mic_gain',
+	    range: {min:'0', max:'100', step:'1'},
         desc: 'MIC_GAIN',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -762,6 +773,7 @@ const rig_commands = {
     'ML1': {
         cmd: 'ML1',
         name: 'monitor_level',
+	    range: {min:'0', max:'100', step:'1'},
         desc: 'MONITOR_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -785,6 +797,7 @@ const rig_commands = {
     'MS': {
         cmd: 'MS',
         name: 'meter_sw',
+	    list: Object.keys(meter_cat),
         desc: 'METER_SW',
         asSetValue() {
             return this._rc.cmd + meter_cat[this.value] + ';';
@@ -851,6 +864,7 @@ const rig_commands = {
     'NL0': {
         cmd: 'NL0',
         name: 'noise_blanker_level',
+	    range: {min:'0', max:'10', step:'1'},
         desc: 'NOISE_BLANKER_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -882,6 +896,7 @@ const rig_commands = {
     'OS0': {
         cmd: 'OS0',
         name: 'offset',
+	    list: Object.keys(offset_cat),
         desc: 'OFFSET_(REPEATER_SHIFT)',
         asSetValue() {
             return this._rc.cmd + offset_cat[this.value] + ';';
@@ -894,6 +909,7 @@ const rig_commands = {
     'PA0': {
         cmd: 'PA0',
         name: 'pre_amp',
+	    list: Object.keys(preamp_cat),
         desc: 'PRE-AMP_(IPO)',
         asSetValue() {
             return this._rc.cmd + preamp_cat[this.value] + ';';
@@ -920,6 +936,7 @@ const rig_commands = {
     'PC': {
         cmd: 'PC',
         name: 'power_level',
+	    range: {min:'5', max:'100', step:'1'},
         desc: 'POWER_CONTROL',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -928,6 +945,7 @@ const rig_commands = {
     'PL': {
         cmd: 'PL',
         name: 'speech_processor_level',
+	    range: {min:'0', max:'100', step:'1'},
         desc: 'SPEECH_PROCESSOR_LEVEL',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -1004,6 +1022,7 @@ const rig_commands = {
     'RG0': {
         cmd: 'RG0',
         name: 'rf_gain',
+	    range: {},
         desc: 'RF_GAIN',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -1065,6 +1084,7 @@ const rig_commands = {
     'RL0': {
         cmd: 'RL0',
         name: 'noise_reduction_level',
+	    range: {min:'1', max:'15', step:'1'},
         desc: 'NOISE_REDUCTION_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad2(this.value) + ';';
@@ -1207,6 +1227,7 @@ const rig_commands = {
     'SQ0': {
         cmd: 'SQ0',
         name: 'squelch_level',
+	    range: {min:'0', max:'100', step:'1'},
         desc: 'SQUELCH_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -1270,6 +1291,7 @@ const rig_commands = {
     'VG': {
         cmd: 'VG',
         name: 'vox_gain',
+	    range: {min:'0', max:'100', step:'1'},
         desc: 'VOX_GAIN',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -1347,6 +1369,8 @@ const rig_setting = class {
 
     get name() { return this._rc.name; }
     get value() { return this._value; }
+    get list() { return this._rc.hasOwnProperty('list') ? this._rc.list : null; }
+    get range() { return this._rc.hasOwnProperty('range') ? this._rc.range : null; }
     get isMenu() { return this._rc.isMenu; }
 
     get asSet() {
@@ -1483,9 +1507,5 @@ const rig_setting = class {
 export {
     agc_to_cat,
     cat_preamp, preamp_cat,
-    ctcss_to_cat, ctcss_tone_frequency_to_cat, cat_to_dcs,
-    meter_cat,
-    modes_cat,
-    offset_cat,
-    rig_setting
+    rig_setting,
 };

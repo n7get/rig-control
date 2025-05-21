@@ -14,8 +14,8 @@
 
 <script setup>
 import { computed } from 'vue';
+import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
-import { useSettingsStore } from '@/stores/settings';
 
 const props = defineProps({
     vfo: {
@@ -27,10 +27,10 @@ const props = defineProps({
     }
 });
 
-const transmit = useSettingsStore().transmit;
+const transmit = rig_property('transmit');
 
 const getFreq = () => {
-    let value = useSettingsStore()[props.vfo].value;
+    let value = rig_property(props.vfo).value;
     if (!value) {
         return '000000000';
     }

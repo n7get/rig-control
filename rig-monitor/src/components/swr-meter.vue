@@ -11,9 +11,9 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
-const read_meter_swr = useSettingsStore().read_meter_swr;
+const read_meter_swr = rig_property('read_meter_swr');
 
 const value = computed(() => {
     return read_meter_swr.value + '%';

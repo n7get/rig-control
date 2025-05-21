@@ -21,10 +21,10 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useSettingsStore } from '@/stores/settings';
+import { rig_property } from '@/js/rig_property.js';
 
-const s_meter = useSettingsStore().s_meter_reading;
-const tx_on = useSettingsStore().transmit;
+const s_meter = rig_property('s_meter_reading');
+const tx_on = rig_property('transmit');
 const value = computed(() => {
     return s_meter.value + '%';
 });

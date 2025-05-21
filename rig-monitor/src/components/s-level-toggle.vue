@@ -1,6 +1,6 @@
 <template>
     <b-row>
-        <div @click="sendToggle" class="col-4">
+        <div @click="toggle_prop_update" class="col-4" :class="{disabled: disabled}">
             {{ label }}<span v-if="show !== 'none'"> ({{ event_value }})</span>
         </div>
         <div class="col-7 px-0">
@@ -9,7 +9,8 @@
                 type="range"
                 :min="min"
                 :max="max"
-                @change="sendChange"
+                @change="event_prop_update"
+                :disabled="disabled"
             ></b-form-input>
         </div>
     </b-row>
@@ -41,12 +42,24 @@ const props = defineProps({
         type: String,
         default: '',
     },
+    'toggle': {
+        type: String,
+        default: null,
+    },
 });
 
 const event_prop = rig_property(props.event);
-const event_value = ref(parseInt(event_prop.value, 10) || 0);
+const event_value = ref(0);
+event_value.value = parseInt(event_prop.value, 10) || 0;
+const toggle_prop = rig_property(props.toggle);
 
-const sendChange = () => {
-    event_prop.update(event_value.value);
-};
+const disabled = computed(() => { return !toggle_prop.value; });
+const event_prop_update = () => { event_prop.update(event_value.value); };
+const toggle_prop_update = () => { toggle_prop.update(!toggle_prop.value); };
 </script>
+
+<style scoped>
+    .disabled {
+        color: lightgray;
+    }
+</style>
