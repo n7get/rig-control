@@ -45,8 +45,9 @@ const props = defineProps({
 });
 
 const global = useGlobalStore();
-const prop_list = get_property_list(props.list);
 const show_settings = ref(props.open === 'true');
+
+const prop_list = computed(() => get_property_list(props.list));
 
 const toggleShowSettings = () => {
     show_settings.value = !show_settings.value;

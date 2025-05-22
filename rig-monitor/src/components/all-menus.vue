@@ -1,5 +1,5 @@
 <template>
-    <settings-component title="All Menus" :list="list" open="true" />
+    <settings-component title="All Menus" :list="list" open="false" />
 </template>
 
 <script setup>
