@@ -282,19 +282,19 @@ const mi_table = {
     1: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20'},
+	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     2: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20'},
+	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     3: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20'},
+	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     4: {
@@ -327,7 +327,7 @@ const mi_table = {
     8: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min:'0', max:'15'},
+        range: {max:'15', fast_step:'5'},
     },
     9: {
         rig_ui_map: {
@@ -373,7 +373,8 @@ const mi_table = {
     15: {
         toUi: toUiInt,
         fromUi: pad3,
-        range: {min:'0', max:'698'},
+        range: {max:'690', fast_step:'50'},
+        suffix: ' sec',
     },
     16: {
         rig_ui_map: {
@@ -389,7 +390,7 @@ const mi_table = {
     17: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'0', max:'9999'},
+        range: {max:'9999', fast_step:'100'},
     },
     18: {
         rig_ui_map: cw_memory_map,
@@ -423,7 +424,7 @@ const mi_table = {
     25: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min:'0', max:'10'},
+        range: {max:'10', fast_step:'5'},
     },
     26: {
         toUi: toUiInt,
@@ -511,7 +512,7 @@ const mi_table = {
     39: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-25', max:'25'},
+        range: {min:'-25', max:'25', fast_step:'5'},
     },
     40: {
         rig_ui_map: {
@@ -588,7 +589,7 @@ const mi_table = {
     57: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'300', max:'3000', step:'10'},
+        range: {min:'300', max:'3000', step:'10', fast_step:'300'},
         suffix: ' ms',
     },
     58: {
@@ -637,12 +638,12 @@ const mi_table = {
     64: {
         toUi: toUiInt,
         fromUi: pad5_w_sign,
-        range: {min:'-3000', max:'3000', step:'10'},
+        range: {min:'-3000', max:'3000', step:'10', fast_step:'500'},
     },
     65: {
         toUi: toUiInt,
         fromUi: pad5_w_sign,
-        range: {min:'-3000', max:'3000', step:'10'},
+        range: {min:'-3000', max:'3000', step:'10', fast_step:'500'},
     },
     66: {
         sorted_list: null,
@@ -700,22 +701,22 @@ const mi_table = {
     80: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'0', max:'1000', step:'10'},
+        range: {max:'1000', step:'10', fast_step:'100'},
     },
     81: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'0', max:'4000', step:'10'},
+        range: {max:'4000', step:'10', fast_step:'500'},
     },
     82: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'0', max:'4000', step:'10'},
+        range: {max:'4000', step:'10', fast_step:'500'},
     },
     83: {
         toUi: toUiInt,
         fromUi: pad5,
-        range: {min:'0', max:'10000', step:'10'},
+        range: {max:'10000', step:'10', fast_step:'1000'},
     },
     84: {
         rig_ui_map: on_off_map,
@@ -851,12 +852,12 @@ const mi_table = {
     112: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-40', max:'20'},
+        range: {min:'-40', max:'20', fast_step:'5'},
     },
     113: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {max: '11'},
+        range: {max: '11', fast_step:'5'},
     },
     114: {
         rig_ui_map: {
@@ -901,12 +902,12 @@ const mi_table = {
     120: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     121: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     122: {
         sorted_list: null,
@@ -915,12 +916,12 @@ const mi_table = {
     123: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     124: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     125: {
         sorted_list: null,
@@ -929,12 +930,12 @@ const mi_table = {
     126: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     127: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     128: {
         rig_ui_map: prmtrc_eq1_freq_map,
@@ -942,12 +943,12 @@ const mi_table = {
     129: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     130: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     131: {
         sorted_list: null,
@@ -956,12 +957,12 @@ const mi_table = {
     132: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     133: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     134: {
         sorted_list: null,
@@ -970,12 +971,12 @@ const mi_table = {
     135: {
         toUi: toUiInt,
         fromUi: pad3_w_sign,
-        range: {min:'-20', max:'10'},
+        range: {min:'-20', max:'10', fast_step:'5'},
     },
     136: {
         toUi: toUiInt,
         fromUi: pad2,
-        range: {min: '1', max: '10'},
+        range: {min: '1', max: '10', fast_step:'5'},
     },
     137: {
         toUi: toUiInt,
@@ -1015,7 +1016,7 @@ const mi_table = {
     144: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'30', max:'3000', step:'10'},
+        range: {min:'30', max:'3000', step:'10', fast_step:'100'},
         suffix: ' ms',
     },
     145: {
@@ -1031,7 +1032,7 @@ const mi_table = {
     147: {
         toUi: toUiInt,
         fromUi: pad4,
-        range: {min:'30', max:'3000'},
+        range: {min:'30', max:'3000', step:'10', fast_step:'100'},
         suffix: ' ms',
     },
     148: {

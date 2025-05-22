@@ -17,12 +17,12 @@
             :max="max"
             :step="step"
             ></b-form-input>
-        <div class="d-flex justify-content-center gap-2">
+        <div class="d-flex justify-content-center gap-1">
             <b-button @click="set(min)">{{ min }}</b-button>
-            <b-button @click="decrement(10 * step)">-{{ 10 * step }}</b-button>
+            <b-button @click="decrement(fast_step)">-{{ fast_step }}</b-button>
             <b-button @click="decrement(step)">-{{ step }}</b-button>
             <b-button @click="increment(step)">+{{ step }}</b-button>
-            <b-button @click="increment(10 * step)">+{{ 10 * step }}</b-button>
+            <b-button @click="increment(fast_step)">+{{ fast_step }}</b-button>
             <b-button @click="set(max)">{{ max }}</b-button>
         </div>
     </b-modal>
@@ -50,6 +50,10 @@ const props = defineProps({
         type: String,
         default: 1,
     },
+    fast_step: {
+        type: String,
+        default: 10,
+    },
 });
 
 const rp = rig_property(props.name);
@@ -59,6 +63,7 @@ const input_value = ref(parseInt(rp.value, 10) || 0);
 const min = parseInt(props.min, 10);
 const max = parseInt(props.max, 10);
 const step = parseInt(props.step, 10);
+const fast_step = parseInt(props.fast_step, 10);
 
 const title = computed(() => {
     return `Set ${rp.desc}: ${input_value.value}${rp.suffix}`;
