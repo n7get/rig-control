@@ -4,11 +4,9 @@ import { defineStore } from 'pinia'
 export const useGlobalStore = defineStore('global', () => {
 	const ready = ref(false)
 	const isReady = computed(() => {
-		console.log('Checking if ready:', ready.value)
 		return ready.value
 	})
 	const setReady = (value) => {
-		console.log('Setting ready:', value)
 		ready.value = value
 	}
 

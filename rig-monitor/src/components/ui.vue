@@ -2,6 +2,7 @@
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <controls class="px-3" />
+            <!-- <radio-status class="px-3" /> -->
             <mode-settings class="px-3" />
             <all-settings class="px-3" />
             <all-menus class="px-3" />
@@ -37,6 +38,7 @@ import allMenus from '@/components/all-menus.vue'
 import allSettings from '@/components/all-settings.vue'
 import controls from '@/components/controls.vue'
 import modeSettings from './mode-settings.vue'
+// import radioStatus from './radio_status.vue'
 import settings from '@/components/settings.vue'
 import settingsModal from '@/components/modals/settings_modal.vue';
 

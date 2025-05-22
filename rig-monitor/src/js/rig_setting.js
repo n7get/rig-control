@@ -641,7 +641,6 @@ const rig_commands = {
         },
         asRead: sendCmd,
         fromCommand(value) {
-            console.log('rig_setting: IS0 fromCommand', value);
             return parseInt(value, 10);
         },
     },
@@ -1034,49 +1033,49 @@ const rig_commands = {
     },
     'RI0': {
         cmd: 'RI0',
-        name: 'radio_information_hi_swr',
+        name: 'hi_swr',
         desc: 'RADIO_INFORMATION-HI-SWR',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RI3': {
         cmd: 'RI3',
-        name: 'radio_information_rec',
+        name: 'rec',
         desc: 'RADIO_INFORMATION-REC',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RI4': {
         cmd: 'RI4',
-        name: 'radio_information_play',
+        name: 'play',
         desc: 'RADIO_INFORMATION-PLAY',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RI5': {
         cmd: 'RI5',
-        name: 'radio_information_vfo_a_tx',
+        name: 'vfo_a_tx',
         desc: 'RADIO_INFORMATION-VFO-A_TX',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RI6': {
         cmd: 'RI6',
-        name: 'radio_information_vfo_b_tx',
+        name: 'vfo_b_tx',
         desc: 'RADIO_INFORMATION-VFO-B_TX',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RI7': {
         cmd: 'RI7',
-        name: 'radio_information_vfo_a_rx',
+        name: 'vfo_a_rx',
         desc: 'RADIO_INFORMATION-VFO-A_RX',
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'RIA': {
         cmd: 'RIA',
-        name: 'radio_information_tx_led',
+        name: 'tx_led',
         desc: 'RADIO_INFORMATION-TX_LED',
         asRead: sendCmd,
         fromCommand: fromBoolean,
@@ -1157,15 +1156,15 @@ const rig_commands = {
     //     asRead: sendCmd,
     //     fromCommand: fromInteger,
     // },
-    // 'RS': {
-    //     cmd: 'RS',
-    //     name: 'radio_status',
-    //     desc: 'RADIO_STATUS',
-    //     asRead: sendCmd,
-    //     fromCommand(value) {
-    //         return value === '0' ? 'NORMAL MODE' : 'MENU MODE';
-    //     },
-    // },
+    'RS': {
+        cmd: 'RS',
+        name: 'radio_status',
+        desc: 'RADIO_STATUS',
+        asRead: sendCmd,
+        fromCommand(value) {
+            return value === '0' ? 'NORMAL MODE' : 'MENU MODE';
+        },
+    },
     'RT': {
         cmd: 'RT',
         name: 'clar',

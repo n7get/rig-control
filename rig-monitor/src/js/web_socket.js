@@ -21,9 +21,6 @@ function connect_ws() {
         case '!R;':
             if (!useGlobalStore().isReady) {
                 console.log('Rig is ready');
-                // for (const key in settings) {
-                //     console.log(key, settings[key].value);
-                // }
                 useGlobalStore().setReady(true);
             }
             break;
@@ -43,7 +40,6 @@ function connect_ws() {
                 command = data.value.substring(1);
             }
             const rs = rig_setting.fromCommand(command);
-            // console.log('rig_setting:', rs);
 
             if (rs.isMenu) {
                 if (unavailable) {
@@ -51,11 +47,6 @@ function connect_ws() {
                 }
                 const rp = rig_property(rs.value.no);
                 rp.value = rs.value.value;
-
-                if (rs.value.no === 73) {
-                    // console.log('no:', rs.value.no, 'menu:', value);
-                    // console.log('menu:', menus[rs.value.no]);
-                }
             } else if (rs.name === 'information') {
                 // console.log('information:', rs.value);
                 rig_property('memory_channel').value = rs.value.memory_channel;
@@ -64,6 +55,10 @@ function connect_ws() {
             } else if (rs.name === 'opposite_band_information') {
                 // console.log('opposite_band_information:', rs.value);
             } else {
+                if (rs.name === 'radio_status') {
+                    console.log('radio_status:', rs);
+                    debugger;
+                }
                 const rp = rig_property(rs.name);
                 if (rp) {
                     rp.value = rs.value;
@@ -95,7 +90,6 @@ function send_message(message) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         const json = JSON.stringify(message);
         socket.send(json);
-        // console.log('Message sent:', json);
     } else {
         console.warn('WebSocket is not open.');
     }
