@@ -11,10 +11,10 @@ import { ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
 import { rig_property } from '@/js/rig_property.js';
 
-import booleanModal from './boolean_modal.vue';
-import listModal from './list_modal.vue';
-import numberModal from './number_modal.vue';
-import vfoModal from './vfo_modal.vue';
+import booleanModal from './boolean-modal.vue';
+import listModal from './list-modal.vue';
+import numberModal from './number-modal.vue';
+import vfoModal from './vfo-modal.vue';
 import { computed } from 'vue';
 
 const modal = useGlobalStore().modal;

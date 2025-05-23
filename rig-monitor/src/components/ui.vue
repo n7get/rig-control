@@ -40,7 +40,7 @@ import controls from '@/components/controls.vue'
 import modeSettings from './mode-settings.vue'
 // import radioStatus from './radio_status.vue'
 import settings from '@/components/settings.vue'
-import settingsModal from '@/components/modals/settings_modal.vue';
+import settingsModal from '@/components/modals/settings-modal.vue';
 
 const mode = rig_property('mode');
 const handleOk = (e) => {
