@@ -21,6 +21,13 @@ typedef enum {
 
 static QueueHandle_t send_queue = NULL;
 
+static bool is_memory_read(response_t response) {
+    if (response.read_len == 0 || response.read[0] != 'R' || response.read[1] != 'M') {
+        return false;
+    }
+    return true;
+}
+
 static process_command_result_t process_command(response_t *response) {
     info_t *info = get_info();
 
@@ -38,6 +45,7 @@ static process_command_result_t process_command(response_t *response) {
     }
 
     char send_buf[SEND_BUFFER_SIZE * 2];
+    memset(send_buf, 0, sizeof(send_buf));
     int send_buf_len = 0;
     if (response->command_len > 0) {
         memcpy(send_buf, response->command, response->command_len);
@@ -48,7 +56,7 @@ static process_command_result_t process_command(response_t *response) {
         send_buf_len += response->read_len;
     }
 
-    if (response->command_len != 0) {
+    if (response->type != SEND_TYPE_POLL) {
         ESP_LOGI(TAG, "Sending command: %s", send_buf);
     }
 
@@ -150,7 +158,10 @@ static void cat_task(void *arg) {
                 }
 
                 if (pcr == RESULT_OK) {
-                    if (!rc_is_fail(response.response) && memcmp(response.response, response.read, response.read_len - 1) != 0) {
+                    // The Memory Read command is a special case.
+                    // It channel nmber of the command doesn't match the channel
+                    // number of the response.
+                    if (is_memory_read(response) && !rc_is_fail(response.response) && memcmp(response.response, response.read, response.read_len - 1) != 0) {
                         ESP_LOGW(TAG, "Received data does not match sent command, expected: %s, got: %s", response.read, response.response);
                         rig_uart_flush();
                         ESP_LOGW(TAG, "Retrying command");
@@ -170,7 +181,10 @@ static void cat_task(void *arg) {
                             info->max_receive_len = response.response_len;
                         }
                     }
-
+                    if (response.type != SEND_TYPE_POLL) {
+                        // log_response(TAG, &response);
+                        ESP_LOGI(TAG, "Received response: %s", response.response);
+                    }
                     rm_queue_response(&response);
                     break;
                 }
@@ -264,8 +278,11 @@ void log_response(const char *tag, response_t *response) {
         case SEND_TYPE_COMMAND:
             type_str = "SET";
             break;
-        case SEND_TYPE_POLL:
+        case SEND_TYPE_READ:
             type_str = "READ";
+            break;
+        case SEND_TYPE_POLL:
+            type_str = "POLL";
             break;
         default:
             type_str = "UNKNOWN";
@@ -290,6 +307,11 @@ void log_response(const char *tag, response_t *response) {
             result_str = "UNKNOWN";
             break;
     }
-    ESP_LOGI(tag, "response_t, cmd: %s, read: %s, type: %s, result: %s, data: %s, len: %d",
-        response->command, response->read, type_str, result_str, response->response, response->response_len);
+    ESP_LOGI(tag, "response_t, type: %s, cmd: %s/%d, read: %s/%d, response: %s/%d, result: %s",
+        type_str,
+        response->command, response->command_len,
+        response->read, response->read_len,
+        response->response, response->response_len,
+        result_str
+    );
 }

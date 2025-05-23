@@ -10,6 +10,7 @@
 
 typedef enum {
     SEND_TYPE_COMMAND = 0,
+    SEND_TYPE_READ,
     SEND_TYPE_POLL,
 } send_type_t;
 
@@ -18,7 +19,6 @@ typedef enum {
     RECV_RESULT_OVERFLOW,
     RECV_RESULT_TIMEOUT,
     RECV_RESULT_ERROR,
-    // RECV_RESULT_NOT_READY,
 } recv_result_t;
 
 typedef struct {

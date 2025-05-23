@@ -56,11 +56,17 @@ static void send_rig_id_command() {
 }
 
 static void notify_observers(send_type_t type, char *value, bool updated) {
-    if (type == SEND_TYPE_COMMAND) {
+    switch(type) {
+    case SEND_TYPE_COMMAND:
+    case SEND_TYPE_READ:
         subject_notify(command_subject, (void *)value);
-    }
-    if (type == SEND_TYPE_POLL && updated) {
-        subject_notify(updates_subject, (void *)value);
+        break;
+
+    case SEND_TYPE_POLL:
+        if (updated) {
+            subject_notify(updates_subject, (void *)value);
+        }
+        break;
     }
 }
 
@@ -297,7 +303,7 @@ void rig_monitor_remove_observers(observer_callback_t callback) {
 
 static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t type) {
     event->type = RM_EVENT_SEND;
-    event->priority = type == SEND_PRIORITY_HIGH;
+    event->priority = type != SEND_TYPE_POLL ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
     esp_err_t err = rc_setup_command(&event->command, cmd_str, type);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to setup command: %s", cmd_str);

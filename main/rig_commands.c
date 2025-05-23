@@ -34,8 +34,9 @@
 
 #define POLL_SKIP_F 0x100   // Skip polling for this command
 #define SET_ONLY_F 0x200 // Command is only sent, no response expected
+#define READ_ONLY_F 0x400 // Command is only read, not polled
 
-#define RESET_MASK (AUTO_FAST_F|POLL_SKIP_F|SET_ONLY_F)
+#define RESET_MASK (AUTO_FAST_F|POLL_SKIP_F|SET_ONLY_F|READ_ONLY_F)
 
 // Define a structure to represent each command
 typedef struct {
@@ -108,6 +109,7 @@ static rig_command_t rig_commands[] = {
     {"MG;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"ML0;", 3, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"ML1;", 3, INVALID_F|AUTO_FAST_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
+    {"MR;", 2, INVALID_F|READ_ONLY_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"MS;", 2, INVALID_F, 0, MEDIUM_REFRESH_TIME, 0, {'\0'}},
     {"MX;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
     {"NA0;", 2, INVALID_F, 0, SLOW_REFRESH_TIME, 0, {'\0'}},
@@ -354,6 +356,11 @@ esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t 
     command->type = type;
     switch(type) {
     case SEND_TYPE_COMMAND:
+        if (rc_cmd->flags & READ_ONLY_F) {
+            ESP_LOGE(TAG, "Command %s is a read-only type and cannot be set", cmd_str);
+            return ESP_FAIL;
+        }
+
         strncpy(command->command, cmd_str, SEND_BUFFER_SIZE);
         command->command_len = command_size;
         if (rc_cmd->flags & SET_ONLY_F) {
@@ -366,11 +373,13 @@ esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t 
         }
         break;
 
+    case SEND_TYPE_READ:
     case SEND_TYPE_POLL:
         if (rc_cmd->flags & SET_ONLY_F) {
             ESP_LOGE(TAG, "Command %s is a command-only type and cannot be read", cmd_str);
             return ESP_FAIL;
         }
+
         strncpy(command->read, cmd_str, SEND_BUFFER_SIZE);
         command->read_len = strlen(cmd_str);
         break;
@@ -443,15 +452,17 @@ bool rc_is_ready() {
     }
 
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (!(rig_commands[i].flags & SET_ONLY_F) && !(rig_commands[i].flags & VALID_F)) {
-            return false;
+        if (!(rig_commands[i].flags & (SET_ONLY_F|READ_ONLY_F))) {
+            if (!(rig_commands[i].flags & VALID_F)) {
+                return false;
+            }
         }
     }
     return true;
 }
 
 static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority, int elapsed_ticks) {
-    if (cmd->flags & POLL_SKIP_F || cmd->flags & SET_ONLY_F) {
+    if (cmd->flags & (POLL_SKIP_F|SET_ONLY_F|READ_ONLY_F)) {
         return false;
     }
     if (cmd->flags & PENDING_F) {
@@ -525,7 +536,7 @@ void rc_randomize_refresh() {
 
 void rc_reset() {
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (!(rig_commands[i].flags & SET_ONLY_F)) {
+        if (!(rig_commands[i].flags & (SET_ONLY_F|READ_ONLY_F))) {
             rig_commands[i].flags &= RESET_MASK;
             rig_commands[i].flags |= INVALID_F;
             rig_commands[i].next_refresh = 0;
@@ -534,12 +545,12 @@ void rc_reset() {
     }
 }
 
-static void prepare_notify(char *buffer, rig_command_t *cmd) {
-    if (rc_is_fail(cmd->last_value)) {
+static void prepare_notify(char *buffer, const char *read_command, const char *value) {
+    if (rc_is_fail(value)) {
         strcpy(buffer, "?");
-        strncpy(buffer + 1, cmd->cmd, RECV_BUFFER_SIZE - 2);
+        strncpy(buffer + 1, read_command, RECV_BUFFER_SIZE - 2);
     } else {
-        strncpy(buffer, cmd->last_value, RECV_BUFFER_SIZE - 1);
+        strncpy(buffer, value, RECV_BUFFER_SIZE - 1);
     }
 }
 
@@ -547,8 +558,8 @@ void rc_send_refresh(void (*notify_callback)(char *)) {
     char buffer[RECV_BUFFER_SIZE];
 
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {
-        if (!(rig_commands[i].flags & SET_ONLY_F) && rig_commands[i].flags & VALID_F) {
-            prepare_notify(buffer, &rig_commands[i]);
+        if (!(rig_commands[i].flags & (SET_ONLY_F|READ_ONLY_F)) && rig_commands[i].flags & VALID_F) {
+            prepare_notify(buffer, rig_commands[i].cmd, rig_commands[i].last_value);
             notify_callback(buffer);
         }
     }
@@ -574,6 +585,12 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
     case SEND_TYPE_COMMAND:
         ESP_LOGI(TAG, "rc_set_last_value: %s", response->response);
         break;
+    
+    case SEND_TYPE_READ:
+        char buffer[RECV_BUFFER_SIZE];
+        prepare_notify(buffer, response->read, response->response);
+        notify_callback(response->type, buffer, true);
+        return;
 
     case SEND_TYPE_POLL:
         if (!(cmd->flags & PENDING_F) && !(cmd->flags & PENDING_INIT_F)) {
@@ -599,7 +616,7 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
         }
 
         char buffer[RECV_BUFFER_SIZE];
-        prepare_notify(buffer, cmd);
+        prepare_notify(buffer, cmd->cmd, cmd->last_value);
         notify_callback(response->type, buffer, true);
     } else if (cmd->flags & CHECK_FAST_UNTIL) {
         if (xTaskGetTickCount() > cmd->fast_until) {

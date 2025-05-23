@@ -86,6 +86,19 @@ void handle_json(cJSON *json_obj) {
         rm_queue_command(command, SEND_TYPE_COMMAND);
         return;
     }
+
+    if (strcmp(topic, "read") == 0) {
+        cJSON *cmdValue = cJSON_GetObjectItem(json_obj, "read");
+        if (cmdValue == NULL) {
+            ESP_LOGE(TAG, "No read found in JSON");
+            return;
+        }
+        char *read = cmdValue->valuestring;
+        ESP_LOGI(TAG, "Received read: %s", read);
+
+        rm_queue_command(read, SEND_TYPE_READ);
+        return;
+    }
     
     if (strcmp(topic, "control") == 0) {
         cJSON *eventValue = cJSON_GetObjectItem(json_obj, "event");
