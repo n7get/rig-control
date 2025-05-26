@@ -1,8 +1,8 @@
 <template>
     <b-row>
-        <div @click="toggle" class="col-4 mt-1">Power({{ power_level.value }})</div>
-        <div class="col-7 px-0">
-            <div v-if="pl_buttons">
+        <b-col cols="3" @click="toggle" class="mt-1">Power({{ power_level.value }})</b-col>
+        <b-col class="px-0">
+            <div v-if="pl_buttons" class="d-flex gap-1">
                 <button @click="powerLevel(5)" class="pl-btn" :class="{selected: power_level.value === 5}">5</button>
                 <button @click="powerLevel(10)" class="pl-btn" :class="{selected: power_level.value === 10}">10</button>
                 <button @click="powerLevel(20)" class="pl-btn" :class="{selected: power_level.value === 20}">20</button>
@@ -11,14 +11,13 @@
             </div>
             <b-form-input
                 v-if="!pl_buttons"
-                class="col-7"
                 v-model="form_input"
                 type="range"
                 min="5"
                 max="100"
                 @change="sendChange"
             />
-        </div>
+        </b-col>
     </b-row>
 </template>
 

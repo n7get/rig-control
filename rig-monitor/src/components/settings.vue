@@ -1,25 +1,25 @@
 <template>
     <b-card class="pb-2" no-body border-variant="secondary">
-        <b-card-header class="px-2 d-flex justify-content-center align-items-left" @click="toggleShowSettings">
+        <b-card-header class="d-flex justify-content-center" @click="choose_group">
             <div text-variant="white" bg-variant="secondary">
                  {{ title }}
             </div>
         </b-card-header>
-        <div v-show="show_settings" flush>
+        <div flush>
             <div class="px-2 d-flex justify-content-between align-items-left bg-secondary text-light">
                 <div>Description</div>
                 <div>Value</div>
             </div>
-            <div class="list-area">
-                <div class="px-2 d-flex justify-content-between align-items-left"
+            <b-list-group>
+                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
                     v-for="rp in prop_list"
                     :key="rp.name"
                     @click="editSetting(rp)">
 
                     <div :class="{ unavailable: rp.unavailable }">{{ rp.desc }}<span v-if="rp.changed">*</span></div>
                     <div :class="{ unavailable: rp.unavailable }">{{ rp.value }}{{ rp.suffix }}</div>
-                </div>
-            </div>
+                </b-list-group-item>
+            </b-list-group>
         </div>
     </b-card>
 </template>
@@ -49,8 +49,8 @@ const show_settings = ref(props.open === 'true');
 
 const prop_list = computed(() => get_property_list(props.list));
 
-const toggleShowSettings = () => {
-    show_settings.value = !show_settings.value;
+const choose_group = () => {
+    useGlobalStore().openModal('groups');
 }
 
 const editSetting = (rp) => {

@@ -1,7 +1,7 @@
 <template v-if="modal.open">
     <number-modal :min="min" :max="max" :step="step" :fast_step="fast_step" :name="name" v-if="open_modal === 'number'" />
     <list-modal :name="name" :list="list" v-if="open_modal === 'list'" />
-
+    <groups-modal v-if="modal.name === 'groups'" />
     <vfo-modal vfo="vfo_a" v-if="modal.name === 'vfo_a'" />
     <vfo-modal vfo="vfo_b" v-if="modal.name === 'vfo_b'" />
 </template>
@@ -15,6 +15,7 @@ import booleanModal from './boolean-modal.vue';
 import listModal from './list-modal.vue';
 import numberModal from './number-modal.vue';
 import vfoModal from './vfo-modal.vue';
+import groupsModal from './groups-modal.vue';
 import { computed } from 'vue';
 
 const modal = useGlobalStore().modal;
@@ -28,6 +29,10 @@ const list = ref([]);
 
 const open_modal = computed(() => {
     if (modal.open) {
+        if (modal.name === 'groups') {
+            return 'groups';
+        }
+
         const rp = rig_property(modal.name);
 
         if (rp.list) {

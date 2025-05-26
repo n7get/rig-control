@@ -1,7 +1,5 @@
 <template>
-    <div class="pl-0">
-        <b-button id="op-mode-button">{{ name }}</b-button>
-    </div>
+    <b-button id="op-mode-button">{{ name }}</b-button>
 </template>
 
 <script setup>

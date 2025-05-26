@@ -1,9 +1,9 @@
 <template>
     <b-row>
-        <div @click="sendToggle" class="col-4">
+        <b-col cols="3" class="text-nowrap">
             {{ label }}<span v-if="show !== 'none'"> ({{ event_value }})</span>
-        </div>
-        <div class="col-7 px-0">
+        </b-col>
+        <b-col class="ps-0">
             <b-form-input
                 v-model="event_value"
                 type="range"
@@ -11,7 +11,7 @@
                 :max="max"
                 @change="sendChange"
             ></b-form-input>
-        </div>
+        </b-col>
     </b-row>
 </template>
 

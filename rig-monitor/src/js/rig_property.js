@@ -119,5 +119,5 @@ export {
     rig_property,
     get_property_list,
     get_all_settings_list,
-    get_all_menus_list
+    get_all_menus_list,
 };

@@ -1,27 +1,27 @@
 <template>
-        <b-modal
-            @ok="close_modal"
-            @esc="close_modal"
-            v-model="open_modal"
-            :title="title"
-            ok-only
-            ok-title="Close"
-        >
-            <div class="d-flex justify-content-center">
-                <div>
-                    <div class="pl-5" v-for="option in list_options" :key="option.value">
-                        <b-form-radio
-                            v-model="input_value"
-                            name="list-options"
-                            :value="option.value"
-                            @change="select_item(option.value)"
-                        >
-                            {{ option.text }}
-                        </b-form-radio>
-                    </div>
+    <b-modal
+        @ok="close_modal"
+        @esc="close_modal"
+        v-model="open_modal"
+        :title="title"
+        ok-only
+        ok-title="Close"
+    >
+        <div class="d-flex justify-content-center">
+            <div>
+                <div class="pl-5" v-for="option in list_options" :key="option.value">
+                    <b-form-radio
+                        v-model="input_value"
+                        name="list-options"
+                        :value="option.value"
+                        @change="select_item(option.value)"
+                    >
+                        {{ option.text }}
+                    </b-form-radio>
                 </div>
             </div>
-        </b-modal>
+        </div>
+    </b-modal>
 </template>
 
 <script setup>

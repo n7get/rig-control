@@ -1,6 +1,7 @@
 import { rig_setting } from '../js/rig_setting.js';
 import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
+import { useGroupsStore } from '@/stores/groups';
 
 let socket = null;
 function connect_ws() {
@@ -20,6 +21,7 @@ function connect_ws() {
         switch (data.value) {
         case '!R;':
             if (!useGlobalStore().isReady) {
+                useGroupsStore().groups_init();
                 console.log('Rig is ready');
                 useGlobalStore().setReady(true);
             }
@@ -39,6 +41,7 @@ function connect_ws() {
                 unavailable = true;
                 command = data.value.substring(1);
             }
+
             const rs = rig_setting.fromCommand(command);
 
             if (rs.isMenu) {
@@ -55,10 +58,9 @@ function connect_ws() {
             } else if (rs.name === 'opposite_band_information') {
                 // console.log('opposite_band_information:', rs.value);
             } else {
-                if (rs.name === 'radio_status') {
-                    console.log('radio_status:', rs);
-                    debugger;
-                }
+                // if (rs.name === 'radio_status') {
+                //     console.log('radio_status:', rs);
+                // }
                 const rp = rig_property(rs.name);
                 if (rp) {
                     rp.value = rs.value;
@@ -95,6 +97,17 @@ function send_message(message) {
     }
 }
 
+function send_read(read, value) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        const rc = rig_setting.of(read, value);
+        console.log('send_read', rc.asRead);
+
+        send_message({ topic: 'read', read: rc.asRead });
+    } else {
+        console.warn('WebSocket is not open.');
+    }
+}
+
 function send_command(command, value) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         const rc = rig_setting.of(command, value);
@@ -106,4 +119,4 @@ function send_command(command, value) {
     }
 }
 
-export { connect_ws, send_command };
+export { connect_ws, send_read, send_command };

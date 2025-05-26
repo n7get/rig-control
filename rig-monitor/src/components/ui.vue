@@ -1,13 +1,25 @@
 <template>
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
-            <controls class="px-3" />
-            <!-- <radio-status class="px-3" /> -->
-            <mode-settings class="px-3" />
-            <all-settings class="px-3" />
-            <all-menus class="px-3" />
-            <!-- <rbn /> -->
-            <!-- <config /> -->
+            <b-container fluid>
+                <b-row class="mt-2">
+                    <b-col class="col-3"><op-mode /></b-col>
+                    <b-col class="col-9"><frequency /></b-col>
+                </b-row>
+                <b-row class="mt-2">
+                    <b-col><tuner-status /></b-col>
+                    <b-col><lock-status /></b-col>
+                    <b-col><pre-amp-status /></b-col>
+                    <b-col><alc-status /></b-col>
+                    <b-col><mode-status /></b-col>
+                    <!-- <manual-mode-status /> -->
+                </b-row>
+                <controls />
+                <!-- <radio-status class="px-3" /> -->
+                <!-- <rbn /> -->
+                <!-- <config /> -->
+            </b-container>
+            <groups />
         </div>
   
         <settings-modal />
@@ -32,17 +44,15 @@
 </template>
 
 <script setup>
-import { rig_property } from '@/js/rig_property'
+import { useGlobalStore } from '@/stores/global';
 
-import allMenus from '@/components/all-menus.vue'
-import allSettings from '@/components/all-settings.vue'
+import frequency from './frequency.vue';
+import opMode from './op-mode.vue';
 import controls from '@/components/controls.vue'
-import modeSettings from './mode-settings.vue'
-// import radioStatus from './radio_status.vue'
-import settings from '@/components/settings.vue'
+import groups from '@/components/groups.vue';
+// import radioStatus from '@/components/radio_status.vue'
 import settingsModal from '@/components/modals/settings-modal.vue';
 
-const mode = rig_property('mode');
 const handleOk = (e) => {
     // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});
 }
