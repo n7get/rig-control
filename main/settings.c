@@ -23,8 +23,6 @@ char sta_password[64] = "";
 int baud_rate = DEFAULT_BAUD_RATE;
 
 void load_settings(void) {
-    ESP_ERROR_CHECK(nvs_flash_init());
-
     if (get_string("ap_ssid", ap_ssid, sizeof(ap_ssid)) == ESP_OK) {
         ESP_LOGI(TAG, "Loaded AP SSID from NVS: %s", ap_ssid);
     } else {

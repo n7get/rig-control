@@ -49,12 +49,6 @@ typedef struct {
     char last_value[RECV_BUFFER_SIZE];  // Last value, initialized to NULL
 } rig_command_t;
 
-#define ENHANCED_RIG_RESULT_NOT_READY "!N;"
-#define ENHANCED_RIG_RESULT_READY "!R;"
-#define ENHANCED_RIG_RESULT_ERROR "!E;"
-#define ENHANCED_RIG_RESULT_BUSY "!B;"
-#define ENHANCED_RIG_RESULT_PING "!P;"
-
 #define TAG "RIG_COMMANDS"
 
 // Updated rig_command_t initialization to include 'len' field, calculated as the length of cmd - 1
@@ -581,13 +575,16 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
         return;
     }
 
+    char buffer[RECV_BUFFER_SIZE];
     switch(response->type) {
     case SEND_TYPE_COMMAND:
         ESP_LOGI(TAG, "rc_set_last_value: %s", response->response);
+
+        prepare_notify(buffer, response->read, response->response);
+        notify_callback(response->type, buffer, true);
         break;
     
     case SEND_TYPE_READ:
-        char buffer[RECV_BUFFER_SIZE];
         prepare_notify(buffer, response->read, response->response);
         notify_callback(response->type, buffer, true);
         return;
@@ -615,7 +612,6 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
             ESP_LOGI(TAG, "Auto fast command: %s", cmd->cmd);
         }
 
-        char buffer[RECV_BUFFER_SIZE];
         prepare_notify(buffer, cmd->cmd, cmd->last_value);
         notify_callback(response->type, buffer, true);
     } else if (cmd->flags & CHECK_FAST_UNTIL) {
@@ -632,19 +628,6 @@ const char *rc_id_command() {
 }
 const char *rc_is_id() {
     return "ID0670;";
-}
-
-const char *rc_result_not_ready() {
-    return ENHANCED_RIG_RESULT_NOT_READY;
-}
-const char *rc_result_ready() {
-    return ENHANCED_RIG_RESULT_READY;
-}
-const char *rc_result_busy() {
-    return ENHANCED_RIG_RESULT_BUSY;
-}
-const char *rc_result_ping() {
-    return ENHANCED_RIG_RESULT_PING;
 }
 
 bool rc_is_fail(const char *response) {
@@ -676,6 +659,58 @@ void rc_clear_tx_poll() {
             rig_commands[i].flags &= ~POLL_SKIP_F;
         }
     }
+}
+
+bool rc_commands_are_same(const char *cmd1, const char *cmd2) {
+    if (cmd1 == NULL || cmd2 == NULL) {
+        return false;
+    }
+    rig_command_t *rc1 = find_command(cmd1);
+    rig_command_t *rc2 = find_command(cmd2);
+    if (rc1 == NULL || rc2 == NULL) {
+        return false;
+    }
+    return rc1 == rc2;
+}
+
+uint32_t rc_parse_frequency(const char *value) {
+    if (value[0] == 'F' && value[1] == 'A') {
+        uint32_t freq = strtoul(value + 2, NULL, 10);
+        return freq;
+    }
+    if (value[0] == 'I' && value[1] == 'F') {
+        char freq_str[10];
+        memcpy(freq_str, value + 5, 9);
+        freq_str[9] = '\0';
+
+        return strtoul(freq_str, NULL, 10);
+    }
+    return 0;
+}
+bool rc_is_mode_command(const char *value) {
+    return (value[0] == 'M' && value[1] == 'D');
+}
+bool rc_is_narrow_command(const char *value) {
+    return (value[0] == 'N' && value[1] == 'A');
+}
+bool rc_is_width_command(const char *value) {
+    return (value[0] == 'S' && value[1] == 'H');
+}
+
+char *rc_freq_command() {
+    return "FA;";
+}
+
+bool rc_needs_update(const char *value) {
+    rig_command_t *cmd = find_command(value);
+    if (cmd == NULL) {
+        ESP_LOGE(TAG, "Command not found: %s", value);
+        return false;
+    }
+    if (cmd->flags & (SET_ONLY_F | READ_ONLY_F)) {
+        return false;
+    }
+    return strcmp(cmd->last_value, value) != 0;
 }
 
 void init_rig_commands() {

@@ -1,3 +1,42 @@
+
+const valid_freqs = [
+    [  1800000,   2000000],
+    [  3500000,   4000000],
+    [  5332000,   5332000],
+    [  5348000,   5348000],
+    [  5358500,   5358500],
+    [  5373000,   5373000],
+    [  5405000,   5405000],
+    [  7000000,   7300000],
+    [ 10100000,  10150000],
+    [ 14000000,  14350000],
+    [ 18068000,  18168000],
+    [ 21000000,  21450000],
+    [ 24890000,  24990000],
+    [ 28000000,  29700000],
+    [ 50000000,  54000000],
+    [144000000, 148000000],
+    [420000000, 450000000],
+];
+
+function is_in_band(start, end) {
+    if(typeof(start) === 'string') {
+        is_in_band(parseInt(start, 10), end);
+    }
+    if(typeof(end) === 'string') {
+        is_in_band(start, parseInt(end, 10));
+    }
+
+    if(typeof(start) !== 'number' || typeof(end) !== 'number') {
+        return false;
+    }
+
+    return valid_freqs.some((f) => {
+        const result = (start >= f[0] && start < f[1]) && (end >= f[0] && end < f[1]);
+        return result;
+    });
+}
+
 function trim_zeros(value) {
     if(value.substring(value.length - 1) === '0') {
 	    return trim_zeros(value.substring(0, value.length - 1));
@@ -47,21 +86,15 @@ function scale_frac(dec, value) {
 }
 
 function freq_hz(value) {
-    console.log('value', value);
-    let dot = value.indexOf('.');
+    const dot = value.indexOf('.');
     if(dot === -1) {
 	    return add_dec_frac(parseInt(value, 10), 0);
     } else {
-        console.log('dot', dot);
-        let dec = parseInt(value.substring(0, dot), 10);
-        console.log('dec', dec);
-        let frac = scale_frac(dec, value.substring(dot + 1));
-        console.log('frac', frac);
-        let freq = add_dec_frac(dec, frac);
-        console.log('freq', freq);
+        const dec = parseInt(value.substring(0, dot), 10);
+        const frac = scale_frac(dec, value.substring(dot + 1));
+        const freq = add_dec_frac(dec, frac);
+        return freq;
     }
-
-    return freq;
 }
 
 function conv_freq(arg) {
@@ -69,27 +102,7 @@ function conv_freq(arg) {
 	    return conv_freq(arg.toString());
     }
 
-    let freq = freq_hz(arg.trim());
-
-    let valid_freqs = [
-        [  1800000,   2000000],
-        [  3500000,   4000000],
-        [  5332000,   5332000],
-        [  5348000,   5348000],
-        [  5358500,   5358500],
-        [  5373000,   5373000],
-        [  5405000,   5405000],
-        [  7000000,   7300000],
-        [ 10100000,  10150000],
-        [ 14000000,  14350000],
-        [ 18068000,  18168000],
-        [ 21000000,  21450000],
-        [ 24890000,  24990000],
-        [ 28000000,  29700000],
-        [ 50000000,  54000000],
-        [144000000, 148000000],
-        [420000000, 450000000],
-    ];
+    const freq = freq_hz(arg.trim());
 
     if(valid_freqs.some( function(f) {
 	    return (freq >= f[0] && freq <= f[1]);
@@ -126,4 +139,4 @@ function format_freq(freq) {
     return trim_zeros(m + k + '.' + h);
 }
 
-export default { conv_freq, format_freq };
+export { conv_freq, format_freq, is_in_band };

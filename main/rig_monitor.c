@@ -34,6 +34,11 @@ typedef struct {
     };
 } rm_event_t;
 
+#define CONTROL_MSG_BUSY "busy"
+#define CONTROL_MSG_NOT_READY "not_ready"
+#define CONTROL_MSG_READY "ready"
+#define CONTROL_MSG_REPLY "reply"
+
 static QueueHandle_t rm_event_queue;
 
 static subject_t *command_subject = NULL;
@@ -75,7 +80,7 @@ static void notify_refresh(char *data) {
     subject_notify(updates_subject, data);
 }
 
-void notify_status(const char *data) {
+void notify_control(const char *data) {
     subject_notify(status_subject, (void *)data);
 }
 
@@ -156,7 +161,7 @@ static bool event_received(bool in_startup, response_t *response) {
 }
 
 static void event_ping(bool in_startup, bool is_ready) {
-    notify_status(rc_result_ping());
+    notify_control(CONTROL_MSG_REPLY);
 }
 
 /**
@@ -216,15 +221,15 @@ static void rig_monitor_task(void *pvParameters) {
                     cat_flush();
                     send_rig_id_command();
                     ESP_LOGW(TAG, "Restarting rig monitor");
-                    notify_status(rc_result_not_ready());
+                    notify_control(CONTROL_MSG_NOT_READY);
                     break;
 
                 case RM_EVENT_SEND:
                     if (in_startup || !is_ready) {
-                        notify_status(rc_result_not_ready());
+                        notify_control(CONTROL_MSG_NOT_READY);
                     } else {
                         if (cat_queue_command(&event.command, event.priority) == ESP_ERR_NO_MEM) {
-                            notify_status(rc_result_busy());
+                            notify_control(CONTROL_MSG_BUSY);
                             get_info()->cat_queue_full++;
                         }
                     }
@@ -242,7 +247,7 @@ static void rig_monitor_task(void *pvParameters) {
 
                         rc_randomize_refresh();
                         is_ready = true;
-                        notify_status(rc_result_ready());
+                        notify_control(CONTROL_MSG_READY);
                         ESP_LOGI(TAG, "Rig monitor is ready");
                     }
 
@@ -252,7 +257,7 @@ static void rig_monitor_task(void *pvParameters) {
                 case RM_EVENT_REFRESH:
                     ESP_LOGI(TAG, "Starting refresh");
                     rc_send_refresh(notify_refresh);
-                    notify_status(rc_result_ready());
+                    notify_control(CONTROL_MSG_READY);
                     ESP_LOGI(TAG, "Refresh complete");
                     break;
 

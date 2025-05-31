@@ -3,7 +3,7 @@
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <b-container fluid>
                 <b-row class="mt-2">
-                    <b-col class="col-3"><op-mode /></b-col>
+                    <b-button id="op-mode-button" @click="open_op_modes">{{ name }}</b-button>
                     <b-col class="col-9"><frequency /></b-col>
                 </b-row>
                 <b-row class="mt-2">
@@ -44,16 +44,36 @@
 </template>
 
 <script setup>
-import { useGlobalStore } from '@/stores/global';
+import { computed } from 'vue';
+import { useOpModeStore } from '@/stores/op_modes';
+import { useRouter } from 'vue-router';
 
-import frequency from './frequency.vue';
-import opMode from './op-mode.vue';
+import frequency from '@/components/frequency.vue';
 import controls from '@/components/controls.vue'
 import groups from '@/components/groups.vue';
 // import radioStatus from '@/components/radio_status.vue'
 import settingsModal from '@/components/modals/settings-modal.vue';
 
+const router = useRouter();
+
+const name = computed(() => {
+    const om_ref = useOpModeStore().get_current_op_mode;
+    return om_ref ? om_ref.name : 'Op Mode';
+});
+
+const open_op_modes = () => {
+    console.log('router: ', router);
+    router.push({ name: 'op_modes' });
+}
+
 const handleOk = (e) => {
     // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});
 }
 </script>
+
+<style scoped>
+    #op-mode-button {
+        height: 64px;
+        width: 80px;
+    }
+</style>

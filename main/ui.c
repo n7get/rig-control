@@ -2,6 +2,7 @@
 #include "cJSON.h"
 #include "esp_log.h"
 #include "observer.h"
+#include "op_mode.h"
 #include "rig_commands.h"
 #include "rig_monitor.h"
 #include "ui.h"
@@ -37,6 +38,35 @@ static void notify(const char *message) {
     subject_notify(ui_subject, (void *)message);
 }
 
+static void notify_control(void *context, void *data) {
+    if (data == NULL) {
+        ESP_LOGE(TAG, "Received null data in notify_control");
+        return;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+    if (json == NULL) {
+        ESP_LOGE(TAG, "Failed to create JSON object");
+        return;
+    }
+
+    cJSON_AddStringToObject(json, "topic", "control");
+    cJSON_AddStringToObject(json, "event", data);
+
+    char *json_string = cJSON_PrintUnformatted(json);
+    if (json_string == NULL) {
+        ESP_LOGE(TAG, "Failed to print JSON object");
+        cJSON_Delete(json);
+        return;
+    }
+
+    // ESP_LOGI(TAG, "Sending control notification: %s", json_string);
+    notify(json_string);
+
+    cJSON_free(json_string);
+    cJSON_Delete(json);
+}
+
 static void ui_notification_handler(void *context, void *data) {
     if (data == NULL) {
         ESP_LOGE(TAG, "Received null response in notification handler");
@@ -66,7 +96,11 @@ static void ui_notification_handler(void *context, void *data) {
     cJSON_Delete(json);
 }
 
-void handle_json(cJSON *json_obj) {
+void ui_send_json(const char *json) {
+    notify(json);
+}
+
+void ui_handle_json(cJSON *json_obj) {
     cJSON *topicValue = cJSON_GetObjectItem(json_obj, "topic");
     if (topicValue == NULL) {
         ESP_LOGE(TAG, "No topic found in JSON");
@@ -120,6 +154,12 @@ void handle_json(cJSON *json_obj) {
         }
 
         ESP_LOGE(TAG, "Control event not implemented: %s", event);
+        return;
+    }
+
+    if (strcmp(topic, "op_mode") == 0) {
+        om_recv_from_ui(json_obj);
+        return;
     }
 
     ESP_LOGE(TAG, "Unknown topic: %s", topic);
@@ -138,7 +178,7 @@ void ui_recv(const char *json) {
         return;
     }
 
-    handle_json(json_obj);
+    ui_handle_json(json_obj);
 
     cJSON_Delete(json_obj);
 }
@@ -150,6 +190,8 @@ void ui_init() {
         return;
     }
 
-    rig_monitor_add_observers(OBSERVE_COMMANDS | OBSERVE_UPDATES | OBSERVE_STATUS, ui_notification_handler, NULL);
+    rig_monitor_add_observers(OBSERVE_COMMANDS | OBSERVE_UPDATES, ui_notification_handler, NULL);
+    rig_monitor_add_observers(OBSERVE_STATUS, notify_control, NULL);
+
     ESP_LOGI(TAG, "UI module initialized and registered for notifications");
 }

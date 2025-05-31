@@ -6,9 +6,13 @@
             @cancel="close_modal"
             v-model="open_modal"
             :title="title"
-            ok-only
-            ok-title="Close"
         >
+            <template #footer="{ cancel }">
+                <div class="d-flex justify-content-between w-100">
+                    <command-selector :name="props.name" />
+                    <b-button variant="secondary" @click="cancel">Done</b-button>
+                </div>
+            </template>
             <div class="d-flex gap-3 justify-content-center">
                 <b-form-checkbox
                     id="form-input"
@@ -25,6 +29,7 @@
 import { computed, useTemplateRef, ref } from 'vue';
 import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
+import commandSelector from '@/components/command-selector.vue';
 
 const props = defineProps({
     name: {

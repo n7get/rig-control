@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { get_all_menus_list, rig_property } from '@/js/rig_property.js';
 import { get_all_settings_list } from '@/js/rig_property.js';
+import { useOpModeStore } from '@/stores/op_modes';
 
 export const useGroupsStore = defineStore('groups', () => {
     const groups = ref({})
@@ -67,6 +68,7 @@ export const useGroupsStore = defineStore('groups', () => {
                 break;
         }
 
+        list['Op Modes'] = 'OP_MODES';
         list['All Menus'] = 'MENUS';
         list['All Settings'] = 'SETTINGS';
 
@@ -81,6 +83,7 @@ export const useGroupsStore = defineStore('groups', () => {
     const groups_init = () => {
         groups.value['MENUS'] = get_all_menus_list();
         groups.value['SETTINGS'] = get_all_settings_list();
+        groups.value['OP_MODES'] = [];
 
         groups.value['AM'] = [
             'mic_gain',
@@ -175,10 +178,20 @@ export const useGroupsStore = defineStore('groups', () => {
         'SSB': 'SSB Settings',
         'DATA-SSB': 'Digital Settings',
         'MENUS': 'All Menus',
+        'OP_MODES': 'Op Modes',
         'SETTINGS': 'All Settings',
         'VOX': 'VOX Settings',
     }
-    
+
+    const groups_init_op_modes = () => {
+        const current_op_modes = useOpModeStore().get_current_op_mode;
+        if (current_op_modes) {
+            groups.value['OP_MODES'] = Object.keys(current_op_modes.commands).map(name => (name));
+        } else {
+            groups.value['OP_MODES'] = [];
+        }
+    }
+
     const set_current_group = (group) => {
         if (groups.value[group]) {
             current_group.value = group;
@@ -195,5 +208,6 @@ export const useGroupsStore = defineStore('groups', () => {
         current_group,
         set_current_group,
         set_default_group,
+        groups_init_op_modes,
     }
 });

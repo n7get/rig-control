@@ -29,7 +29,7 @@
 <script setup>
 import { computed, useTemplateRef, ref } from 'vue';
 import { rig_property } from '@/js/rig_property.js';
-import freq_utils from '@/js/freq_utils.js';
+import { conv_freq, format_freq } from '@/js/freq_utils.js';
 import { useGlobalStore } from '@/stores/global';
 
 const props = defineProps({
@@ -91,12 +91,12 @@ const hz = computed(() => {
 // Frequency input modal
 
 function setup_modal() {
-    const f = freq_utils.format_freq(freq.value);
-    freq_input.value = freq_utils.format_freq(freq.value);
+    const f = format_freq(freq.value);
+    freq_input.value = format_freq(freq.value);
 }
 
 const handle_ok = (e) => {
-    var new_freq = freq_utils.conv_freq(freq_input.value);
+    var new_freq = conv_freq(freq_input.value);
 
     if(new_freq) {
         close_modal();

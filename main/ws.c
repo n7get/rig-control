@@ -29,10 +29,14 @@ static void ws_send_handler(void *context, void *data) {
         return;
     }
 
-    char buf[WS_BUFFER_SIZE];
-    strncpy(buf, data, WS_BUFFER_SIZE - 1);
+    char *buf = malloc(strlen(data) + 1);
+    if (buf == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for WebSocket message");
+        return;
+    }
+    strcpy(buf, (char *)data);
 
-    if (xQueueSend(ws_queue, buf, portMAX_DELAY) != pdTRUE) {
+    if (xQueueSend(ws_queue, &buf, portMAX_DELAY) != pdTRUE) {
         ESP_LOGE(TAG, "Failed to enqueue WebSocket message");
     }
 }
@@ -60,12 +64,12 @@ static void send_message(void *arg) {
 
 static void ws_send_task(void *arg) {
     httpd_handle_t *server = (httpd_handle_t *)arg;
-    char message[WS_BUFFER_SIZE];
+    char *message;
     info_t *info = get_info();
 
     while (1) {
         info->ws_queue_count = uxQueueMessagesWaiting(ws_queue);
-        if (xQueueReceive(ws_queue, message, portMAX_DELAY) != pdTRUE) {
+        if (xQueueReceive(ws_queue, &message, portMAX_DELAY) != pdTRUE) {
             ESP_LOGE(TAG, "Failed to receive WebSocket message");
             continue;
         }
@@ -83,10 +87,7 @@ static void ws_send_task(void *arg) {
                     assert(resp_arg != NULL);
                     resp_arg->hd = *server;
                     resp_arg->fd = sock;
-                    resp_arg->message = malloc(strlen(message) + 1);
-                    assert(resp_arg->message != NULL);
-                    strncpy((char *)resp_arg->message, message, strlen(message));
-                    ((char *)resp_arg->message)[strlen(message)] = '\0';
+                    resp_arg->message = message;
 
                     if (httpd_queue_work(resp_arg->hd, send_message, resp_arg) != ESP_OK) {
                         ESP_LOGE(TAG, "httpd_queue_work failed!");
@@ -148,7 +149,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 }
 
 void ws_init() {
-    ws_queue = xQueueCreate(WS_QUEUE_SIZE, WS_BUFFER_SIZE);
+    ws_queue = xQueueCreate(WS_QUEUE_SIZE, sizeof(char *));
     if (ws_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create WebSocket queue");
         return;

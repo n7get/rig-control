@@ -18,7 +18,6 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { rig_property } from '@/js/rig_property.js';
-import { send_command } from '@/js/web_socket.js';
 
 const props = defineProps({
     event: {

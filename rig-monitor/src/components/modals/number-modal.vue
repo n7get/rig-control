@@ -5,9 +5,13 @@
         @esc="close_modal"
         v-model="open_modal"
         :title="title"
-        ok-only
-        ok-title="Close"
     >
+        <template #footer="{ cancel }">
+            <div class="d-flex justify-content-between w-100">
+                <command-selector :name="props.name" />
+                <b-button variant="secondary" @click="cancel">Done</b-button>
+            </div>
+        </template>
         <b-form-input
             id="form-input"
             type="range"

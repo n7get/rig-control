@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdint.h>
 #include <stdbool.h>
 #include "rig.h"
 #include "freertos/FreeRTOS.h"
@@ -125,3 +126,11 @@ void rc_set_tx_poll();
 void rc_clear_tx_poll();
 
 esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t type);
+
+bool rc_commands_are_same(const char *cmd1, const char *cmd2);
+uint32_t rc_parse_frequency(const char *value);
+bool rc_is_mode_command(const char *value);
+bool rc_is_narrow_command(const char *value);
+bool rc_is_width_command(const char *value);
+char *rc_freq_command();
+bool rc_needs_update(const char *value);

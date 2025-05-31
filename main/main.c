@@ -3,9 +3,11 @@
 #include "esp_timer.h"
 #include "esp_netif.h"
 #include "freertos/FreeRTOS.h"
+#include "nvs_flash.h"
 #include "config.h"
 #include "http.h"
 #include "info.h"
+#include "op_mode.h"
 #include "rig.h"
 #include "rig_monitor.h"
 #include "rig_commands.h"
@@ -56,6 +58,7 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_timer_early_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(nvs_flash_init());
 
     mount_html();
 
@@ -78,6 +81,7 @@ void app_main(void) {
     init_rig_monitor();
     ui_init();
     init_rig_controller();
+    init_op_mode();
     
     ws_init();
     

@@ -229,7 +229,7 @@ const rig_commands = {
     'AG0': {
         cmd: 'AG0',
         name: 'af_gain',
-	    range: {},
+        range: {},
         desc: 'AF_GAIN',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -261,14 +261,11 @@ const rig_commands = {
     'BC0': {
         cmd: 'BC0',
         name: 'auto_notch',
+	boolean: true,
         desc: 'AUTO_NOTCH',
-        asSetValue() {
-            return this._rc.cmd + (this.value ? '1' : '0') + ';';
-        },
+        asSetValue: toCatBoolean,
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        }
+        fromCommand: fromBoolean,
     },
     'BD0': {                       // TODO: Needs testing
         cmd: 'BD0',
@@ -279,16 +276,16 @@ const rig_commands = {
     'BI': {
         cmd: 'BI',
         name: 'break_in',
+	boolean: true,
         desc: 'BREAK-IN',
-        asSetValue() {
-            return this._rc.cmd + (this.value ? '1' : '0') + ';';
-        },
+        asSetValue: toCatBoolean,
         asRead: sendCmd,
         fromCommand: fromBoolean,
     },
     'BP00': {
         cmd: 'BP00',
         name: 'manual_notch',
+	boolean: true,
         desc: 'MANUAL_NOTCH_ON/OFF',
         asSetValue() {
             return this._rc.cmd + '00' + (this.value ? '1' : '0') + ';';
@@ -301,7 +298,7 @@ const rig_commands = {
     'BP01': {
         cmd: 'BP01',
         name: 'manual_notch_level',
-	    range: {min:'10', max:'3200', step:'10'},
+        range: {min:'10', max:'3200', step:'10'},
         desc: 'MANUAL_NOTCH_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value / 10) + ';';
@@ -337,12 +334,10 @@ const rig_commands = {
     },
     'BY': {                       // TODO: Needs testing
         cmd: 'BY',
-	    name: 'busy',
+        name: 'busy',
         desc: 'BUSY',
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        },
+        fromCommand: fromBoolean,
     },
     'CH0': {                       // TODO: Needs testing
         cmd: 'CH0',
@@ -359,7 +354,7 @@ const rig_commands = {
     'CN00': {
         cmd: 'CN00',
         name: 'ctcss_tone_frequency',
-	    list: Object.keys(ctcss_tone_frequency_to_cat),
+        list: Object.keys(ctcss_tone_frequency_to_cat),
         desc: 'CTCSS_TONE_FREQUENCY',
         asSetValue() {
             return this._rc.cmd + ctcss_tone_frequency_to_cat[this.value] + ';';
@@ -372,7 +367,7 @@ const rig_commands = {
     'CN01': {
         cmd: 'CN01',
         name: 'dcs_tone_frequency',
-	    list: cat_to_dcs,
+        list: cat_to_dcs,
         desc: 'DCS_TONE_FREQUENCY',
         asSetValue() {
             return this._rc.cmd + pad3(cat_to_dcs.indexOf(intValue(this.value))) + ';';
@@ -387,6 +382,7 @@ const rig_commands = {
     'CO00': {                       // TODO: Needs testing
         cmd: 'CO00',
         name: 'contour_on',
+	boolean: true,
         desc: 'CONTOUR_ON/OFF',
         asSetValue() {
             return this._rc.cmd + '000' + (this.value ? '1' : '0') + ';';
@@ -409,6 +405,7 @@ const rig_commands = {
     'CO02': {                       // TODO: Needs testing
         cmd: 'CO02',
         name: 'apf',
+	boolean: true,
         desc: 'APF_ON/OFF',
         asSetValue() {
             return this._rc.cmd + '000' + (this.value ? '1' : '0') + ';';
@@ -439,6 +436,7 @@ const rig_commands = {
     'CS': {
         cmd: 'CS',
         name: 'cw_spot',
+	boolean: true,
         desc: 'CW_SPOT',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -447,7 +445,7 @@ const rig_commands = {
     'CT0': {
         cmd: 'CT0',
         name: 'ctcss',
-	    list: Object.keys(ctcss_to_cat),
+        list: Object.keys(ctcss_to_cat),
         desc: 'CTCSS',
         asSetValue() {
             return this._rc.cmd + ctcss_to_cat[this.value] + ';';
@@ -533,7 +531,7 @@ const rig_commands = {
     // },
     'EX': {
         cmd: 'EX',
-	    name: 'menu',
+        name: 'menu',
         desc: 'MENU',
         isMenu: true,
         asSetValue() {
@@ -578,6 +576,7 @@ const rig_commands = {
     'FS': {
         cmd: 'FS',
         name: 'fast_step',
+	boolean: true,
         desc: 'FAST_STEP',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -604,7 +603,7 @@ const rig_commands = {
     'GT0': {                       // TODO: Needs testing
         cmd: 'GT0',
         name: 'agc',
-	    list: Object.keys(agc_to_cat),
+        list: Object.keys(agc_to_cat),
         desc: 'AGC_FUNCTION',
         asSetValue() {
             return this._rc.cmd + agc_to_cat[this.value] + ';';
@@ -633,7 +632,7 @@ const rig_commands = {
     'IS0': {
         cmd: 'IS0',
         name: 'if_shift',
-	    range: {min:'-1200', max:'1200', step:'20'},
+        range: {min:'-1200', max:'1200', step:'20'},
         desc: 'IF-SHIFT',
         asSetValue() {
             const v = parseInt(this.value, 10);
@@ -664,7 +663,7 @@ const rig_commands = {
     'KP': {                       // TODO: Needs testing
         cmd: 'KP',
         name: 'key_pitch',
-	    range: {min:'300', max:'1050', step:'10'},
+        range: {min:'300', max:'1050', step:'10'},
         desc: 'KEY_PITCH',
         asSetValue() {
             return this._rc.cmd + pad2(this.value / 10 - 30) + ';';
@@ -677,6 +676,7 @@ const rig_commands = {
     'KR': {
         cmd: 'KR',
         name: 'keyer',
+	boolean: true,
         desc: 'KEYER',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -685,7 +685,7 @@ const rig_commands = {
     'KS': {
         cmd: 'KS',
         name: 'key_speed',
-	    range: {min:'4', max:'60', step:'1'},
+        range: {min:'4', max:'60', step:'1'},
         desc: 'KEY_SPEED',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -702,6 +702,7 @@ const rig_commands = {
     'LK': {
         cmd: 'LK',
         name: 'lock',
+	boolean: true,
         desc: 'LOCK',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -738,7 +739,7 @@ const rig_commands = {
     'MD0': {
         cmd: 'MD0',
         name: 'mode',
-	    list: Object.keys(modes_cat),
+        list: Object.keys(modes_cat),
         desc: 'MODE',
         asSetValue() {
             return this._rc.cmd + modes_cat[this.value] + ';';
@@ -751,7 +752,7 @@ const rig_commands = {
     'MG': {
         cmd: 'MG',
         name: 'mic_gain',
-	    range: {min:'0', max:'100', step:'1'},
+        range: {min:'0', max:'100', step:'1'},
         desc: 'MIC_GAIN',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -760,6 +761,7 @@ const rig_commands = {
     'ML0': {
         cmd: 'ML0',
         name: 'monitor',
+	boolean: true,
         desc: 'MONITOR_ON/OFF',
         asSetValue() {
             return this._rc.cmd + '00' + (this.value ? '1' : '0') + ';';
@@ -772,7 +774,7 @@ const rig_commands = {
     'ML1': {
         cmd: 'ML1',
         name: 'monitor_level',
-	    range: {min:'0', max:'100', step:'1'},
+        range: {min:'0', max:'100', step:'1'},
         desc: 'MONITOR_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -796,7 +798,7 @@ const rig_commands = {
     'MS': {
         cmd: 'MS',
         name: 'meter_sw',
-	    list: Object.keys(meter_cat),
+        list: Object.keys(meter_cat),
         desc: 'METER_SW',
         asSetValue() {
             return this._rc.cmd + meter_cat[this.value] + ';';
@@ -831,6 +833,7 @@ const rig_commands = {
     'MX': {
         cmd: 'MX',
         name: 'mox_set',
+	boolean: true,
         desc: 'MOX_SET',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -839,31 +842,29 @@ const rig_commands = {
     'NA0': {
         cmd: 'NA0',
         name: 'narrow',
+	boolean: true,
         desc: 'NARROW',
         asSetValue() {
             return this._rc.cmd + (this.value ? '1' : '0') + ';';
         },
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        },
+        fromCommand: fromBoolean,
     },
     'NB0': {
         cmd: 'NB0',
         name: 'noise_blanker',
+	boolean: true,
         desc: 'NOISE_BLANKER',
         asSetValue() {
             return this._rc.cmd + (this.value ? '1' : '0') + ';';
         },
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        },
+        fromCommand: fromBoolean,
     },
     'NL0': {
         cmd: 'NL0',
         name: 'noise_blanker_level',
-	    range: {min:'0', max:'10', step:'1'},
+        range: {min:'0', max:'10', step:'1'},
         desc: 'NOISE_BLANKER_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -876,14 +877,13 @@ const rig_commands = {
     'NR0': {
         cmd: 'NR0',
         name: 'noise_reduction',
+	boolean: true,
         desc: 'NOISE_REDUCTION',
         asSetValue() {
             return this._rc.cmd + (this.value ? '1' : '0') + ';';
         },
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        },
+        fromCommand: fromBoolean,
     },
     'OI': {
         cmd: 'OI',
@@ -895,7 +895,7 @@ const rig_commands = {
     'OS0': {
         cmd: 'OS0',
         name: 'offset',
-	    list: Object.keys(offset_cat),
+        list: Object.keys(offset_cat),
         desc: 'OFFSET_(REPEATER_SHIFT)',
         asSetValue() {
             return this._rc.cmd + offset_cat[this.value] + ';';
@@ -908,7 +908,7 @@ const rig_commands = {
     'PA0': {
         cmd: 'PA0',
         name: 'pre_amp',
-	    list: Object.keys(preamp_cat),
+        list: Object.keys(preamp_cat),
         desc: 'PRE-AMP_(IPO)',
         asSetValue() {
             return this._rc.cmd + preamp_cat[this.value] + ';';
@@ -935,7 +935,7 @@ const rig_commands = {
     'PC': {
         cmd: 'PC',
         name: 'power_level',
-	    range: {min:'5', max:'100', step:'1'},
+        range: {min:'5', max:'100', step:'1'},
         desc: 'POWER_CONTROL',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -944,7 +944,7 @@ const rig_commands = {
     'PL': {
         cmd: 'PL',
         name: 'speech_processor_level',
-	    range: {min:'0', max:'100', step:'1'},
+        range: {min:'0', max:'100', step:'1'},
         desc: 'SPEECH_PROCESSOR_LEVEL',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -953,6 +953,7 @@ const rig_commands = {
     'PR0': {
         cmd: 'PR0',
         name: 'speech_processor',
+	boolean: true,
         desc: 'SPEECH_PROCESSOR_ON/OFF',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -961,6 +962,7 @@ const rig_commands = {
     'PR1': {
         cmd: 'PR1',
         name: 'parametric_microphone_equalizer',
+	boolean: true,
         desc: 'PARAMETRIC_MICROPHONE_EQUALIZER',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -995,14 +997,11 @@ const rig_commands = {
     'RA0': {
         cmd: 'RA0',
         name: 'rf_attenuator',
+	boolean: true,
         desc: 'RF_ATTENUATOR',
-        asSetValue() {
-            return this._rc.cmd + (this.value ? '1' : '0') + ';';
-        },
+        asSetValue: toCatBoolean,
         asRead: sendCmd,
-        fromCommand(value) {
-            return fromBoolean(value);
-        },
+        fromCommand: fromBoolean,
     },
     'RC': {
         cmd: 'RC',
@@ -1021,7 +1020,7 @@ const rig_commands = {
     'RG0': {
         cmd: 'RG0',
         name: 'rf_gain',
-	    range: {},
+        range: {},
         desc: 'RF_GAIN',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -1083,7 +1082,7 @@ const rig_commands = {
     'RL0': {
         cmd: 'RL0',
         name: 'noise_reduction_level',
-	    range: {min:'1', max:'15', step:'1'},
+        range: {min:'1', max:'15', step:'1'},
         desc: 'NOISE_REDUCTION_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad2(this.value) + ';';
@@ -1226,7 +1225,7 @@ const rig_commands = {
     'SQ0': {
         cmd: 'SQ0',
         name: 'squelch_level',
-	    range: {min:'0', max:'100', step:'1'},
+        range: {min:'0', max:'100', step:'1'},
         desc: 'SQUELCH_LEVEL',
         asSetValue() {
             return this._rc.cmd + pad3(this.value) + ';';
@@ -1245,6 +1244,7 @@ const rig_commands = {
     'TS': {
         cmd: 'TS',
         name: 'txw',
+	boolean: true,
         desc: 'TXW',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -1253,14 +1253,11 @@ const rig_commands = {
     'TX': {
         cmd: 'TX',
         name: 'transmit',
+	boolean: true,
         desc: 'TX_SET',
-        asSetValue() {
-            return this._rc.cmd + (this.value ? '1' : '0') + ';';
-        },
+        asSetValue: toCatBoolean,
         asRead: sendCmd,
-        fromCommand(value) {
-            return !(value === '0');
-        },
+        fromCommand: fromBoolean,
     },
     'UL': {
         cmd: 'UL',
@@ -1290,7 +1287,7 @@ const rig_commands = {
     'VG': {
         cmd: 'VG',
         name: 'vox_gain',
-	    range: {min:'0', max:'100', step:'1'},
+        range: {min:'0', max:'100', step:'1'},
         desc: 'VOX_GAIN',
         asSetValue: asInteger,
         asRead: sendCmd,
@@ -1305,6 +1302,7 @@ const rig_commands = {
     'VX': {
         cmd: 'VX',
         name: 'vox',
+	boolean: true,
         desc: 'VOX',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -1313,6 +1311,7 @@ const rig_commands = {
     'XT': {
         cmd: 'XT',
         name: 'tx_clar',
+	boolean: true,
         desc: 'TX_CLAR',
         asSetValue: toCatBoolean,
         asRead: sendCmd,
@@ -1370,11 +1369,12 @@ const rig_setting = class {
     get value() { return this._value; }
     get list() { return this._rc.hasOwnProperty('list') ? this._rc.list : null; }
     get range() { return this._rc.hasOwnProperty('range') ? this._rc.range : null; }
+    get isBoolean() { return this._rc.hasOwnProperty('boolean') && this._rc.boolean; }
     get isMenu() { return this._rc.isMenu; }
 
     get asSet() {
         if(this._rc.hasOwnProperty('asSet')) {
-			return this._rc.asSet.call(this);
+            return this._rc.asSet.call(this);
         }
 
         if(this._rc.hasOwnProperty('asSetValue')) {
@@ -1382,7 +1382,7 @@ const rig_setting = class {
                 throw new Error(this._rc.name + ' asSet() requires a value');
             }
 
-			return this._rc.asSetValue.call(this);
+            return this._rc.asSetValue.call(this);
         }
 
         throw new Error(this._rc.name + ' does not have an asSet() function');
@@ -1390,7 +1390,7 @@ const rig_setting = class {
 
     get asRead() {
         if(this._rc.hasOwnProperty('asRead')) {
-			return this._rc.asRead.call(this);
+            return this._rc.asRead.call(this);
         }
 
         if(this._rc.hasOwnProperty('asReadValue')) {
@@ -1398,7 +1398,7 @@ const rig_setting = class {
                 throw new Error(this._rc.name + ' asRead() requires a value');
             }
 
-			return this._rc.asReadValue.call(this);
+            return this._rc.asReadValue.call(this);
         }
 
         throw new Error(this._rc.cmd + ' does not have an asRead() function');

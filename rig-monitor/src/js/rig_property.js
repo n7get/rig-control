@@ -2,27 +2,7 @@ import { useMenusStore } from '@/stores/menus.js';
 import { useSettingsStore } from '@/stores/settings.js';
 import { menu_list, menu_range, menu_suffix } from '@/js/rig_menu.js';
 import { rig_setting } from '@/js/rig_setting.js';
-import { send_command } from '@/js/web_socket';
-
-const boolean_settings = [
-    'break_in',
-    'lock',
-    'keyer',
-    'manual_notch',
-    'monitor',
-    'mox_set',
-    'narrow',
-    'noise_blanker',
-    'noise_reduction',
-    'parametric_microphone_equalizer',
-    'preamp',
-    'rf_attenuator',
-    'speech_processor',
-    'transmit',
-    'tx_clar',
-    'txw',
-    'vox',
-];
+import { send_message } from '@/js/web_socket.js';
 
 class rig_property_base {
     constructor(name, value) {
@@ -48,6 +28,13 @@ class rig_property_base {
     }
     setting() { return false; }
     menu() { return false; }
+    isBoolean() { return false; }
+    update(value) {
+        const cmd = this.asCommand(value);
+        if (cmd) {
+            send_message({ topic: 'command', command: cmd });
+        }
+    }
 }
 
 class manu_property extends rig_property_base {
@@ -61,8 +48,8 @@ class manu_property extends rig_property_base {
     get list() { return menu_list(this._name); }
     get range() { return menu_range(this._name); }
     get suffix() { return menu_suffix(this._name) || ''; }
-    update(value) {
-        send_command('menu', { no: this._name, value: value });
+    asCommand(value) {
+        return rig_setting.of('menu', { no: this._name, value: value }).asSet;
     }
     get unavailable() { return false; }
     menu() { return true; }
@@ -81,10 +68,14 @@ class setting_property extends rig_property_base {
         const rc = rig_setting.of(this._name);
         return rc.range;
     }
-    update(value) {
-        send_command(this._name, value);
+    asCommand(value) {
+        return rig_setting.of(this._name, value).asSet;
     }
     setting() { return true; }
+    isBoolean() {
+        const rc = rig_setting.of(this._name);
+        return rc.isBoolean;
+    }
 }
 
     
@@ -115,7 +106,6 @@ function get_all_menus_list() {
 }
 
 export {
-    boolean_settings,
     rig_property,
     get_property_list,
     get_all_settings_list,

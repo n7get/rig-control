@@ -1,4 +1,5 @@
 <template v-if="modal.open">
+    <boolean-modal :name="name" v-if="open_modal === 'boolean'" />
     <number-modal :min="min" :max="max" :step="step" :fast_step="fast_step" :name="name" v-if="open_modal === 'number'" />
     <list-modal :name="name" :list="list" v-if="open_modal === 'list'" />
     <groups-modal v-if="modal.name === 'groups'" />
@@ -7,16 +8,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
 import { rig_property } from '@/js/rig_property.js';
 
 import booleanModal from './boolean-modal.vue';
+import groupsModal from './groups-modal.vue';
 import listModal from './list-modal.vue';
 import numberModal from './number-modal.vue';
 import vfoModal from './vfo-modal.vue';
-import groupsModal from './groups-modal.vue';
-import { computed } from 'vue';
 
 const modal = useGlobalStore().modal;
 
@@ -34,6 +34,11 @@ const open_modal = computed(() => {
         }
 
         const rp = rig_property(modal.name);
+
+        if (rp.isBoolean()) {
+            name.value = rp.name;
+            return 'boolean';
+        }
 
         if (rp.list) {
             name.value = rp.name;

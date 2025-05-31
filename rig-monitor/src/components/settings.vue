@@ -27,7 +27,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-import { boolean_settings, get_property_list } from '@/js/rig_property.js';
+import { get_property_list } from '@/js/rig_property.js';
 
 const props = defineProps({
     list: {
@@ -63,17 +63,7 @@ const editSetting = (rp) => {
         return;
     }
 
-    if (boolean_settings.includes(rp.name)) {
-        toggle_boolean(rp);
-        return;
-    }
     useGlobalStore().openModal(rp.name);
-}
-
-const toggle_boolean = (rp) => {
-    const value = !rp.value;
-    console.log(`Toggling setting ${rp.name} to ${value}`);
-    rp.update(value);
 }
 </script>
 
