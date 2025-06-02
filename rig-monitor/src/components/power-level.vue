@@ -6,7 +6,7 @@
                 <button @click="powerLevel(5)" class="pl-btn" :class="{selected: power_level.value === 5}">5</button>
                 <button @click="powerLevel(10)" class="pl-btn" :class="{selected: power_level.value === 10}">10</button>
                 <button @click="powerLevel(20)" class="pl-btn" :class="{selected: power_level.value === 20}">20</button>
-                <button @click="powerLevel(50)" class="pl-btn" :class="{selected: power_level.value === 50}">50</button>
+                <button @click="powerLevel(40)" class="pl-btn" :class="{selected: power_level.value === 40}">40</button>
                 <button @click="powerLevel(100)" :class="{selected: power_level.value === 100}">100</button>
             </div>
             <b-form-input
