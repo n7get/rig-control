@@ -1,14 +1,12 @@
 <template>
-    <div class="mx-auto">
-        <div
-            @click="freqHandleClicks()"
-            class="frequency-digits"
-            :class="{'d-flex': true, 'gap-3': true, 'mt-1': true, 'tx': transmit.value}"
-        >
-            <div class="mhz">{{ mhz }}</div>
-            <div class="khz">{{ khz }}</div>
-            <div class="hz">{{ hz }}</div>
-        </div>
+    <div
+        @click="freqHandleClicks()"
+        class="frequency-digits d-flex justify-content-center align-items-center gap-2 mt-2"
+        :class="{'tx': transmit.value}"
+    >
+        <div class="mhz">{{ mhz }}</div>
+        <div class="khz">{{ khz }}</div>
+        <div class="hz">{{ hz }}</div>
     </div>
 </template>
 
@@ -71,7 +69,7 @@ const freqHandleClicks = () => {
 <style>
     .frequency-digits {
         font-family: "Monaco", "Lucida Console", "Andalé Mono";
-        font-size: 40px;
+        font-size: 36px !important;
         color: green;
     }
     .frequency-digits.tx {

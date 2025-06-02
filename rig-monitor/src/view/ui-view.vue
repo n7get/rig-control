@@ -3,8 +3,10 @@
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
             <b-container fluid>
                 <b-row class="mt-2">
-                    <b-button id="op-mode-button" @click="open_op_modes">{{ name }}</b-button>
-                    <b-col class="col-9"><frequency /></b-col>
+                    <b-col class="col-3">
+                        <b-button cols="9" id="op-mode-button" @click="open_op_modes">{{ name }}</b-button>                        
+                    </b-col>
+                    <b-col><frequency /></b-col>
                 </b-row>
                 <b-row class="mt-2">
                     <b-col><tuner-status /></b-col>
