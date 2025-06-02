@@ -8,7 +8,7 @@ import { setConfig } from '@/js/op_mode.js'
 
 let socket = null;
 function connect_ws() {
-    socket = new WebSocket('http://192.168.68.57/ws');
+    socket = new WebSocket('http://192.168.68.57:8080');
 
     socket.onopen = () => {
         console.log('WebSocket connected');
@@ -18,7 +18,7 @@ function connect_ws() {
     socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         // if (message.value.substring(0, 2) !== 'SM') {
-        //     console.log('WebSocket message received:', message.value);
+            // console.log('WebSocket message received:', message);
         // }
         
         switch(message.topic) {
@@ -83,16 +83,16 @@ function handle_control(message) {
 function handle_op_mode(message) {
     // console.log('Op mode message received:', message);
     if (message.event === 'removed') {
-        console.log('Op mode removed:', message.value);
+        // console.log('Op mode removed:', message.value);
         useOpModeStore().remove_op_mode(message.value);
     } else if (message.event === 'update') {
         const om = op_mode.fromJSON(message.value);
         if (om) {
-            console.log('Op mode update:', om.asUpdate());
+            // console.log('Op mode update:', om.asUpdate());
             useOpModeStore().add_op_mode(om);
         }
     } else if (message.event === 'current') {
-        console.log('Current op mode:', message.value);
+        // console.log('Current op mode:', message.value);
         useOpModeStore().set_current_op_mode(message.value);
     } else if (message.event === 'refresh') {
         if (message.value === 'complete') {

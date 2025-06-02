@@ -15,7 +15,7 @@
 #include "settings.h"
 #include "ui.h"
 #include "wifi.h"
-#include "ws.h"
+#include "web_socket.h"
 
 #define TAG "MAIN"
 
@@ -66,14 +66,14 @@ void app_main(void) {
     ESP_LOGI(TAG, "Loaded settings: AP SSID=%s, STA SSID=%s", ap_ssid, sta_ssid);
 
     wifi_init();
-
     if (!start_webserver()) {
         ESP_LOGE(TAG, "Failed to start web server");
         return;
     }
-
     register_info_endpoints();
     register_settings_endpoints();
+    
+    ws_server_start();
 
     cat_init();
     
@@ -82,8 +82,6 @@ void app_main(void) {
     ui_init();
     init_rig_controller();
     init_op_mode();
-    
-    ws_init();
     
     ESP_LOGI(TAG, "Application started");
 }

@@ -1,5 +1,4 @@
-#ifndef LINKED_LIST_H
-#define LINKED_LIST_H
+#pragma once
 
 #include <stddef.h>
 #include "esp_err.h"
@@ -47,5 +46,3 @@ size_t linked_list_size(const linked_list_t *list);
 // Iterate over the list
 linked_list_node_t *linked_list_begin(const linked_list_t *list);
 linked_list_node_t *linked_list_next(const linked_list_node_t *node);
-
-#endif // LINKED_LIST_H

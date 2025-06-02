@@ -16,13 +16,14 @@ idf_component_register(
 		"settings.c"
 		"ui.c"
 		"wifi.c"
-		"ws.c"
+		"web_socket.c"
 	PRIV_REQUIRES "dns_server" 
 	PRIV_REQUIRES "esp_driver_uart"
 	PRIV_REQUIRES "esp_http_server"
 	PRIV_REQUIRES "esp_timer"
 	PRIV_REQUIRES "esp_wifi"
 	PRIV_REQUIRES "json"
+	PRIV_REQUIRES "mbedtls"
 	PRIV_REQUIRES "nvs_flash"
 	INCLUDE_DIRS ".")
 littlefs_create_partition_image(html ../html FLASH_IN_PROJECT)

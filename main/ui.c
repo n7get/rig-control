@@ -6,41 +6,13 @@
 #include "rig_commands.h"
 #include "rig_monitor.h"
 #include "ui.h"
+#include "web_socket.h"
 
 #define TAG "UI"
 
-subject_t *ui_subject = NULL;
-
-void ui_add_observers(observer_callback_t callback, void *context) {
-    if (ui_subject == NULL) {
-        ESP_LOGE(TAG, "UI subject is not initialized");
-        return;
-    }
-
-    add_observer(ui_subject, callback, context);
-}
-
-void ui_remove_observers(observer_callback_t callback) {
-    if (ui_subject == NULL) {
-        ESP_LOGE(TAG, "UI subject is not initialized");
-        return;
-    }
-
-    remove_observer(ui_subject, callback);
-}
-
-static void notify(const char *message) {
-    if (ui_subject == NULL) {
-        ESP_LOGE(TAG, "UI subject is not initialized");
-        return;
-    }
-
-    subject_notify(ui_subject, (void *)message);
-}
-
-static void notify_control(void *context, void *data) {
+static void control_message_handler(void *context, void *data) {
     if (data == NULL) {
-        ESP_LOGE(TAG, "Received null data in notify_control");
+        ESP_LOGE(TAG, "Received null data in control_message_handler");
         return;
     }
 
@@ -61,15 +33,15 @@ static void notify_control(void *context, void *data) {
     }
 
     // ESP_LOGI(TAG, "Sending control notification: %s", json_string);
-    notify(json_string);
+    ws_send(json_string);
 
     cJSON_free(json_string);
     cJSON_Delete(json);
 }
 
-static void ui_notification_handler(void *context, void *data) {
+static void update_message_handler(void *context, void *data) {
     if (data == NULL) {
-        ESP_LOGE(TAG, "Received null response in notification handler");
+        ESP_LOGE(TAG, "Received null response in update handler");
         return;
     }
 
@@ -90,14 +62,14 @@ static void ui_notification_handler(void *context, void *data) {
     }
 
     // ESP_LOGI(TAG, "Sending notification: %s", json_string);
-    notify(json_string);
+    ws_send(json_string);
 
     cJSON_free(json_string);
     cJSON_Delete(json);
 }
 
 void ui_send_json(const char *json) {
-    notify(json);
+    ws_send(json);
 }
 
 void ui_handle_json(cJSON *json_obj) {
@@ -165,7 +137,7 @@ void ui_handle_json(cJSON *json_obj) {
     ESP_LOGE(TAG, "Unknown topic: %s", topic);
 }
 
-void ui_recv(const char *json) {
+void ui_recv_json(const char *json) {
     if (json == NULL) {
         ESP_LOGE(TAG, "Received null json");
         return;
@@ -184,14 +156,8 @@ void ui_recv(const char *json) {
 }
 
 void ui_init() {
-    ui_subject = new_subject();
-    if (ui_subject == NULL) {
-        ESP_LOGE(TAG, "Failed to create UI subject");
-        return;
-    }
-
-    rig_monitor_add_observers(OBSERVE_COMMANDS | OBSERVE_UPDATES, ui_notification_handler, NULL);
-    rig_monitor_add_observers(OBSERVE_STATUS, notify_control, NULL);
+    rig_monitor_add_observers(OBSERVE_COMMANDS | OBSERVE_UPDATES, update_message_handler, NULL);
+    rig_monitor_add_observers(OBSERVE_STATUS, control_message_handler, NULL);
 
     ESP_LOGI(TAG, "UI module initialized and registered for notifications");
 }
