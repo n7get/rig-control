@@ -255,10 +255,14 @@ static void rig_monitor_task(void *pvParameters) {
                     break;
 
                 case RM_EVENT_REFRESH:
-                    ESP_LOGI(TAG, "Starting refresh");
-                    rc_send_refresh(notify_refresh);
-                    notify_control(CONTROL_MSG_READY);
-                    ESP_LOGI(TAG, "Refresh complete");
+                    if (in_startup || !is_ready) {
+                        notify_control(CONTROL_MSG_NOT_READY);
+                    } else {
+                        ESP_LOGI(TAG, "Starting refresh");
+                        rc_send_refresh(notify_refresh);
+                        notify_control(CONTROL_MSG_READY);
+                        ESP_LOGI(TAG, "Refresh complete");
+                    }
                     break;
 
                 case RM_EVENT_PING:
