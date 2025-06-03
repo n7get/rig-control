@@ -92,6 +92,15 @@ static esp_err_t get_info_handler(httpd_req_t *req) {
     cJSON_AddNumberToObject(json, "min_free_heap", esp_get_minimum_free_heap_size());
     cJSON_AddNumberToObject(json, "free_stack", uxTaskGetStackHighWaterMark(NULL));
 
+    nvs_stats_t nvs_stats;
+    if (nvs_get_stats("nvs", &nvs_stats) == ESP_OK) {
+        cJSON_AddNumberToObject(json, "nvs_used_bytes", nvs_stats.used_entries * 32);
+        cJSON_AddNumberToObject(json, "nvs_free_bytes", nvs_stats.free_entries * 32);
+        cJSON_AddNumberToObject(json, "nvs_available_bytes", nvs_stats.available_entries * 32);
+        cJSON_AddNumberToObject(json, "nvs_total_bytes", nvs_stats.total_entries * 32);
+        cJSON_AddNumberToObject(json, "nvs_namespacbytes", nvs_stats.namespace_count);
+    }
+
     init_info();
 
     const char *json_str = cJSON_Print(json);
