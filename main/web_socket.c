@@ -16,16 +16,17 @@
 
 #define TAG "WS_SERVER"
 #define WS_QUEUE_SIZE 300
+#define PING_TIMER 30000
 
 static int server_fd = -1;
 static TaskHandle_t ws_server_task_handle = NULL;
 static QueueHandle_t ws_send_queue = NULL;
-
+TimerHandle_t keepalive_timer = NULL;
 
 typedef struct {
     int fd;
     TaskHandle_t task;
-    bool active;
+    int ping_count;
 } ws_client_t;
 
 static linked_list_t *ws_clients = NULL;
@@ -34,8 +35,6 @@ static SemaphoreHandle_t ws_clients_mutex = NULL;
 static void ws_handle_client(void *param);
 static int ws_handshake(int client_fd);
 static int ws_recv_frame(int client_fd, char *buffer, size_t len);
-static int ws_send_frame(int client_fd, const char *data, size_t len,
-                         uint8_t opcode);
 static void ws_broadcast_task(void *param);
 
 static void ws_server_task(void *pvParameters) {
@@ -55,7 +54,6 @@ static void ws_server_task(void *pvParameters) {
             continue;
         }
         client->fd = client_fd;
-        client->active = true;
 
         xSemaphoreTake(ws_clients_mutex, portMAX_DELAY);
         linked_list_push(ws_clients, client);
@@ -63,6 +61,57 @@ static void ws_server_task(void *pvParameters) {
 
         xTaskCreate(ws_handle_client, "ws_client_task", 4096, client, 5, &client->task);
     }
+}
+
+// Minimal WebSocket frame send (text only)
+static int ws_send_frame(int client_fd, const char *data, size_t len, uint8_t opcode) {
+    uint8_t hdr[10];
+    int hdr_len = 0;
+    hdr[0] = 0x80 | (opcode & 0x0F);
+    if (len < 126) {
+        hdr[1] = len;
+        hdr_len = 2;
+    } else if (len < 65536) {
+        hdr[1] = 126;
+        hdr[2] = (len >> 8) & 0xFF;
+        hdr[3] = len & 0xFF;
+        hdr_len = 4;
+    } else {
+        hdr[1] = 127;
+        for (int i = 0; i < 8; ++i)
+            hdr[2 + i] = (len >> (56 - 8 * i)) & 0xFF;
+        hdr_len = 10;
+    }
+
+    if (send(client_fd, hdr, hdr_len, 0) != hdr_len) {
+        return -1;
+    }
+
+    if (data != NULL && len > 0) {
+        if (send(client_fd, data, len, 0) != len) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+static void keepalive(TimerHandle_t xTimer) {
+    xSemaphoreTake(ws_clients_mutex, portMAX_DELAY);
+    for (linked_list_node_t *node = linked_list_begin(ws_clients); node != NULL; node = linked_list_next(node)) {
+        ws_client_t *client = (ws_client_t *)node->data;
+        client->ping_count++;
+        if (client->ping_count > 3) {
+            ESP_LOGI(TAG, "Client %d is inactive, closing connection", client->fd);
+            close(client->fd);
+            client->fd = -1;
+            continue;
+        }
+
+        if (ws_send_frame(client->fd, NULL, 0, WS_OPCODE_PING) != 0) {
+            ESP_LOGE(TAG, "Failed to send PING to client %d", client->fd);
+        }
+    }
+    xSemaphoreGive(ws_clients_mutex);
 }
 
 void ws_server_start() {
@@ -79,6 +128,14 @@ void ws_server_start() {
         ws_clients = linked_list_create();
     } else {
         linked_list_clear(ws_clients, free);
+    }
+
+    if (keepalive_timer == NULL ) {
+        keepalive_timer = xTimerCreate("keepalive", pdMS_TO_TICKS(PING_TIMER), pdTRUE, NULL, keepalive);
+        if (xTimerStart(keepalive_timer, 0) != pdPASS) {
+            ESP_LOGE(TAG, "Failed to start keepalive timer");
+            return;
+        }
     }
 
     server_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -120,6 +177,12 @@ void ws_server_stop(void) {
         server_fd = -1;
     }
 
+    if (keepalive_timer) {
+        xTimerStop(keepalive_timer, 0);
+        xTimerDelete(keepalive_timer, 0);
+        keepalive_timer = NULL;
+    }
+
     if (ws_server_task_handle) {
         vTaskDelete(ws_server_task_handle);
         ws_server_task_handle = NULL;
@@ -135,7 +198,9 @@ void ws_server_stop(void) {
 
         for (linked_list_node_t *node = linked_list_begin(ws_clients); node != NULL; node = linked_list_next(node)) {
             ws_client_t *client = (ws_client_t *)node->data;
-            close(client->fd);
+            if (client->fd != -1) {
+                close(client->fd);
+            }
         }
 
         linked_list_destroy(ws_clients, free);
@@ -152,8 +217,8 @@ void ws_server_stop(void) {
 
 static void ws_handle_client(void *param) {
     ws_client_t *client = (ws_client_t *)param;
-    int client_fd = client->fd;
-    if (ws_handshake(client_fd) != 0) {
+
+    if (ws_handshake(client->fd) != 0) {
         ESP_LOGE(TAG, "WebSocket handshake failed");
         goto cleanup;
     }
@@ -165,11 +230,17 @@ static void ws_handle_client(void *param) {
     }
 
     while (1) {
-        int len = ws_recv_frame(client_fd, buffer, WS_RECV_BUFFER_SIZE);
-        if (len <= 0)
+        int len = ws_recv_frame(client->fd, buffer, WS_RECV_BUFFER_SIZE);
+        if (len < 0) {
             break;
+        }
+        if (len == 0) {
+            continue;
+        }
+
         buffer[len] = '\0';
         ESP_LOGI(TAG, "Received: %s", buffer);
+
         // Pass to UI
         ui_recv_json(buffer);
     }
@@ -181,7 +252,9 @@ static void ws_handle_client(void *param) {
 cleanup:
     xSemaphoreTake(ws_clients_mutex, portMAX_DELAY);
 
-    close(client_fd);
+    if (client->fd != -1) {
+        close(client->fd);
+    }
     linked_list_remove(ws_clients, client);
     free(client);
 
@@ -199,6 +272,7 @@ static int ws_handshake(int client_fd) {
     if (len <= 0)
         return -1;
     recv_buf[len] = '\0';
+
     char *key_hdr = strstr(recv_buf, "Sec-WebSocket-Key: ");
     if (!key_hdr)
         return -1;
@@ -244,11 +318,14 @@ static int ws_handshake(int client_fd) {
 // client)
 static int ws_recv_frame(int client_fd, char *buffer, size_t len) {
     uint8_t hdr[2];
+
     int r = recv(client_fd, hdr, 2, 0);
     if (r != 2)
         return -1;
-    // uint8_t opcode = hdr[0] & 0x0F;
+        
+    uint8_t opcode = hdr[0] & 0x0F;
     uint8_t mask = hdr[1] & 0x80;
+
     uint64_t payload_len = hdr[1] & 0x7F;
     if (payload_len == 126) {
         uint8_t ext[2];
@@ -263,13 +340,17 @@ static int ws_recv_frame(int client_fd, char *buffer, size_t len) {
         for (int i = 0; i < 8; ++i)
             payload_len = (payload_len << 8) | ext[i];
     }
+
     uint8_t masking_key[4];
     if (mask) {
         if (recv(client_fd, masking_key, 4, 0) != 4)
             return -1;
     }
-    if (payload_len > len - 1)
+
+    if (payload_len > len - 1) {
         return -1;
+    }
+
     int recvd = 0;
     while (recvd < payload_len) {
         int r = recv(client_fd, buffer + recvd, payload_len - recvd, 0);
@@ -282,33 +363,60 @@ static int ws_recv_frame(int client_fd, char *buffer, size_t len) {
             buffer[i] ^= masking_key[i % 4];
         }
     }
-    return payload_len;
-}
 
-// Minimal WebSocket frame send (text only)
-static int ws_send_frame(int client_fd, const char *data, size_t len, uint8_t opcode) {
-    uint8_t hdr[10];
-    int hdr_len = 0;
-    hdr[0] = 0x80 | (opcode & 0x0F);
-    if (len < 126) {
-        hdr[1] = len;
-        hdr_len = 2;
-    } else if (len < 65536) {
-        hdr[1] = 126;
-        hdr[2] = (len >> 8) & 0xFF;
-        hdr[3] = len & 0xFF;
-        hdr_len = 4;
-    } else {
-        hdr[1] = 127;
-        for (int i = 0; i < 8; ++i)
-            hdr[2 + i] = (len >> (56 - 8 * i)) & 0xFF;
-        hdr_len = 10;
+    switch(opcode) {
+    case WS_OPCODE_TEXT:
+       return payload_len;
+
+    case WS_OPCODE_CLOSE:
+        if (payload_len > 0) {
+            uint8_t close_code[2];
+            close_code[0] = buffer[0];
+            close_code[1] = buffer[1];
+
+            ESP_LOGI(TAG, "Client requested close with code: %d", (close_code[0] << 8) | close_code[1]);
+
+            if (payload_len > 2) {
+                ESP_LOGI(TAG, "Close reason: %s", buffer + 2);
+            } else {
+                ESP_LOGI(TAG, "Close reason: No reason provided");
+            }
+
+            if (ws_send_frame(client_fd, buffer, 2, WS_OPCODE_CLOSE) != 0) {
+                ESP_LOGE(TAG, "Failed to send CLOSE frame to client %d", client_fd);
+            }
+        } else {
+            ESP_LOGI(TAG, "Client requested close with no code or reason");
+
+            if (ws_send_frame(client_fd, NULL, 0, WS_OPCODE_CLOSE) != 0) {
+                ESP_LOGE(TAG, "Failed to send CLOSE frame to client %d", client_fd);
+            }
+        }
+        return -1; // Indicate client closed connection
+
+    case WS_OPCODE_PING:
+        if (ws_send_frame(client_fd, NULL, 0, WS_OPCODE_PONG) != 0) {
+            ESP_LOGE(TAG, "Failed to send PONG frame to client %d", client_fd);
+            return -1;
+        }
+        return 0;
+
+    case WS_OPCODE_PONG:
+        xSemaphoreTake(ws_clients_mutex, portMAX_DELAY);
+        for (linked_list_node_t *node = linked_list_begin(ws_clients); node != NULL; node = linked_list_next(node)) {
+            ws_client_t *client = (ws_client_t *)node->data;
+            if (client->fd == client_fd) {
+                client->ping_count = 0;
+                break;
+            }
+        }
+        xSemaphoreGive(ws_clients_mutex);
+        return 0;
+        
+    default:
+        ESP_LOGE(TAG, "Unsupported WebSocket opcode: %d", opcode);
+        return 0; // Ignore unsupported opcodes
     }
-    if (send(client_fd, hdr, hdr_len, 0) != hdr_len)
-        return -1;
-    if (send(client_fd, data, len, 0) != len)
-        return -1;
-    return 0;
 }
 
 // Broadcast a text message to all connected clients
@@ -317,8 +425,8 @@ static void ws_broadcast_text(const char *msg) {
 
     for (linked_list_node_t *node = linked_list_begin(ws_clients); node != NULL; node = linked_list_next(node)) {
         ws_client_t *client = (ws_client_t *)node->data;
-        if (client->active) {
-            ws_send_frame(client->fd, msg, strlen(msg), WS_OPCODE_TEXT);
+        if (ws_send_frame(client->fd, msg, strlen(msg), WS_OPCODE_TEXT) != 0) {
+            ESP_LOGE(TAG, "Failed to send message to client %d", client->fd);
         }
     }
 
