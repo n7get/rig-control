@@ -33,9 +33,9 @@ typedef struct {
     om_event_type_t type;
     uint32_t id;
     char name[MAX_OP_MODE_NAME_LEN + 1];
-    freq_range_t freq_ranges[MAX_FREQ_RANGES];
+    linked_list_t *freq_ranges;
     uint8_t order;
-    char commands[MAX_COMMANDS_BUF_SIZE + 1];
+    char *commands; // malloced
     uint32_t frequency;
 } om_event_t;
 
@@ -50,6 +50,42 @@ static char last_command[SEND_BUFFER_SIZE] = {0};
 static void set_current_op_mode(op_mode_t *mode);
 
 #define TAG "OP_MODE"
+
+static void safe_free(void *ptr) {
+    if (ptr != NULL) {
+        free(ptr);
+    } else {
+        ESP_LOGE(TAG, "Attempted to free a NULL pointer");
+    }
+}
+
+static void free_op_mode(op_mode_t *mode) {
+    if (mode == NULL) {
+        return;
+    }
+
+    linked_list_destroy(mode->freq_ranges, safe_free);
+
+    if (mode->commands != NULL) {
+        safe_free(mode->commands);
+    }
+
+    safe_free(mode);
+}
+
+static void free_om_event(om_event_t *om_event) {
+    if (om_event == NULL) {
+        return;
+    }
+
+    linked_list_destroy(om_event->freq_ranges, safe_free);
+
+    if (om_event->commands) {
+        safe_free(om_event->commands);
+    }
+
+    safe_free(om_event);
+}
 
 static void send_result(const char *result, const char *message) {
     if (result == NULL || message == NULL) {
@@ -71,7 +107,7 @@ static void send_result(const char *result, const char *message) {
     if (json_str) {
         ESP_LOGI(TAG, "Result: %s", json_str);
         ui_send_json(json_str);
-        free(json_str);
+        safe_free(json_str);
     } else {
         ESP_LOGE(TAG, "Failed to print JSON");
     }
@@ -120,7 +156,7 @@ static void send_current_op_mode() {
     char *json_str = cJSON_PrintUnformatted(json);
     if (json_str) {
         ui_send_json(json_str);
-        free(json_str);
+        safe_free(json_str);
     } else {
         ESP_LOGE(TAG, "Failed to print JSON");
     }
@@ -143,10 +179,7 @@ void send_config() {
         cJSON_Delete(json);
         return;
     }
-    cJSON_AddNumberToObject(config, "MAX_OP_MODES", MAX_OP_MODES);
     cJSON_AddNumberToObject(config, "MAX_OP_MODE_NAME_LEN", MAX_OP_MODE_NAME_LEN);
-    cJSON_AddNumberToObject(config, "MAX_COMMANDS_BUF_SIZE", MAX_COMMANDS_BUF_SIZE);
-    cJSON_AddNumberToObject(config, "MAX_FREQ_RANGES", MAX_FREQ_RANGES);
     cJSON_AddNumberToObject(config, "MAX_ORDER", MAX_ORDER);
     cJSON_AddItemToObject(json, "value", config);
 
@@ -154,7 +187,7 @@ void send_config() {
     if (json_str) {
         // ESP_LOGI(TAG, "Config: %s", json_str);
         ui_send_json(json_str);
-        free(json_str);
+        safe_free(json_str);
     } else {
         ESP_LOGE(TAG, "Failed to print JSON");
     }
@@ -170,31 +203,11 @@ static void make_key(char *key, uint32_t id) {
     snprintf(key, 11, "%lu", id);
 }
 
-/*
-{
-    "id" : 1,
-    "name" : "Mode Name",
-    "freq_ranges" : [
-        { "start" : 1000000, "end" : 2000000 },
-        { "start" : 3000000, "end" : 4000000 }
-    ],
-    "order" : 1,
-    "commands" : [
-        "CMD1;",
-        "CMD2;"
-    ]
-}
-*/
-static esp_err_t encode_op_mode(const op_mode_t *mode, char *buffer, size_t buffer_size) {
-    if (mode == NULL || buffer == NULL || buffer_size == 0) {
-        ESP_LOGE(TAG, "Invalid parameters for encode_op_mode");
-        return ESP_FAIL;
-    }
-
+static char * encode_op_mode(const op_mode_t *mode) {
     cJSON *root = cJSON_CreateObject();
     if (!root) {
         ESP_LOGE(TAG, "Failed to create JSON object");
-        return ESP_ERR_NO_MEM;
+        return NULL;
     }
 
     // id
@@ -205,12 +218,15 @@ static esp_err_t encode_op_mode(const op_mode_t *mode, char *buffer, size_t buff
 
     // freq_ranges
     cJSON *freq_ranges = cJSON_CreateArray();
-    for (size_t i = 0; i < MAX_FREQ_RANGES; ++i) {
-        if (mode->freq_ranges[i].start != 0 || mode->freq_ranges[i].end != 0) {
-            cJSON *fr = cJSON_CreateObject();
-            cJSON_AddNumberToObject(fr, "start", mode->freq_ranges[i].start);
-            cJSON_AddNumberToObject(fr, "end", mode->freq_ranges[i].end);
-            cJSON_AddItemToArray(freq_ranges, fr);
+    if (mode->freq_ranges) {
+        for (linked_list_node_t *node = linked_list_begin(mode->freq_ranges); node != NULL; node = node->next) {
+            freq_range_t *range = (freq_range_t *)node->data;
+            if (range && (range->start != 0 || range->end != 0)) {
+                cJSON *fr = cJSON_CreateObject();
+                cJSON_AddNumberToObject(fr, "start", range->start);
+                cJSON_AddNumberToObject(fr, "end", range->end);
+                cJSON_AddItemToArray(freq_ranges, fr);
+            }
         }
     }
     cJSON_AddItemToObject(root, "freq_ranges", freq_ranges);
@@ -224,19 +240,10 @@ static esp_err_t encode_op_mode(const op_mode_t *mode, char *buffer, size_t buff
     // Print to buffer
     char *json_str = cJSON_PrintUnformatted(root);
 
-    if (strlen(json_str) >= buffer_size) {
-        ESP_LOGE(TAG, "Buffer too small for op mode JSON, required size: %zu", strlen(json_str));
-        cJSON_Delete(root);
-        free(json_str);
-        return ESP_ERR_NO_MEM; // Buffer too small
-    }
-
-    strncpy(buffer, json_str, buffer_size);
     cJSON_Delete(root);
-    free(json_str);
     
-    // ESP_LOGI(TAG, "Encoded op mode: %s", buffer);
-    return ESP_OK;
+    // ESP_LOGI(TAG, "Encoded op mode: %s", json_str);
+    return json_str;
 }
 
 static esp_err_t process_decode_op_mode(cJSON *root, op_mode_t *mode) {
@@ -264,26 +271,23 @@ static esp_err_t process_decode_op_mode(cJSON *root, op_mode_t *mode) {
     }
     
     size_t count = cJSON_GetArraySize(freq_ranges);
-    if (count > MAX_FREQ_RANGES) {
-        ESP_LOGE(TAG, "Too many freq_ranges specified, maximum is %d", MAX_FREQ_RANGES);
-        return ESP_FAIL;
-    }
-
+    mode->freq_ranges = linked_list_create();
     for (size_t i = 0; i < count; ++i) {
         cJSON *fr = cJSON_GetArrayItem(freq_ranges, i);
         if (fr == NULL || !cJSON_IsObject(fr)) {
             ESP_LOGE(TAG, "Invalid frequency range format in op mode JSON");
             return ESP_FAIL;
         }
-
         cJSON *start = cJSON_GetObjectItem(fr, "start");
         cJSON *end = cJSON_GetObjectItem(fr, "end");
         if (start == NULL || end == NULL || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)) {
             ESP_LOGE(TAG, "Invalid frequency range format, must contain start and end as numbers");
             return ESP_FAIL;
         }
-        mode->freq_ranges[i].start = start->valuedouble;
-        mode->freq_ranges[i].end = end->valuedouble;
+        freq_range_t *range = (freq_range_t *)calloc(1, sizeof(freq_range_t));
+        range->start = start->valuedouble;
+        range->end = end->valuedouble;
+        linked_list_push(mode->freq_ranges, range);
     }
 
     // order
@@ -300,7 +304,7 @@ static esp_err_t process_decode_op_mode(cJSON *root, op_mode_t *mode) {
         ESP_LOGE(TAG, "Invalid or missing 'commands' in op mode JSON");
         return ESP_FAIL;
     }
-    strncpy(mode->commands, commands->valuestring, MAX_COMMANDS_BUF_SIZE);
+    mode->commands = strdup(commands->valuestring);
 
     return ESP_OK;
 }
@@ -322,7 +326,7 @@ static op_mode_t *decode_op_mode(const uint8_t *json, size_t json_size) {
     }
 
     if (process_decode_op_mode(root, mode) != ESP_OK) {
-        free(mode);
+        free_op_mode(mode);
         cJSON_Delete(root);
         return NULL;
     }
@@ -352,8 +356,8 @@ static op_mode_t *get_op_mode(const uint32_t id) {
         return default_op_mode;
     }
 
-    for (linked_list_node_t *lli = linked_list_begin(op_modes); lli != NULL; lli = linked_list_next(lli)) {
-        op_mode_t *op_mode = (op_mode_t *)lli->data;
+    for (linked_list_node_t *node = linked_list_begin(op_modes); node != NULL; node = linked_list_next(node)) {
+        op_mode_t *op_mode = (op_mode_t *)node->data;
         if (op_mode != NULL && op_mode->id == id) {
             return op_mode;
         }
@@ -388,27 +392,23 @@ static esp_err_t parse_value(const cJSON *json_obj, om_event_t *om_event) {
     }
 
     size_t count = cJSON_GetArraySize(freq_ranges);
-    if (count > MAX_FREQ_RANGES) {
-        error_log("Too many frequency ranges, maximum is %d", MAX_FREQ_RANGES);
-        return ESP_FAIL;
-    }
-
+    om_event->freq_ranges = linked_list_create();
     for (size_t i = 0; i < count; ++i) {
         cJSON *fr = cJSON_GetArrayItem(freq_ranges, i);
         if (fr == NULL || !cJSON_IsObject(fr)) {
             error_log("Invalid frequency range format in JSON");
             return ESP_FAIL;
         }
-
         cJSON *start = cJSON_GetObjectItem(fr, "start");
         cJSON *end = cJSON_GetObjectItem(fr, "end");
         if (start == NULL || end == NULL || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)) {
             error_log("Invalid frequency range format, must contain start and end as numbers");
             return ESP_FAIL;
         }
-
-        om_event->freq_ranges[i].start = start->valuedouble;
-        om_event->freq_ranges[i].end = end->valuedouble;
+        freq_range_t *range = (freq_range_t *)calloc(1, sizeof(freq_range_t));
+        range->start = start->valuedouble;
+        range->end = end->valuedouble;
+        linked_list_push(om_event->freq_ranges, range);
     }
 
     cJSON *commands = cJSON_GetObjectItem(json_obj, "commands");
@@ -422,12 +422,8 @@ static esp_err_t parse_value(const cJSON *json_obj, om_event_t *om_event) {
         error_log("Missing or invalid commands string");
         return ESP_FAIL;
     }
-    if (strlen(commands_str) >= MAX_COMMANDS_BUF_SIZE) {
-        error_log("Command string too long, maximum is %d characters", MAX_COMMANDS_BUF_SIZE);
-        return ESP_FAIL;
-    }
 
-    strncpy(om_event->commands, commands_str, MAX_COMMANDS_BUF_SIZE);
+    om_event->commands = strdup(commands_str);
 
     return ESP_OK;
 }
@@ -490,12 +486,6 @@ static esp_err_t create_om_event(cJSON *json_obj, om_event_t *om_event) {
     return ESP_FAIL;
 }
 
-static void free_linked_list_data(void *data) {
-    if (data != NULL) {
-        free(data);
-    }
-}
-
 static char *find_priority_command(bool (*match)(const char *value)) {
     for (linked_list_node_t *lli = linked_list_begin(commands_list); lli != NULL; lli = linked_list_next(lli)) {
         char *cmd = (char *)lli->data;
@@ -530,7 +520,7 @@ static void send_next_command() {
     }
 
     if (!rc_needs_update(cmd)) {
-        free(cmd);
+        safe_free(cmd);
         send_next_command();
         return;
     }
@@ -542,7 +532,7 @@ static void send_next_command() {
         return;
     }
     strcpy(last_command, cmd);
-    free(cmd);
+    safe_free(cmd);
 }
 
 static void find_op_node_by_freq() {
@@ -555,15 +545,16 @@ static void find_op_node_by_freq() {
         op_mode_t *mode = (op_mode_t *)lli->data;
 
         if (mode != NULL) {
-            for (int j = 0; j < MAX_FREQ_RANGES; j++) {
-                freq_range_t *range = &mode->freq_ranges[j];
-
-                if (range->start != 0 && range->end != 0) {
-                    if (range->start <= current_frequency && current_frequency <= range->end) {
-                        if (candidate == NULL || mode->order < candidate->order) {
-                            candidate = mode;
+            if (mode->freq_ranges) {
+                for (linked_list_node_t *node = linked_list_begin(mode->freq_ranges); node != NULL; node = node->next) {
+                    freq_range_t *range = (freq_range_t *)node->data;
+                    if (range && range->start != 0 && range->end != 0) {
+                        if (range->start <= current_frequency && current_frequency <= range->end) {
+                            if (candidate == NULL || mode->order < candidate->order) {
+                                candidate = mode;
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
             }
@@ -595,7 +586,7 @@ static void set_current_op_mode(op_mode_t *mode) {
     current_op_mode = mode;
     send_current_op_mode();
 
-    linked_list_clear(commands_list, free_linked_list_data);
+    linked_list_clear(commands_list, safe_free);
 
     char *token, *string, *tofree;
     tofree = string = strdup(mode->commands);
@@ -610,8 +601,8 @@ static void set_current_op_mode(op_mode_t *mode) {
             char *data = malloc(strlen(token) + 2);
             if (data == NULL) {
                 ESP_LOGE(TAG, "Failed to allocate memory for command data");
-                linked_list_clear(commands_list, free_linked_list_data);
-                free(tofree);
+                linked_list_clear(commands_list, safe_free);
+                safe_free(tofree);
                 return;
             }
             strcpy(data, token);
@@ -620,7 +611,7 @@ static void set_current_op_mode(op_mode_t *mode) {
             linked_list_push(commands_list, data);
         }
     }
-    free(tofree);
+    safe_free(tofree);
 
     if (linked_list_size(commands_list) == 0) {
         ESP_LOGE(TAG, "No commands found in op mode: %s", mode->name);
@@ -631,16 +622,21 @@ static void set_current_op_mode(op_mode_t *mode) {
 }
 
 void om_recv_from_ui(cJSON *json_obj) {
-    om_event_t om_event;
-    memset(&om_event, 0, sizeof(om_event_t));
+    om_event_t *om_event = calloc(1, sizeof(om_event_t));
+    if (om_event == NULL) {
+        ESP_LOGE(TAG, "Failed to allocate memory for op mode event");
+        return;
+    }
 
-    if (create_om_event(json_obj, &om_event) != ESP_OK) {
+    if (create_om_event(json_obj, om_event) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to create op mode event from JSON");
+        free_om_event(om_event);
         return;
     }
 
     if (xQueueSend(om_event_queue, &om_event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to queue op event");
+        free_om_event(om_event);
     }
 }
 
@@ -659,7 +655,7 @@ static void send_deleted(const op_mode_t *mode) {
     if (json_str) {
         ESP_LOGI(TAG, "Sending op mode: %s", json_str);
         ui_send_json(json_str);
-        free(json_str);
+        safe_free(json_str);
     } else {
         error_log("Failed to print op mode JSON");
     }
@@ -673,9 +669,8 @@ static void send_op_mode(const op_mode_t *mode) {
         return;
     }
 
-    char buffer[1024];
-    esp_err_t err = encode_op_mode(mode, buffer, sizeof(buffer));
-    if (err != ESP_OK) {
+    char *om_str = encode_op_mode(mode);
+    if (om_str == NULL) {
         error_log("Failed to encode op mode");
         return;
     }
@@ -683,20 +678,23 @@ static void send_op_mode(const op_mode_t *mode) {
     cJSON *json = cJSON_CreateObject();
     if (json == NULL) {
         error_log("Failed to create JSON object");
+        safe_free(om_str);
         return;
     }
 
     cJSON_AddStringToObject(json, "topic", "op_mode");
     cJSON_AddStringToObject(json, "event", "update");
-    cJSON_AddRawToObject(json, "value", buffer);
+    cJSON_AddRawToObject(json, "value", om_str);
 
     char *json_str = cJSON_PrintUnformatted(json);
-    if (json_str) {
+    if (json_str != NULL) {
         ui_send_json(json_str);
-        free(json_str);
+        safe_free(json_str);
     } else {
         error_log("Failed to print op mode JSON");
     }
+
+    safe_free(om_str);
 
     cJSON_Delete(json);
 }
@@ -718,12 +716,12 @@ static esp_err_t load_op_mode(nvs_open_mode_t nvs_handle, const char *key) {
     err = nvs_get_str(nvs_handle, key, buffer, &required_size);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to read op mode from NVS: %s", esp_err_to_name(err));
-        free(buffer);
+        safe_free(buffer);
         return ESP_FAIL;
     }
 
     op_mode_t *mode = decode_op_mode((const uint8_t *)buffer, required_size);
-    free(buffer);
+    safe_free(buffer);
     if (mode == NULL) {
         ESP_LOGE(TAG, "Failed to decode op mode from JSON");
         return ESP_FAIL;
@@ -762,7 +760,6 @@ static void handle_load() {
     find_op_node_by_freq();
 }
 
-#define PERSIST_BUFFER_SIZE 1024
 static esp_err_t op_mode_persist(op_mode_t *mode) {
     if (mode == NULL) {
         return ESP_FAIL;
@@ -773,19 +770,17 @@ static esp_err_t op_mode_persist(op_mode_t *mode) {
     }
     ESP_LOGI(TAG, "Persisting op mode %lu", mode->id);
 
-    char *buffer = calloc(1, PERSIST_BUFFER_SIZE);
-    esp_err_t err = encode_op_mode(mode, buffer, PERSIST_BUFFER_SIZE);
-    if (err != ESP_OK) {
+    char *om_str = encode_op_mode(mode);
+    if (om_str == NULL) {
         ESP_LOGE(TAG, "Failed to encode op mode");
-        free(buffer);
-        return err;
+        return ESP_FAIL;
     }
 
     nvs_handle_t nvs_handle;
-    err = nvs_open(OP_MODE_NAMESPACE, NVS_READWRITE, &nvs_handle);
+    esp_err_t err = nvs_open(OP_MODE_NAMESPACE, NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "op_mode_persist(): failed to open NVS for op modes: %s", esp_err_to_name(err));
-        free(buffer);
+        safe_free(om_str);
         return err;
     }
 
@@ -794,23 +789,23 @@ static esp_err_t op_mode_persist(op_mode_t *mode) {
     ESP_LOGI(TAG, "Writing op mode '%s' to NVS with key '%s'", mode->name, key);
 
     log_op_mode(TAG, "Persisting op Mode: ", mode);
-    err = nvs_set_str(nvs_handle, key, buffer);
+    err = nvs_set_str(nvs_handle, key, om_str);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write op mode to NVS: %s", esp_err_to_name(err));
         nvs_close(nvs_handle);
-        free(buffer);
+        safe_free(om_str);
         return err;
     }
 
     if (nvs_commit(nvs_handle) != ESP_OK) {
         ESP_LOGE(TAG, "Failed to commit op mode to NVS: %s", esp_err_to_name(err));
         nvs_close(nvs_handle);
-        free(buffer);
+        safe_free(om_str);
         return err;
     }
 
     nvs_close(nvs_handle);
-    free(buffer);
+    safe_free(om_str);
 
     send_op_mode(mode);
     ESP_LOGI(TAG, "Op mode '%lu' persisted successfully", mode->id);
@@ -845,7 +840,7 @@ static void op_mode_remove(op_mode_t *mode) {
     ESP_LOGI(TAG, "Op mode '%lu' removed successfully", mode->id);
 }
 
-static void handle_create(const om_event_t *om_event) {
+static void handle_create(om_event_t *om_event) {
     if (op_mode_exists(om_event->name)) {
         error_log("Op mode already exists: %s", om_event->name);
         return;
@@ -864,18 +859,20 @@ static void handle_create(const om_event_t *om_event) {
 
     strncpy(mode->name, om_event->name, MAX_OP_MODE_NAME_LEN);
     mode->order = om_event->order;
-    memcpy(mode->freq_ranges, om_event->freq_ranges, sizeof(freq_range_t) * MAX_FREQ_RANGES);
 
-    strncpy(mode->commands, om_event->commands, MAX_COMMANDS_BUF_SIZE);
-    mode->commands[MAX_COMMANDS_BUF_SIZE - 1] = '\0'; // Ensure null termination
+    mode->freq_ranges = om_event->freq_ranges;
+    om_event->freq_ranges = NULL;
+
+    mode->commands = om_event->commands ? strdup(om_event->commands) : NULL;
+
+    if (op_mode_persist(mode) != ESP_OK) {
+        error_log("Failed to persist op mode");
+        free_op_mode(mode);
+        return;
+    }
 
     linked_list_push(op_modes, mode);
     
-    if (op_mode_persist(mode) != ESP_OK) {
-        error_log("Failed to persist op mode");
-        free(mode);
-        return;
-    }
     log_op_mode(TAG, "Created op Mode: ", mode);
 
     find_op_node_by_freq();
@@ -911,14 +908,14 @@ static void handle_remove(const om_event_t *om_event) {
     send_deleted(mode);
 
     linked_list_remove(op_modes, mode);
-    free(mode);
+    free_op_mode(mode);
 
     find_op_node_by_freq();
 
     return;
 }
 
-static void handle_update(const om_event_t *om_event) {
+static void handle_update(om_event_t *om_event) {
     if (om_event->id == 0) {
         error_log("Op mode ID 0 cannot be updated");
         return;
@@ -933,9 +930,16 @@ static void handle_update(const om_event_t *om_event) {
     memcpy(mode->name, om_event->name, MAX_OP_MODE_NAME_LEN);
     mode->name[MAX_OP_MODE_NAME_LEN - 1] = '\0'; // Ensure null termination
     mode->order = om_event->order;
-    memcpy(mode->freq_ranges, om_event->freq_ranges, sizeof(freq_range_t) * MAX_FREQ_RANGES);
-    strncpy(mode->commands, om_event->commands, MAX_COMMANDS_BUF_SIZE);
-    mode->commands[MAX_COMMANDS_BUF_SIZE - 1] = '\0'; // Ensure null termination
+
+    linked_list_destroy(mode->freq_ranges, safe_free);
+    mode->freq_ranges = om_event->freq_ranges;
+    om_event->freq_ranges = NULL;
+    
+    if (mode->commands) {
+        safe_free(mode->commands);
+    }
+    mode->commands = om_event->commands;
+    om_event->commands = NULL;
 
     if (op_mode_persist(mode) != ESP_OK) {
         error_log("Failed to persist op mode");
@@ -982,32 +986,32 @@ static void op_mode_task(void *pvParameters) {
     bool is_ready = false;
 
     while(1) {
-        om_event_t om_event;
+        om_event_t *om_event;
 
         if (xQueueReceive(om_event_queue, &om_event, portMAX_DELAY) == pdPASS) {
-            switch(om_event.type) {
+            switch(om_event->type) {
             case OM_LOAD:
                 handle_load();
                 break;
             case OM_CREATE:
-                handle_create(&om_event);
+                handle_create(om_event);
                 break;
             case OM_REMOVE:
-                handle_remove(&om_event);
+                handle_remove(om_event);
                 break;
             case OM_UPDATE:
-                handle_update(&om_event);
+                handle_update(om_event);
                 break;
             case OM_REFRESH:
                 send_refresh();
                 send_config();
                 break;
             case OM_SET_CURRENT:
-                handle_set_current(&om_event);
+                handle_set_current(om_event);
                 break;
             case OM_FREQ_CHANGE:
                 if (is_ready) {
-                    handle_freq_change(om_event.frequency);
+                    handle_freq_change(om_event->frequency);
                 }
                 break;
             case OM_NEXT_COMMAND:
@@ -1020,10 +1024,11 @@ static void op_mode_task(void *pvParameters) {
                 is_ready = false;
                 break;
             default:
-                error_log("Unknown op mode event type: %d", om_event.type);
+                error_log("Unknown op mode event type: %d", om_event->type);
                 break;
             }
         }
+        free_om_event(om_event);
     }
 }
 
@@ -1039,14 +1044,19 @@ void log_op_mode(char *tag, char *prefix, const op_mode_t *mode) {
 
     len += sprintf(buf + len, "id: %lu; name: %s; Order: %d", mode->id, mode->name, mode->order);
 
+
     len += sprintf(buf + len, "; Frequency Ranges: ");
-    for (int i = 0; i < MAX_FREQ_RANGES; i++) {
-        if (len >= MAX_LOG_BUFFER_SIZE - 100) {
-            len += sprintf(buf + len, "truncating freq_ranges");
-            break;
-        }
-        if (mode->freq_ranges[i].start != 0 || mode->freq_ranges[i].end != 0) {
-            len += sprintf(buf + len, "%sstart=%lu, end=%lu", i == 0 ? "" : ", ", mode->freq_ranges[i].start, mode->freq_ranges[i].end);
+    int i = 0;
+    if (mode->freq_ranges) {
+        for (linked_list_node_t *node = linked_list_begin(mode->freq_ranges); node != NULL; node = node->next, ++i) {
+            freq_range_t *range = (freq_range_t *)node->data;
+            if (len >= MAX_LOG_BUFFER_SIZE - 100) {
+                len += sprintf(buf + len, "truncating freq_ranges");
+                break;
+            }
+            if (range && (range->start != 0 || range->end != 0)) {
+                len += sprintf(buf + len, "%sstart=%lu, end=%lu", i == 0 ? "" : ", ", range->start, range->end);
+            }
         }
     }
 
@@ -1056,13 +1066,12 @@ void log_op_mode(char *tag, char *prefix, const op_mode_t *mode) {
     }
 
     ESP_LOGI(TAG, "%s", buf);
-    free(buf);
+    safe_free(buf);
 }
 
 static void send_event(int type) {
-    om_event_t om_event;
-    memset(&om_event, 0, sizeof(om_event_t));
-    om_event.type = type;
+    om_event_t *om_event = (om_event_t *)calloc(1, sizeof(om_event_t));
+    om_event->type = type;
 
     if (xQueueSend(om_event_queue, &om_event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to queue op event");
@@ -1084,10 +1093,9 @@ static void status_notification_handler(void *context, void *data) {
 }
 
 static void send_frequency_change_event(uint32_t frequency) {
-    om_event_t om_event;
-    memset(&om_event, 0, sizeof(om_event_t));
-    om_event.type = OM_FREQ_CHANGE;
-    om_event.frequency = frequency;
+    om_event_t *om_event = (om_event_t *)calloc(1, sizeof(om_event_t));
+    om_event->type = OM_FREQ_CHANGE;
+    om_event->frequency = frequency;
 
     if (xQueueSend(om_event_queue, &om_event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to queue frequency change event");
@@ -1126,8 +1134,12 @@ void init_op_mode() {
     default_op_mode->id = 0;
     strncpy(default_op_mode->name, "Default", MAX_OP_MODE_NAME_LEN);
     default_op_mode->order = MAX_ORDER;
-    default_op_mode->freq_ranges[0].start = 0;
-    default_op_mode->freq_ranges[0].end = 47000000;
+    default_op_mode->freq_ranges = linked_list_create();
+    freq_range_t *default_range = (freq_range_t *)calloc(1, sizeof(freq_range_t));
+    default_range->start = 0;
+    default_range->end = 47000000;
+    default_op_mode->commands = strdup("");
+    linked_list_push(default_op_mode->freq_ranges, default_range);
 
     op_modes = linked_list_create();
     if (op_modes == NULL) {
@@ -1140,7 +1152,7 @@ void init_op_mode() {
         return;
     }
 
-    om_event_queue = xQueueCreate(10, sizeof(om_event_t));
+    om_event_queue = xQueueCreate(10, sizeof(om_event_t *));
     if (om_event_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create op mode event queue");
         return;
