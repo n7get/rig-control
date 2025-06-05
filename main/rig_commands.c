@@ -578,8 +578,6 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
     char buffer[RECV_BUFFER_SIZE];
     switch(response->type) {
     case SEND_TYPE_COMMAND:
-        ESP_LOGI(TAG, "rc_set_last_value: %s", response->response);
-
         prepare_notify(buffer, response->read, response->response);
         notify_callback(response->type, buffer, true);
         break;
@@ -609,16 +607,18 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
         if (cmd->flags & AUTO_FAST_F) {
             cmd->flags |= FAST_F | CHECK_FAST_UNTIL;
             cmd->fast_until = xTaskGetTickCount() + AUTO_FAST_REFRESH_TICKS;
-            ESP_LOGI(TAG, "Auto fast command: %s", cmd->cmd);
+            // ESP_LOGI(TAG, "Auto fast command: %s", cmd->cmd);
         }
 
-        prepare_notify(buffer, cmd->cmd, cmd->last_value);
-        notify_callback(response->type, buffer, true);
+        if (response->type == SEND_TYPE_POLL) {
+            prepare_notify(buffer, cmd->cmd, cmd->last_value);
+            notify_callback(response->type, buffer, true);
+        }
     } else if (cmd->flags & CHECK_FAST_UNTIL) {
         if (xTaskGetTickCount() > cmd->fast_until) {
             cmd->flags &= ~(FAST_F | CHECK_FAST_UNTIL);
             cmd->next_refresh = cmd->refresh_time;
-            ESP_LOGI(TAG, "Auto fast command expired: %s", cmd->cmd);
+            // ESP_LOGI(TAG, "Auto fast command expired: %s", cmd->cmd);
         }
     }
 }
@@ -665,8 +665,8 @@ bool rc_commands_are_same(const char *cmd1, const char *cmd2) {
     if (cmd1 == NULL || cmd2 == NULL) {
         return false;
     }
-    rig_command_t *rc1 = find_command(cmd1);
-    rig_command_t *rc2 = find_command(cmd2);
+    rig_command_t *rc1 = cmd1[0] == '?' ? find_command(cmd1 + 1) : find_command(cmd1);
+    rig_command_t *rc2 = cmd2[0] == '?' ? find_command(cmd2 + 1) : find_command(cmd2);
     if (rc1 == NULL || rc2 == NULL) {
         return false;
     }
@@ -674,10 +674,10 @@ bool rc_commands_are_same(const char *cmd1, const char *cmd2) {
 }
 
 uint32_t rc_parse_frequency(const char *value) {
-    if (value[0] == 'F' && value[1] == 'A') {
-        uint32_t freq = strtoul(value + 2, NULL, 10);
-        return freq;
-    }
+    // if (value[0] == 'F' && value[1] == 'A') {
+    //     uint32_t freq = strtoul(value + 2, NULL, 10);
+    //     return freq;
+    // }
     if (value[0] == 'I' && value[1] == 'F') {
         char freq_str[10];
         memcpy(freq_str, value + 5, 9);
@@ -698,7 +698,7 @@ bool rc_is_width_command(const char *value) {
 }
 
 char *rc_freq_command() {
-    return "FA;";
+    return "IF;";
 }
 
 bool rc_needs_update(const char *value) {

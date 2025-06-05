@@ -32,7 +32,7 @@ class rig_property_base {
     update(value) {
         const cmd = this.asCommand(value);
         if (cmd) {
-            send_message({ topic: 'command', command: cmd });
+            send_message({ topic: 'monitor', event: 'command', value: cmd });
         }
     }
 }

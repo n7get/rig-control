@@ -209,7 +209,7 @@ class op_mode {
         send_message(data);
     }
     set_current(name) {
-        send_message({ topic: 'op_mode', event: 'set_current', value: { id: this._id }});
+        send_message({ topic: 'controller', event: 'set_op_mode', value: this._name });
     }
 }
 

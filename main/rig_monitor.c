@@ -20,7 +20,6 @@ typedef enum {
     RM_EVENT_SCAN,
     RM_EVENT_REFRESH,
     RM_EVENT_START,
-    RM_EVENT_PING,
     RM_TX_POLL_SET,
     RM_TX_POLL_CLEAR,
 } rm_event_type_t;
@@ -37,7 +36,6 @@ typedef struct {
 #define CONTROL_MSG_BUSY "busy"
 #define CONTROL_MSG_NOT_READY "not_ready"
 #define CONTROL_MSG_READY "ready"
-#define CONTROL_MSG_REPLY "reply"
 
 static QueueHandle_t rm_event_queue;
 
@@ -107,9 +105,6 @@ static void log_event(rm_event_t *event, bool in_startup, bool is_ready) {
         case RM_EVENT_START:
             type_str = "START";
             break;
-        case RM_EVENT_PING:
-            type_str = "PING";
-            break;
         default:
             type_str = "UNKNOWN";
             break;
@@ -158,10 +153,6 @@ static bool event_received(bool in_startup, response_t *response) {
     rc_set_last_value(response, notify_observers);
 
     return false;
-}
-
-static void event_ping(bool in_startup, bool is_ready) {
-    notify_control(CONTROL_MSG_REPLY);
 }
 
 /**
@@ -265,10 +256,6 @@ static void rig_monitor_task(void *pvParameters) {
                     }
                     break;
 
-                case RM_EVENT_PING:
-                    event_ping(in_startup, is_ready);
-                    break;
-
                 case RM_TX_POLL_SET:
                     rc_set_tx_poll();
                     break;
@@ -344,13 +331,6 @@ void rm_queue_refresh() {
     event.type = RM_EVENT_REFRESH;
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to send refresh event to rig monitor task");
-    }
-}
-void rm_queue_ping() {
-    rm_event_t event;
-    event.type = RM_EVENT_PING;
-    while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to send ping event to rig monitor task");
     }
 }
 

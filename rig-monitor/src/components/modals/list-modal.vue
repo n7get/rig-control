@@ -67,19 +67,4 @@ const select_item = (value) => {
 function close_modal() {
     useGlobalStore().closeModal();
 }
-
-let target_op_mode = ref('');
-function delete_op_mode(name) {
-    target_op_mode.value = name;
-    open_confirm_modal.value = true;
-}
-function delete_confirmed() {
-    send_message({ topic: 'op_mode', event: 'delete', value: { name: target_op_mode.value }});
-    close_confirm_modal();
-}
-
-function add_op_mode() {
-}
-function edit_op_mode(name) {
-}
 </script>

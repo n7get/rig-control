@@ -12,7 +12,7 @@ function connect_ws() {
 
     socket.onopen = () => {
         console.log('WebSocket connected');
-        send_message({ topic: 'control', event: 'refresh' });
+        send_message({ topic: 'monitor', event: 'refresh' });
     };
 
     socket.onmessage = (event) => {
@@ -22,14 +22,14 @@ function connect_ws() {
         // }
         
         switch(message.topic) {
-        case 'update':
-            handle_update(message);
+        case 'monitor':
+            handle_monitor(message);
             break;
         case 'op_mode':
             handle_op_mode(message);
             break;
-        case 'control':
-            handle_control(message);
+        case 'controller':
+            handle_controller(message);
             break;
         default:
             console.log('Unknown message type: ', message);
@@ -46,105 +46,133 @@ function connect_ws() {
     };
 };
 
-function handle_control(message) {
+function handle_controller(message) {
+    console.log('Controller message received:', message);
     switch (message.event) {
-    case 'ready':
-        if (!useGlobalStore().isReady) {
-            useGroupsStore().groups_init();
-            console.log('Rig is ready');
-            useGlobalStore().setReady(true);
-
-            send_message({ topic: 'op_mode', event: 'refresh' });
-        }
+    case 'current_op_mode':
+        console.log('Current op mode:', message.value);
+        useOpModeStore().set_current_op_mode(message.value);
         break;
 
-    case 'not_ready':
-        if (useGlobalStore().isReady) {
-            console.log('Rig is not ready');
-            useGlobalStore().setReady(false);
-        }
-        break;
-
-    case 'ping':
-        console.log('Ping received');
-        send_message({ topic: 'control', event: 'reply' });
-        break;
-
-    case 'reply':
-        console.log('Ping reply received');
+    case 'error':
+        useGlobalStore().setError(message.value);
         break;
 
     default:
-        console.warn('Unknown control event:', message.event);
+        console.warn('Unknown controller event:', message);
         break;
     }
 }
 
 function handle_op_mode(message) {
-    // console.log('Op mode message received:', message);
-    if (message.event === 'removed') {
-        // console.log('Op mode removed:', message.value);
-        useOpModeStore().remove_op_mode(message.value);
-    } else if (message.event === 'update') {
+    console.log('Op mode message received:', message);
+    switch (message.event) {
+    case 'update':
         const om = op_mode.fromJSON(message.value);
         if (om) {
             // console.log('Op mode update:', om.asUpdate());
             useOpModeStore().add_op_mode(om);
         }
-    } else if (message.event === 'current') {
-        // console.log('Current op mode:', message.value);
-        useOpModeStore().set_current_op_mode(message.value);
-    } else if (message.event === 'refresh') {
+        break;
+
+    case 'removed':
+        console.log('Op mode removed:', message.value);
+        useOpModeStore().remove_op_mode(message.value);
+        break;
+
+    case 'refresh':
         if (message.value === 'complete') {
             console.log('Op mode refresh complete');
+            send_message({ topic: 'controller', event: 'refresh' });
         }
-    } else if (message.event === 'config') {
+        break;
+
+    case 'config':
         setConfig(message.value);
-    } else {
+        break;
+
+    case 'error':
+        useGlobalStore().setError(message.value);
+        break;
+
+    default:
         console.warn('Unknown op mode message:', message);
+        break;
     }
 }
 
-function handle_update(message) {
-    let unavailable = false;
-    let command = message.value;
-    if (message.value.substring(0,1) === '?') {
-        unavailable = true;
-        command = message.value.substring(1);
-    }
-
-    const rs = rig_setting.fromCommand(command);
-
-    if (rs.isMenu) {
-        if (unavailable) {
-            console.warn('menu setting unavailable?:', command);
+function handle_monitor(message) {
+    switch (message.event) {
+    case 'update':
+        let unavailable = false;
+        let command = message.value;
+        if (message.value.substring(0,1) === '?') {
+            unavailable = true;
+            command = message.value.substring(1);
         }
-        const rp = rig_property(rs.value.no);
-        rp.value = rs.value.value;
-    } else if (rs.name === 'information') {
-        // console.log('information:', rs.value);
-        rig_property('memory_channel').value = rs.value.memory_channel;
-        rig_property('vfo_a').value = rs.value.vfo_a;
-        rig_property('mode').value = rs.value.mode;
-    } else if (rs.name === 'opposite_band_information') {
-        // console.log('opposite_band_information:', rs.value);
-    } else {
-        // if (rs.name === 'radio_status') {
-        //     console.log('radio_status:', rs);
-        // }
-        const rp = rig_property(rs.name);
-        if (rp) {
-            rp.value = rs.value;
 
-            if (rp.unavailable && !unavailable) {
-                console.log('Has become available:', rs.name);
-            } else if (!rp.unavailable && unavailable) {
-                console.log('Has become unavailable:', rs.name);
+        const rs = rig_setting.fromCommand(command);
+
+        if (rs.isMenu) {
+            if (unavailable) {
+                console.warn('menu setting unavailable?:', command);
             }
-            rp.unavailable = unavailable;
+            const rp = rig_property(rs.value.no);
+            rp.value = rs.value.value;
+        } else if (rs.name === 'information') {
+            // console.log('information:', rs.value);
+            rig_property('memory_channel').value = rs.value.memory_channel;
+            rig_property('vfo_a').value = rs.value.vfo_a;
+            rig_property('mode').value = rs.value.mode;
+        } else if (rs.name === 'opposite_band_information') {
+            // console.log('opposite_band_information:', rs.value);
         } else {
-            console.warn('Unknown setting:', message.value);
+            // if (rs.name === 'radio_status') {
+            //     console.log('radio_status:', rs);
+            // }
+            const rp = rig_property(rs.name);
+            if (rp) {
+                rp.value = rs.value;
+
+                if (rp.unavailable && !unavailable) {
+                    console.log('Has become available:', rs.name);
+                } else if (!rp.unavailable && unavailable) {
+                    console.log('Has become unavailable:', rs.name);
+                }
+                rp.unavailable = unavailable;
+            } else {
+                console.warn('Unknown setting:', message.value);
+            }
         }
+        break;
+        
+    case 'status':
+        switch (message.value) {
+        case 'ready':
+            if (!useGlobalStore().isReady) {
+                useGroupsStore().groups_init();
+                console.log('Rig is ready');
+                useGlobalStore().setReady(true);
+
+                send_message({ topic: 'op_mode', event: 'refresh' });
+            }
+            break;
+
+        case 'not_ready':
+            if (useGlobalStore().isReady) {
+                console.log('Rig is not ready');
+                useGlobalStore().setReady(false);
+            }
+            break;
+
+        default:
+            console.warn('Unknown status value:', message.event);
+            break;
+        }
+
+    default:
+        console.warn('Unknown monitor event:', message.event);
+        break;
     }
 }
 
@@ -163,7 +191,7 @@ function send_read(read, value) {
         const rc = rig_setting.of(read, value);
         console.log('send_read', rc.asRead);
 
-        send_message({ topic: 'read', read: rc.asRead });
+        send_message({ topic: 'monitor', event: 'read', value: rc.asRead });
     } else {
         console.warn('WebSocket is not open.');
     }
@@ -173,7 +201,7 @@ function send_command(command, value) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         const rc = rig_setting.of(command, value);
 
-        send_message({ topic: 'command', command: rc.asSet });
+        send_message({ topic: 'command', event: 'command', value: rc.asSet });
     } else {
         console.warn('WebSocket is not open.');
     }

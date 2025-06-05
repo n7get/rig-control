@@ -47,7 +47,6 @@
 import { computed, onMounted, ref } from 'vue';
 import { op_mode } from '@/js/op_mode';
 import { useOpModeStore } from '@/stores/op_modes';
-import { send_message } from '@/js/web_socket';
 import IBiPencil from '~icons/bi/pencil';
 import IBiTrash3 from '~icons/bi/trash3';
 import IBiPlus from '~icons/bi/plus';

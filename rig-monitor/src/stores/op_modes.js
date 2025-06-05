@@ -30,12 +30,13 @@ export const useOpModeStore = defineStore('op_modes', () => {
     }
 
     const current_op_mode = ref(-1);
-    const set_current_op_mode = (id) => {
-        if (op_modes.value.hasOwnProperty(id)) {
-            current_op_mode.value = id;
+    const set_current_op_mode = (name) => {
+        const om = Object.values(op_modes.value).find(op_mode => op_mode.name === name);
+        if (om) {
+            current_op_mode.value = om.id;
             useGroupsStore().groups_init_op_modes();
         } else {
-            console.warn(`Op mode "${id}" does not exist.`);
+            console.warn(`Op mode "${name}" does not exist.`);
         }
     }
     const get_current_op_mode = computed(() => {

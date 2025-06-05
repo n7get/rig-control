@@ -27,3 +27,5 @@ typedef struct {
 void om_recv_from_ui(cJSON *json_obj);
 void log_op_mode(char *tag, char *prefix, const op_mode_t *mode);
 void init_op_mode();
+esp_err_t om_find_by_frequency(uint32_t frequency, char **name, char **commands);
+esp_err_t om_find_by_name(const char *name, char **commands);

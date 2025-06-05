@@ -1,18 +1,22 @@
 #include <string.h>
+
 #include "cJSON.h"
+
 #include "esp_log.h"
+
 #include "observer.h"
 #include "op_mode.h"
 #include "rig_commands.h"
+#include "rig_controller.h"
 #include "rig_monitor.h"
 #include "ui.h"
 #include "web_socket.h"
 
 #define TAG "UI"
 
-static void control_message_handler(void *context, void *data) {
+static void status_message_handler(void *context, void *data) {
     if (data == NULL) {
-        ESP_LOGE(TAG, "Received null data in control_message_handler");
+        ESP_LOGE(TAG, "Received null data in status_message_handler");
         return;
     }
 
@@ -22,8 +26,9 @@ static void control_message_handler(void *context, void *data) {
         return;
     }
 
-    cJSON_AddStringToObject(json, "topic", "control");
-    cJSON_AddStringToObject(json, "event", data);
+    cJSON_AddStringToObject(json, "topic", "monitor");
+    cJSON_AddStringToObject(json, "event", "status");
+    cJSON_AddStringToObject(json, "value", data);
 
     char *json_string = cJSON_PrintUnformatted(json);
     if (json_string == NULL) {
@@ -32,7 +37,7 @@ static void control_message_handler(void *context, void *data) {
         return;
     }
 
-    // ESP_LOGI(TAG, "Sending control notification: %s", json_string);
+    // ESP_LOGI(TAG, "Sending controller notification: %s", json_string);
     ws_send(json_string);
 
     cJSON_free(json_string);
@@ -51,7 +56,8 @@ static void update_message_handler(void *context, void *data) {
         return;
     }
 
-    cJSON_AddStringToObject(json, "topic", "update");
+    cJSON_AddStringToObject(json, "topic", "monitor");
+    cJSON_AddStringToObject(json, "event", "update");
     cJSON_AddStringToObject(json, "value", data);
 
     char *json_string = cJSON_PrintUnformatted(json);
@@ -80,52 +86,43 @@ void ui_handle_json(cJSON *json_obj) {
     }
     char *topic = topicValue->valuestring;
 
-    if (strcmp(topic, "command") == 0) {
-        cJSON *cmdValue = cJSON_GetObjectItem(json_obj, "command");
-        if (cmdValue == NULL) {
-            ESP_LOGE(TAG, "No command found in JSON");
-            return;
-        }
-        char *command = cmdValue->valuestring;
-        ESP_LOGI(TAG, "Received command: %s", command);
-
-        rm_queue_command(command, SEND_TYPE_COMMAND);
-        return;
-    }
-
-    if (strcmp(topic, "read") == 0) {
-        cJSON *cmdValue = cJSON_GetObjectItem(json_obj, "read");
-        if (cmdValue == NULL) {
-            ESP_LOGE(TAG, "No read found in JSON");
-            return;
-        }
-        char *read = cmdValue->valuestring;
-        ESP_LOGI(TAG, "Received read: %s", read);
-
-        rm_queue_command(read, SEND_TYPE_READ);
-        return;
-    }
-    
-    if (strcmp(topic, "control") == 0) {
+    if (strcmp(topic, "monitor") == 0) {
         cJSON *eventValue = cJSON_GetObjectItem(json_obj, "event");
         if (eventValue == NULL) {
-            ESP_LOGE(TAG, "No event found in JSON");
+            ESP_LOGE(TAG, "No monitor event found in JSON");
             return;
         }
         char *event = eventValue->valuestring;
-        ESP_LOGI(TAG, "Received event: %s", event);
-        
+        ESP_LOGI(TAG, "Received monitor event: %s", event);
+
         if (strcmp(event, "refresh") == 0) {
             rm_queue_refresh();
             return;
         }
-        
-        if (strcmp(event, "ping") == 0) {
-            rm_queue_ping();
+
+        cJSON *valueValue = cJSON_GetObjectItem(json_obj, "value");
+        if (valueValue == NULL || !cJSON_IsString(valueValue)) {
+            ESP_LOGE(TAG, "Missing or invalid value in JSON");
+            return;
+        }
+        char *value = valueValue->valuestring;
+
+        if (strcmp(event, "command") == 0) {
+            rm_queue_command(value, SEND_TYPE_COMMAND);
             return;
         }
 
-        ESP_LOGE(TAG, "Control event not implemented: %s", event);
+        if (strcmp(event, "read") == 0) {
+            rm_queue_command(value, SEND_TYPE_READ);
+            return;
+        }
+
+        ESP_LOGW(TAG, "Unknown monitor event: %s", event);
+        return;
+    }
+    
+    if (strcmp(topic, "controller") == 0) {
+        rt_recv_from_ui(json_obj);
         return;
     }
 
@@ -143,7 +140,6 @@ void ui_recv_json(const char *json) {
         return;
     }
 
-    ESP_LOGI(TAG, "Received json: %s", json);
     cJSON *json_obj = cJSON_Parse(json);
     if (json_obj == NULL) {
         ESP_LOGE(TAG, "Failed to parse JSON");
@@ -157,7 +153,7 @@ void ui_recv_json(const char *json) {
 
 void ui_init() {
     rig_monitor_add_observers(OBSERVE_COMMANDS | OBSERVE_UPDATES, update_message_handler, NULL);
-    rig_monitor_add_observers(OBSERVE_STATUS, control_message_handler, NULL);
+    rig_monitor_add_observers(OBSERVE_STATUS, status_message_handler, NULL);
 
     ESP_LOGI(TAG, "UI module initialized and registered for notifications");
 }
