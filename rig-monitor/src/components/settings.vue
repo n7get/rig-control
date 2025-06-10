@@ -1,42 +1,38 @@
 <template>
-    <b-card class="pb-2" no-body border-variant="secondary">
-        <b-card-header class="d-flex justify-content-center" @click="choose_group">
-            <div text-variant="white" bg-variant="secondary">
-                 {{ title }}
-            </div>
-        </b-card-header>
-        <div flush>
-            <div class="px-2 d-flex justify-content-between align-items-left bg-secondary text-light">
-                <div>Description</div>
-                <div>Value</div>
-            </div>
-            <b-list-group>
-                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
-                    v-for="rp in prop_list"
-                    :key="rp.name"
-                    @click="editSetting(rp)">
+    <property-list
+        :title="title"
+        :list="list"
+        @header-click="open_groups_modal"
+        @property-click="edit_property"
+    />
 
-                    <div :class="{ unavailable: rp.unavailable }">{{ rp.desc }}<span v-if="rp.changed">*</span></div>
-                    <div :class="{ unavailable: rp.unavailable }">{{ rp.value }}{{ rp.suffix }}</div>
-                </b-list-group-item>
-            </b-list-group>
-        </div>
-    </b-card>
+    <b-modal
+        @ok="close_modal"
+        @esc="close_modal"
+        @close="close_modal"
+        v-model="groups_modal"
+        title="Select Group"
+        ok-only
+        ok-title="Close"
+    >
+        <b-list-group>
+            <b-list-group-item v-for="group in group_list" :key="group" class="pl-5">
+                <div @click="select_group(group)">{{ group }}</div>
+            </b-list-group-item>
+        </b-list-group>
+    </b-modal>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue';
-import { useGlobalStore } from '@/stores/global';
 import { get_property_list } from '@/js/rig_property.js';
+import { useGlobalStore } from '@/stores/global';
+import { useGroupsStore } from '@/stores/groups';
 
 const props = defineProps({
     list: {
         type: Object,
         required: true,
-    },
-    open: {
-        type: String,
-        default: 'true',
     },
     title: {
         type: String,
@@ -44,16 +40,7 @@ const props = defineProps({
     },
 });
 
-const global = useGlobalStore();
-const show_settings = ref(props.open === 'true');
-
-const prop_list = computed(() => get_property_list(props.list));
-
-const choose_group = () => {
-    useGlobalStore().openModal('groups');
-}
-
-const editSetting = (rp) => {
+const edit_property = (rp) => {
     if (rp.unavailable) {
         return;
     }
@@ -63,8 +50,25 @@ const editSetting = (rp) => {
         return;
     }
 
-    useGlobalStore().openModal(rp.name);
+    useGlobalStore().openModal(rp, (value) => {
+        rp.update(value);
+    });
 }
+
+const groups_modal = ref(false);
+const group_list = computed(() => Object.keys(useGroupsStore().groups_list));
+const open_groups_modal = () => {
+    groups_modal.value = true;
+};
+const select_group = (group) => {
+    const groups_list = useGroupsStore().groups_list;
+    const g = groups_list[group];
+    useGroupsStore().set_current_group(g);
+    close_modal();
+};
+const close_modal = () => {
+    groups_modal.value = false;
+};
 </script>
 
 <style scoped>

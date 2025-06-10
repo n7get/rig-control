@@ -282,19 +282,19 @@ const mi_table = {
     1: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
+        range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     2: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
+        range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     3: {
         toUi: toUiInt,
         fromUi: fromUiIntBy20,
-	    range: {min:'20', max:'4000', step:'20', fast_step:'500'},
+        range: {min:'20', max:'4000', step:'20', fast_step:'500'},
         suffix: ' ms',
     },
     4: {

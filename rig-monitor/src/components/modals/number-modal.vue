@@ -5,13 +5,9 @@
         @esc="close_modal"
         v-model="open_modal"
         :title="title"
+        ok-only
+        ok-title="Close"
     >
-        <template #footer="{ cancel }">
-            <div class="d-flex justify-content-between w-100">
-                <command-selector :name="props.name" />
-                <b-button variant="secondary" @click="cancel">Done</b-button>
-            </div>
-        </template>
         <b-form-input
             id="form-input"
             type="range"
@@ -33,41 +29,30 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, ref } from 'vue';
+import { computed, onBeforeMount, ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-import { rig_property } from '@/js/rig_property';
 
-const props = defineProps({
-    name: {
-        type: String,
-        required: true,
-    },
-    min: {
-        type: String,
-        default: 0,
-    },
-    max: {
-        type: String,
-        default: 255,
-    },
-    step: {
-        type: String,
-        default: 1,
-    },
-    fast_step: {
-        type: String,
-        default: 10,
-    },
-});
+const modal = useGlobalStore().modal;
 
-const rp = rig_property(props.name);
+let rp = null;
 const open_modal = ref(true);
-const input_value = ref(parseInt(rp.value, 10) || 0);
+const input_value = ref(0);
 
-const min = parseInt(props.min, 10);
-const max = parseInt(props.max, 10);
-const step = parseInt(props.step, 10);
-const fast_step = parseInt(props.fast_step, 10);
+let min = 0;
+let max = 0;
+let step = 0;
+let fast_step = 0;
+
+onBeforeMount(() => {
+    rp = modal.rig_prop;
+    input_value.value = rp.value;
+
+    const range = rp.range || {};
+    min = range.hasOwnProperty('min') ? range.min : 0;
+    max = range.hasOwnProperty('max') ? range.max : 100;
+    step = range.hasOwnProperty('step') ? range.step : 1;
+    fast_step = range.hasOwnProperty('fast_step') ? range.fast_step : 10;
+});
 
 const title = computed(() => {
     return `Set ${rp.desc}: ${input_value.value}${rp.suffix}`;
@@ -81,7 +66,7 @@ function set(value) {
     } else {
         input_value.value = value;
     }
-    rp.update(input_value.value);
+    useGlobalStore().updateModal(input_value.value);
 }
 function decrement(dec) {
     set(input_value.value - dec);

@@ -6,22 +6,20 @@
             <div @click="add_op_mode"><u>Add</u></div>
         </div>
         <div class="m-3">
-            <div>
-                <b-list-group>
-                    <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
-                        v-for="om in op_modes"
-                        :key="om.name"
-                    >
-                        <div class="d-flex justify-content-between w-100">
-                            <div @click="select_op_mode(om.id)">{{ om.name }}</div>
-                            <div class="d-flex gap-3">
-                                <IBiPencil @click="edit_op_mode(om.id)" />
-                                <IBiTrash3 @click="remove_op_mode(om.id)" />
-                            </div>
+            <b-list-group>
+                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
+                    v-for="om in op_modes"
+                    :key="om.name"
+                >
+                    <div class="d-flex justify-content-between w-100">
+                        <div @click="select_op_mode(om.id)">{{ om.name }}</div>
+                        <div class="d-flex gap-3">
+                            <IBiPencil @click="edit_op_mode(om.id)" />
+                            <IBiTrash3 @click="remove_op_mode(om.id)" />
                         </div>
-                    </b-list-group-item>
-                </b-list-group>
-            </div>
+                    </div>
+                </b-list-group-item>
+            </b-list-group>
         </div>
     </div>
 
@@ -42,7 +40,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeMount, ref } from 'vue';
 import { op_mode } from '@/js/op_mode';
 import { useOpModeStore } from '@/stores/op_modes';
 import IBiPencil from '~icons/bi/pencil';
@@ -56,12 +54,19 @@ function back() {
     router.back();
 }
 
-const op_modes = useOpModeStore().op_modes
 const open_list_modal = ref(false);
 const open_confirm_modal = ref(false);
 
 let op_mode_id = -1;
 const op_mode_name = ref('');
+
+const op_modes = computed(() => {
+    return Object.values(useOpModeStore().op_modes).sort((a, b) => {
+        if (a.name === 'Default') return 1;
+        if (b.name === 'Default') return -1;
+        return a.name.localeCompare(b.name);
+    });
+});
 
 function select_op_mode(id) {
     const om = op_mode.fromObject(useOpModeStore().get_op_mode(id));

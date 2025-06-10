@@ -1,6 +1,11 @@
 <template>
     <div>
         <div class="col-sm-12 col-md-6 col-lg-4 px-0">
+            <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
+                <div @click="open_config"><u>Config</u></div>
+                <div><b>FT-991A</b></div>
+                <div @click="open_mem_chan"><u>Mem chans</u></div>
+            </div>
             <b-container fluid>
                 <b-row class="mt-2">
                     <b-col class="col-3">
@@ -23,25 +28,6 @@
             </b-container>
             <groups />
         </div>
-  
-        <settings-modal />
-
-        <b-modal
-            id="alert"
-            size="sm"
-            @ok="handleOk"
-            no-close-on-esc
-            no-close-on-backdrop
-            ok-only
-            hide-header-close
-            header-bg-variant="danger"
-            header-text-variant="light"
-        >
-            <template #modal-title>
-                High SWR
-            </template>
-            <div>Transmit is disabled until OK is clicked.</div>
-        </b-modal>
     </div>
 </template>
 
@@ -54,7 +40,6 @@ import frequency from '@/components/frequency.vue';
 import controls from '@/components/controls.vue'
 import groups from '@/components/groups.vue';
 // import radioStatus from '@/components/radio_status.vue'
-import settingsModal from '@/components/modals/settings-modal.vue';
 
 const router = useRouter();
 
@@ -68,8 +53,11 @@ const open_op_modes = () => {
     router.push({ name: 'op_modes' });
 }
 
-const handleOk = (e) => {
-    // uibuilder.send({topic: 'rig_status', event: 'enable_transmit', value: true});
+const open_config = () => {
+    // router.push({ name: 'config' });
+}
+const open_mem_chan = () => {
+    router.push({ name: 'mem_chans' });
 }
 </script>
 

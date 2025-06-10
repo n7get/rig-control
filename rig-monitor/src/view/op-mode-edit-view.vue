@@ -57,11 +57,11 @@
                             placeholder="End Frequency"
                             :state="fr_state(index, 1)"
                         ></b-form-input>
-                        <b-button variant="danger" @click="removeFrequencyRange(index)"><IBiXLg /></b-button>
+                        <b-button variant="danger" @click="remove_frequency_range(index)"><IBiXLg /></b-button>
                     </div>
                     <div v-if="errors('freq_ranges', index)" class="text-danger"><i>{{ errors('freq_ranges', index) }}</i></div>
                 </div>
-                <div v-if="at_max_freq_ranges">
+                <div>
                     <div class="d-flex gap-2 mb-2">
                     <b-form-input
                         v-model.lazy="freq_ranges_start"
@@ -77,7 +77,7 @@
                         :state="null"
                         required
                     ></b-form-input>
-                    <b-button variant="primary" @click="addFrequencyRange()"><IBiPlus /></b-button>
+                    <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
                     </div>
                     <div v-if="freq_inputs_error" class="text-danger"><i>{{ freq_inputs_error }}</i></div>
                 </div>
@@ -92,18 +92,25 @@
                     <b-button class="mt-2" variant="primary" @click="parse_json">Parse JSON</b-button>
                 </div>
             </b-form-group>
+            <command-list 
+                @add-command="add_command"
+                @remove-command="remove_command"
+                @update-command="update_command"
+                :commands="om.commands" />
         </div>
     </div>
 </template>
 
 <script setup>
-import { computed, watchEffect, ref } from 'vue';
+import { computed, onBeforeMount, ref } from 'vue';
 import { useOpModeStore } from '@/stores/op_modes';
 import IBiPlus from '~icons/bi/plus';
 import IBiXLg from '~icons/bi/x-lg';
 import { useRouter } from 'vue-router';
+import { rig_property } from '@/js/rig_property.js';
 import { config, freq_range, op_mode } from '@/js/op_mode';
 import { conv_freq, is_in_band } from '@/js/freq_utils';
+import commandList from '@/components/command-list.vue';
 
 const router = useRouter();
 
@@ -139,33 +146,24 @@ const errors = (field, index = null) => {
             return error_messages.name || null;
         case 'order':
             return error_messages.order || null;
-        case 'freq_ranges':
-            const messages = error_messages.freq_ranges || [];
-            if (index !== null && messages[index]) {
-                return messages[index];
-            }
-            return null;
         default:
             return null;
     }
 };
 
-watchEffect(() => {
+onBeforeMount(() => {
     if (props.id) {
-        const id = parseInt(props.id, 10);
-        const om_ref = useOpModeStore().get_op_mode(id);
+        const om_ref = useOpModeStore().get_op_mode(props.id);
         if (om_ref) {
             om.value = op_mode.fromObject(om_ref).asObject(); // Deep copy
         } else {
-            console.error('Op mode not found for ID:', id);
+            console.error('Op mode not found for ID:', props.id);
         }
     } else {
         om.value = new op_mode().asObject();
+        const rp = rig_property('mode');
+        add_command({ name: rp.name, value: ref(rp.value) });
     }
-});
-
-const at_max_freq_ranges = computed(() => {
-    return !(om.value.freq_ranges.length >= config['MAX_FREQ_RANGES']);
 });
 
 function fr_state(index, type) {
@@ -181,7 +179,7 @@ function fr_state(index, type) {
 }
 
 const freq_inputs_error = ref(null);
-function addFrequencyRange() {
+function add_frequency_range() {
     const fr = new freq_range(freq_ranges_start.value, freq_ranges_end.value);
     freq_inputs_error.value = fr.validate();
 
@@ -191,9 +189,32 @@ function addFrequencyRange() {
         freq_ranges_end.value = 0;
     }
 }
-function removeFrequencyRange(index) {
+function remove_frequency_range(index) {
     if (index >= 0 && index < om.value.freq_ranges.length) {
         om.value.freq_ranges.splice(index, 1);
+    }
+}
+
+function add_command(command) {
+    const isPresent = om.value.commands.find(c => c.name === command.name);
+    if (isPresent) {
+        console.warn('Command already exists:', command.name);
+        return;
+    }
+    om.value.commands.push(command);
+}
+function remove_command(name) {
+    const index = om.value.commands.findIndex(c => c.name === name);
+    if (index !== -1) {
+        om.value.commands.splice(index, 1);
+    }
+}
+function update_command(command) {
+    const index = om.value.commands.findIndex(c => c.name === command.name);
+    if (index !== -1) {
+        om.value.commands[index].value = command.value;
+    } else {
+        console.warn('Command not found for update:', command.name);
     }
 }
 
@@ -210,18 +231,16 @@ function parse_json() {
         console.error('Error parsing JSON:', e);
     }
 }
+
 function save_op_mode() {
     if (Object.keys(error_messages).length > 0) {
-        console.log('Trying to save with Validation errors:', error_messages);
         return;
     }
 
     const o = op_mode.fromObject(om.value);
     if (props.edit === 'true') {
-        console.log('Updating op mode:', o.name);
         o.update();
     } else {
-        console.log('Creating op mode:', om.value.name);
         o.create();
     }
     router.back();

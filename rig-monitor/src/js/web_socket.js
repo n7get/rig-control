@@ -65,7 +65,7 @@ function handle_controller(message) {
 }
 
 function handle_op_mode(message) {
-    console.log('Op mode message received:', message);
+    // console.log('Op mode message received:', message);
     switch (message.event) {
     case 'update':
         const om = op_mode.fromJSON(message.value);
@@ -169,9 +169,10 @@ function handle_monitor(message) {
             console.warn('Unknown status value:', message.event);
             break;
         }
+        break;
 
     default:
-        console.warn('Unknown monitor event:', message.event);
+        console.warn('Unknown monitor event:', message);
         break;
     }
 }

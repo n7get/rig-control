@@ -1,6 +1,6 @@
 'use strict;'
 
-import { from_ui, to_ui } from '../js/rig_menu.js';
+import { from_ui, to_ui } from '@/js/rig_menu.js';
 
 function isEmptyValue(value) {
     if(typeof(value) === 'string' && value.length === 0) {
@@ -552,6 +552,7 @@ const rig_commands = {
     'FA': {
         cmd: 'FA',
         name: 'vfo_a',
+        editor: 'property_edit_vfo',
         desc: 'FREQUENCY_VFO-A',
         asSetValue() {
             return this._rc.cmd + pad9(this.value) + ';';
@@ -564,6 +565,7 @@ const rig_commands = {
     'FB': {
         cmd: 'FB',
         name: 'vfo_b',
+        editor: 'property_edit_vfo',
         desc: 'FREQUENCY_VFO-B',
         asSetValue() {
             return this._rc.cmd + pad9(this.value) + ';';
@@ -739,7 +741,7 @@ const rig_commands = {
     'MD0': {
         cmd: 'MD0',
         name: 'mode',
-        list: Object.keys(modes_cat),
+        list: Object.keys(modes_cat).sort((a, b) => a.localeCompare(b)),
         desc: 'MODE',
         asSetValue() {
             return this._rc.cmd + modes_cat[this.value] + ';';

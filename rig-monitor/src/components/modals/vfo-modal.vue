@@ -5,6 +5,7 @@
             @ok="handle_ok"
             @esc="close_modal"
             @cancel="close_modal"
+            @close="close_modal"
             v-model="freq_model"
             :title="title"
         >
@@ -27,31 +28,23 @@
 </template>
 
 <script setup>
-import { computed, useTemplateRef, ref } from 'vue';
-import { rig_property } from '@/js/rig_property.js';
+import { computed, onBeforeMount, ref } from 'vue';
 import { conv_freq, format_freq } from '@/js/freq_utils.js';
 import { useGlobalStore } from '@/stores/global';
 
-const props = defineProps({
-    vfo: {
-        type: String,
-        default: 'vfo_a',
-        validator: function (value) {
-            return ['vfo_a', 'vfo_b'].indexOf(value) !== -1
-        },
-    }
-});
-// const vfo = props.vfo;
+const modal = useGlobalStore().modal;
 
 const freq_model = ref(true);
 const freq_input = ref('');
 const freq_input_state = ref(null);
+const title = ref('');
 
-const rp = rig_property(props.vfo);
-freq_input.value = rp.value;
+let rp = null;
 
-const title = computed(() => {
-    return `Set ${props.vfo.toUpperCase()} Frequency`;
+onBeforeMount(() => {
+    rp = modal.rig_prop;
+    freq_input.value = rp.value;
+    title.value = `Set ${rp.name.toUpperCase().replace('_', ' ')} Frequency`;
 });
 
 const getFreq = () => {
@@ -99,8 +92,8 @@ const handle_ok = (e) => {
     var new_freq = conv_freq(freq_input.value);
 
     if(new_freq) {
+        useGlobalStore().updateModal(new_freq);
         close_modal();
-        rp.update(new_freq);
     }
     else {
         freq_input_state.value = false;

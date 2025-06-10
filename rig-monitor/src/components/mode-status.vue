@@ -13,6 +13,8 @@ import { rig_property } from '@/js/rig_property.js';
 const mode = rig_property('mode');
 
 const open_modal = (e) => {
-    useGlobalStore().openModal('mode');
+    useGlobalStore().openModal(mode, (value) => {
+        mode.update(value);
+    });
 };
 </script>

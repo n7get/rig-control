@@ -1,62 +1,27 @@
 <template v-if="modal.open">
-    <boolean-modal :name="name" v-if="open_modal === 'boolean'" />
-    <number-modal :min="min" :max="max" :step="step" :fast_step="fast_step" :name="name" v-if="open_modal === 'number'" />
-    <list-modal :name="name" :list="list" v-if="open_modal === 'list'" />
-    <groups-modal v-if="modal.name === 'groups'" />
-    <vfo-modal vfo="vfo_a" v-if="modal.name === 'vfo_a'" />
-    <vfo-modal vfo="vfo_b" v-if="modal.name === 'vfo_b'" />
+    <boolean-modal v-if="modal_type === 'boolean'" />
+    <number-modal v-if="modal_type === 'number'" />
+    <list-modal v-if="modal_type === 'list'" />
+    <vfo-modal vfo="vfo_a" v-if="modal_type === 'vfo_a'" />
+    <vfo-modal vfo="vfo_b" v-if="modal_type === 'vfo_b'" />
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-import { rig_property } from '@/js/rig_property.js';
-
-import booleanModal from './boolean-modal.vue';
-import groupsModal from './groups-modal.vue';
-import listModal from './list-modal.vue';
-import numberModal from './number-modal.vue';
-import vfoModal from './vfo-modal.vue';
 
 const modal = useGlobalStore().modal;
 
-const name = ref('name');
-const min = ref(0);
-const max = ref(100);
-const step = ref(1);
-const fast_step = ref(10);
-const list = ref([]);
-
-const open_modal = computed(() => {
+const modal_type = computed(() => {
     if (modal.open) {
-        if (modal.name === 'groups') {
-            return 'groups';
-        }
+        const rp = modal.rig_prop;
 
-        const rp = rig_property(modal.name);
+        if (rp.isBoolean()) return 'boolean';
+        if (rp.list) return 'list';
+        if (rp.range) return 'number';
+        if (rp) return rp.name;
 
-        if (rp.isBoolean()) {
-            name.value = rp.name;
-            return 'boolean';
-        }
-
-        if (rp.list) {
-            name.value = rp.name;
-            list.value = rp.list;
-            return 'list';
-        }
-
-        const range = rp.range;
-        if (range) {
-            min.value = range.hasOwnProperty('min') ? range.min : '0';
-            max.value = range.hasOwnProperty('max') ? range.max : '100';
-            step.value = range.hasOwnProperty('step') ? range.step : '1';
-            fast_step.value = range.hasOwnProperty('fast_step') ? range.fast_step : '10';
-            name.value = rp.name;
-            return 'number';
-        }
         return undefined;
     }
-
 });
 </script>

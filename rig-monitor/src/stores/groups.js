@@ -186,7 +186,7 @@ export const useGroupsStore = defineStore('groups', () => {
     const groups_init_op_modes = () => {
         const current_op_modes = useOpModeStore().get_current_op_mode;
         if (current_op_modes) {
-            groups.value['OP_MODES'] = Object.keys(current_op_modes.commands).map(name => (name));
+            groups.value['OP_MODES'] = current_op_modes.commands.map(cmd => cmd.name);
         } else {
             groups.value['OP_MODES'] = [];
         }

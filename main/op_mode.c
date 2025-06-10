@@ -669,6 +669,7 @@ static void handle_ui_event(const char *event, cJSON *json_obj) {
         return;
     }
 
+    free_op_mode(mode);
     error_log("error", "Unknown op mode event: %s", event);
 }
 

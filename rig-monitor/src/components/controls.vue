@@ -68,12 +68,6 @@
 import { computed } from 'vue';
 import { rig_property } from '@/js/rig_property.js';
 
-import sMeter from '@/components/s-meter.vue';
-import powerLevel from '@/components/power-level.vue';
-import sLevel from '@/components/s-level.vue';
-import sLevelToggle from '@/components/s-level-toggle.vue';
-import sButton from '@/components/s-button.vue';
-
 const meter_sw = rig_property('meter_sw');
 const mode = rig_property('mode');
 const transmit = rig_property('transmit');

@@ -25,10 +25,11 @@ const props = defineProps({
     }
 });
 
+const vfo = rig_property(props.vfo);
 const transmit = rig_property('transmit');
 
 const getFreq = () => {
-    let value = rig_property(props.vfo).value;
+    let value = vfo.value;
     if (!value) {
         return '000000000';
     }
@@ -62,7 +63,9 @@ const hz = computed(() => {
 });
 
 const freqHandleClicks = () => {
-    useGlobalStore().openModal(props.vfo)
+    useGlobalStore().openModal(vfo, (value) => {
+        vfo.update(value);
+    });
 }
 </script>
 

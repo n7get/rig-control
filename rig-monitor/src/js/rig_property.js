@@ -1,3 +1,4 @@
+import { ref } from 'vue';
 import { useMenusStore } from '@/stores/menus.js';
 import { useSettingsStore } from '@/stores/settings.js';
 import { menu_list, menu_range, menu_suffix } from '@/js/rig_menu.js';
@@ -79,13 +80,21 @@ class setting_property extends rig_property_base {
 }
 
     
-function rig_property(name) {
+function rig_property(name, value) {
     if (useSettingsStore().settings.hasOwnProperty(name)) {
-        return new setting_property(name, useSettingsStore().settings[name])
+        let settings = useSettingsStore().settings[name];
+        if (value !== undefined) {
+            settings = { ...settings, value: ref(value) };
+        }
+        return new setting_property(name, settings)
     }
 
     if (useMenusStore().menus.hasOwnProperty(name)) {
-        return new manu_property(name, useMenusStore().menus[name])
+        let menus = useMenusStore().menus[name];
+        if (value !== undefined) {
+            menus = { ...menus, value: ref(value) };
+        }
+        return new manu_property(name, menus)
     }
 
     debugger;

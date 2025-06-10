@@ -10,7 +10,6 @@ function setConfig(newConfig) {
     config = { ...newConfig };
 }
 
-
 class freq_range {
     constructor(start, end) {
         this._start = conv_freq(start) || start;
@@ -67,7 +66,7 @@ class op_mode {
         this._name = name ? name.trim() : '';
         this._freq_ranges = freq_ranges || [];
         this._order = order ? parseInt(order, 10) : 0;
-        this._commands = commands || {};
+        this._commands = commands || [];
     }
 
     get id() { return this._id; }
@@ -112,32 +111,36 @@ class op_mode {
     }
 
     asUpdate() {
+        const freq_ranges = this._freq_ranges
+            .map(fr => ({ start: fr.start, end: fr.end }));
+
+        const commands = this._commands
+            .map(cmd => rig_property(cmd.name, cmd.value))
+            .map(rp => rp.asCommand(rp.value.value))
+            .join(';') + ';';
+
         return {
             id: this._id,
             name: this._name,
-            freq_ranges: this._freq_ranges.map(t => ({ start: t.start, end: t.end })),
+            freq_ranges,
             order: this._order,
-            commands: Object.entries(this._commands).map(([key, value]) => {
-                const rp = rig_property(key);
-                return rp.asCommand(value);
-            }).reduce((acc, cmd) => {
-                return acc + cmd;
-            }, ''),
+            commands,
         };
     }
 
     asObject() {
-        const commands = {};
-        Object.entries(this._commands).forEach(([key, value]) => {
-            commands[key] = value;
-        });
+        const freq_ranges = this._freq_ranges
+            .map(fr => ({ start: fr.start, end: fr.end }));
+
+        const commands = this._commands
+            .map(cmd => ({ name: cmd.name, value: cmd.value }));
 
         return {
             id: this._id,
             name: this._name,
-            freq_ranges: this._freq_ranges.map(t => ({ start: t.start, end: t.end })),
+            freq_ranges,
             order: this._order,
-            commands: commands,
+            commands,
         };
     }
 
@@ -145,18 +148,16 @@ class op_mode {
         if (!json) {
             return null;
         }
-        
-        const commands = {};
-        if (json.commands && json.commands.length > 0) {
-            json.commands.split(';').filter(cmd => cmd.trim() !== '').map(cmd => cmd + ';').forEach(cmd => {
-                const rs = rig_setting.fromCommand(cmd);
+
+        const commands = json.commands.split(';')
+            .filter(cmd => cmd.trim() !== '')
+            .map(cmd => rig_setting.fromCommand(cmd + ';'))
+            .map(rs => {
                 if (rs.isMenu) {
-                    commands[rs.value.no] = rs.value.value;
-                } else {
-                    commands[rs.name] = rs.value;
+                    return { name: rs.value.no, value: rs.value.value };
                 }
+                return { name: rs.name, value: rs.value };
             });
-        }
 
         return new op_mode(
             json.id,
@@ -167,20 +168,22 @@ class op_mode {
         );
     }
 
-    static fromObject(value) {
-        if (!value) {
+    static fromObject(obj) {
+        if (!obj) {
             return null;
         }
 
-        const json = JSON.stringify(value);
-        const obj = JSON.parse(json);
+        const freq_ranges = obj.freq_ranges ? obj.freq_ranges.map(t => new freq_range(t.start, t.end)) : [];
+
+        const commands = obj.commands
+            .map(cmd => ({ name: cmd.name, value: cmd.value }));
 
         return new op_mode(
             obj.id,
             obj.name,
-            obj.freq_ranges ? obj.freq_ranges.map(t => new freq_range(t.start, t.end)) : [],
+            freq_ranges,
             obj.order,
-            obj.commands
+            commands
         );
     }
 

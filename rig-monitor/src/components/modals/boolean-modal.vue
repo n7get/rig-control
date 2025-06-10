@@ -1,55 +1,49 @@
 <template>
-        <b-modal
-            focus="form-input"
-            @ok="close_modal"
-            @esc="close_modal"
-            @cancel="close_modal"
-            v-model="open_modal"
-            :title="title"
+    <b-modal
+        focus="form-input"
+        @ok="close_modal"
+        @esc="close_modal"
+        @close="close_modal"
+        v-model="open_modal"
+        :title="title"
+        ok-only
+        ok-title="Close"
         >
-            <template #footer="{ cancel }">
-                <div class="d-flex justify-content-between w-100">
-                    <command-selector :name="props.name" />
-                    <b-button variant="secondary" @click="cancel">Done</b-button>
-                </div>
-            </template>
-            <div class="d-flex gap-3 justify-content-center">
-                <b-form-checkbox
-                    id="form-input"
-                    @change="set"
-                    reverse switch
-                    size="lg"
-                    v-model="input_value"
-                >{{ rp.desc }}</b-form-checkbox>
-            </div>
-        </b-modal>
+        <div class="d-flex gap-3 justify-content-center">
+            <b-form-checkbox
+                id="form-input"
+                @change="set"
+                reverse switch
+                size="lg"
+                v-model="input_value"
+            >{{ rp.desc }}</b-form-checkbox>
+        </div>
+    </b-modal>
 </template>
 
 <script setup>
-import { computed, useTemplateRef, ref } from 'vue';
-import { rig_property } from '@/js/rig_property.js';
+import { computed, onBeforeMount, ref } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-import commandSelector from '@/components/command-selector.vue';
 
-const props = defineProps({
-    name: {
-        type: String,
-        required: true,
-    },
-});
+const modal = useGlobalStore().modal;
 
 const open_modal = ref(true);
 const input_value = ref(true);
 
-const rp = rig_property(props.name);
-input_value.value = rp.value;
+let rp = null;
+
+onBeforeMount(() => {
+    rp = modal.rig_prop;
+    input_value.value = rp.value;
+});
 
 const title = computed(() => {
     return `Set ${rp.desc}`;
 });
 
 const set = (e) => {
-    rp.update(input_value.value);
+    useGlobalStore().updateModal(input_value.value);
+    close_modal();
 }
 
 function close_modal() {
