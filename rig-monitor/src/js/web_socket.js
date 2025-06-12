@@ -8,12 +8,28 @@ import { useMemChanStore } from '@/stores/mem_chans';
 import { useOpModeStore } from '@/stores/op_modes';
 
 let socket = null;
-function connect_ws() {
-    socket = new WebSocket('http://192.168.68.57:8080');
+function connect_ws(ws_url, try_dev = false) {
+    socket = new WebSocket(ws_url);
 
     socket.onopen = () => {
         console.log('WebSocket connected');
         send_message({ topic: 'monitor', event: 'refresh' });
+    };
+
+    socket.onclose = () => {
+        console.log('WebSocket disconnected');
+    };
+
+    socket.onerror = (error) => {
+        const dev_url = 'http://192.168.68.57:8080';
+
+        if (try_dev) {
+            console.log('origin URL failed, try development URL: ', dev_url);
+            connect_ws(dev_url);
+            return;
+        }
+
+        console.error('WebSocket error:', error);
     };
 
     socket.onmessage = (event) => {
@@ -39,14 +55,6 @@ function connect_ws() {
             console.log('Unknown message type: ', message);
             break;
         }
-    };
-
-    socket.onclose = () => {
-        console.log('WebSocket disconnected');
-    };
-
-    socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
     };
 };
 

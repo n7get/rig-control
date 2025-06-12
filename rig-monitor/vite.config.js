@@ -6,6 +6,8 @@ import Icons from 'unplugin-icons/vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import Components from 'unplugin-vue-components/vite'
 import {BootstrapVueNextResolver} from 'bootstrap-vue-next'
+import { compression } from 'vite-plugin-compression2'
+import { copy } from 'vite-plugin-copy'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -18,6 +20,15 @@ export default defineConfig({
     Icons({
       compiler: 'vue3',
     }),
+    compression({
+      algorithms: [
+        'gzip',
+      ],
+    }),
+    copy([
+      { src: './dist/*.gz', dest: '../html/' },
+      { src: './dist/assets/*.gz', dest: '../html/assets/' },
+    ]),
   ],
   resolve: {
     alias: {

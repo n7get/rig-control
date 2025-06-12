@@ -1,5 +1,3 @@
-'use strict;'
-
 import { from_ui, to_ui } from '@/js/rig_menu.js';
 
 function isEmptyValue(value) {
