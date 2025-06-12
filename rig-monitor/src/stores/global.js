@@ -47,6 +47,7 @@ export const useGlobalStore = defineStore('global', () => {
 	
 	return {
 		ready, setReady, isReady, 
+		has_error, error_message, setError, clearError,
 		modal, updateModal, openModal, closeModal,
 	 };
 })

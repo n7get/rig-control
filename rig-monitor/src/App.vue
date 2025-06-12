@@ -26,10 +26,8 @@
     header-bg-variant="danger"
     header-text-variant="light"
     v-model="has_error"
+    titele="Error!!"
 >
-    <template #modal-title>
-        Error
-    </template>
     <div>{{ error_message }}</div>
 </b-modal>
 
@@ -57,8 +55,8 @@ import { useGlobalStore } from '@/stores/global';
 
 const isReady = computed(() => useGlobalStore().ready);
 
-const has_error = useGlobalStore().has_error;
-const error_message = useGlobalStore().error_message;
+const has_error = computed(() => useGlobalStore().has_error);
+const error_message = computed(() => useGlobalStore().error_message);
 const close_error = (e) => {
     useGlobalStore().clearError();
 }

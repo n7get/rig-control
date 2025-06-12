@@ -61,42 +61,50 @@
                     </div>
                     <div v-if="errors('freq_ranges', index)" class="text-danger"><i>{{ errors('freq_ranges', index) }}</i></div>
                 </div>
+
                 <div>
                     <div class="d-flex gap-2 mb-2">
-                    <b-form-input
-                        v-model.lazy="freq_ranges_start"
-                        type="number"
-                        placeholder="Start Frequency"
-                        :state="null"
-                        required
-                    ></b-form-input>
-                    <b-form-input
-                        v-model.lazy="freq_ranges_end"
-                        type="number"
-                        placeholder="End Frequency"
-                        :state="null"
-                        required
-                    ></b-form-input>
-                    <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
+                        <b-form-input
+                            v-model.lazy="freq_ranges_start"
+                            type="number"
+                            placeholder="Start Frequency"
+                            :state="null"
+                            required
+                        ></b-form-input>
+                        <b-form-input
+                            v-model.lazy="freq_ranges_end"
+                            type="number"
+                            placeholder="End Frequency"
+                            :state="null"
+                            required
+                        ></b-form-input>
+                        <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
                     </div>
                     <div v-if="freq_inputs_error" class="text-danger"><i>{{ freq_inputs_error }}</i></div>
                 </div>
-                <div v-if="props.edit != 'true'" class="mt-4 border-top pt-4">
-                    <b-form-textarea
-                    id="textarea"
-                    v-model="op_mode_text"
-                    placeholder="Pase Op Mode JSON text here..."
-                    rows="6"
-                    max-rows="12"
-                    ></b-form-textarea>
-                    <b-button class="mt-2" variant="primary" @click="parse_json">Parse JSON</b-button>
-                </div>
             </b-form-group>
-            <command-list 
+
+            <command-list
                 @add-command="add_command"
                 @remove-command="remove_command"
                 @update-command="update_command"
                 :commands="om.commands" />
+
+            <div v-if="props.edit != 'true'" class=" border-top pt-4">
+                <b-form-group
+                    class="mt-2"
+                    label="Op Mode JSON:"
+                    label-for="op-mode-json"
+                >
+                    <b-form-textarea
+                        id="textarea"
+                        v-model="op_mode_text"
+                        placeholder="Pase Op Mode JSON text here..."
+                        rows="6"
+                        max-rows="12" />
+                    <b-button class="mt-2" variant="primary" @click="parse_json">Parse JSON</b-button>
+                </b-form-group>
+            </div>
         </div>
     </div>
 </template>

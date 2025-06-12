@@ -8,7 +8,7 @@
 #include "linked_list.h"
 
 #define OP_MODE_NAMESPACE "op_mode"
-#define MAX_OP_MODE_NAME_LEN 14
+#define MAX_OP_MODE_NAME_LEN 32
 #define MAX_ORDER 255
 
 typedef struct {
@@ -27,5 +27,5 @@ typedef struct {
 void om_recv_from_ui(cJSON *json_obj);
 void log_op_mode(char *tag, char *prefix, const op_mode_t *mode);
 void init_op_mode();
-esp_err_t om_find_by_frequency(uint32_t frequency, char **name, char **commands);
-esp_err_t om_find_by_name(const char *name, char **commands);
+linked_list_t *om_find_by_frequency(char **name, uint32_t frequency);
+linked_list_t *om_find_by_name(const char *name);

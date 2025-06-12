@@ -1,10 +1,11 @@
-import { op_mode } from '@/js/op_mode.js';
+import { mem_chan, set_mem_chan_config } from '@/js/mem_chan.js';
+import { op_mode, set_op_mode_config } from '@/js/op_mode.js';
 import { rig_setting } from '../js/rig_setting.js';
 import { rig_property } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
 import { useGroupsStore } from '@/stores/groups';
+import { useMemChanStore } from '@/stores/mem_chans';
 import { useOpModeStore } from '@/stores/op_modes';
-import { setConfig } from '@/js/op_mode.js'
 
 let socket = null;
 function connect_ws() {
@@ -22,14 +23,17 @@ function connect_ws() {
         // }
         
         switch(message.topic) {
+        case 'controller':
+            handle_controller(message);
+            break;
         case 'monitor':
             handle_monitor(message);
             break;
         case 'op_mode':
             handle_op_mode(message);
             break;
-        case 'controller':
-            handle_controller(message);
+        case 'mem_chan':
+            handle_mem_chan(message);
             break;
         default:
             console.log('Unknown message type: ', message);
@@ -83,12 +87,12 @@ function handle_op_mode(message) {
     case 'refresh':
         if (message.value === 'complete') {
             console.log('Op mode refresh complete');
-            send_message({ topic: 'controller', event: 'refresh' });
+            send_message({ topic: 'mem_chan', event: 'refresh' });
         }
         break;
 
     case 'config':
-        setConfig(message.value);
+        set_op_mode_config(message.value);
         break;
 
     case 'error':
@@ -97,6 +101,43 @@ function handle_op_mode(message) {
 
     default:
         console.warn('Unknown op mode message:', message);
+        break;
+    }
+}
+
+function handle_mem_chan(message) {
+    console.log('Mem chan message received:', message);
+    switch (message.event) {
+    case 'update':
+        const mc = mem_chan.fromJSON(message.value);
+        if (mc) {
+            console.log('Mem chan update:', mc.asUpdate());
+            useMemChanStore().add_mem_chan(mc);
+        }
+        break;
+
+    case 'removed':
+        console.log('Mem chan removed:', message.value);
+        useMemChanStore().remove_mem_chan(message.value);
+        break;
+
+    case 'refresh':
+        if (message.value === 'complete') {
+            console.log('Mem chan refresh complete');
+            send_message({ topic: 'controller', event: 'refresh' });
+        }
+        break;
+
+    case 'config':
+        set_mem_chan_config(message.value);
+        break;
+
+    case 'error':
+        useGlobalStore().setError(message.value);
+        break;
+
+    default:
+        console.warn('Unknown mem chan message:', message);
         break;
     }
 }

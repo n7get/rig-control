@@ -20,6 +20,17 @@ const routes = [
       component: opModesEdit,
       props: true,
   },
+  {
+    path: '/mem_chans',
+    name: 'mem_chans',
+    component: () => import('@/view/mem-chans-view.vue'),
+  },
+  {
+    path: '/mem_chan_edit/:edit/:id?',
+    name: 'mem_chan_edit',
+    component: () => import('@/view/mem-chan-edit-view.vue'),
+    props: true,
+  },
 ]
 
 const router = createRouter({

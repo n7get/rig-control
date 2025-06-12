@@ -10,6 +10,7 @@
 #include "nvs_flash.h"
 #include "esp_err.h"
 
+#include "command_list.h"
 #include "config.h"
 #include "linked_list.h"
 #include "op_mode.h"
@@ -697,7 +698,7 @@ void om_recv_from_ui(cJSON *json_obj) {
     xSemaphoreGive(op_modes_mutex);
 }
 
-esp_err_t om_find_by_frequency_in_mutex(uint32_t frequency, char **name, char **commands) {
+linked_list_t *om_find_by_frequency_in_mutex(char **name, uint32_t frequency) {
 
     // TODO: Manual mode
     
@@ -719,70 +720,70 @@ esp_err_t om_find_by_frequency_in_mutex(uint32_t frequency, char **name, char **
 
     if (candidate == NULL) {
         ESP_LOGE(TAG, "No op mode found for frequency %lu, using default", frequency);
-        return ESP_FAIL;
+        return NULL;
     }
     
     *name = strdup(candidate->name);
     if (*name == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for op mode name");
-        return ESP_FAIL;
+        return NULL;
     }
 
-    *commands = strdup(candidate->commands);
-    if (*commands == NULL) {
+    linked_list_t *list = command_list_create(candidate->commands);
+    if (list == NULL) {
         ESP_LOGE(TAG, "Failed to allocate memory for op mode commands");
         safe_free(*name);
-        return ESP_FAIL;
+        return NULL;
     }
 
-    return ESP_OK;
+    return list;
 }
 
-esp_err_t om_find_by_frequency(uint32_t frequency, char **name, char **commands) {
+linked_list_t *om_find_by_frequency(char ** name, uint32_t frequency) {
     if (xSemaphoreTake(op_modes_mutex, pdMS_TO_TICKS(2000)) != pdTRUE) {
         error_log("update_op_mode(): Failed to take op modes mutex");
-        return ESP_FAIL;
+        return NULL;
     }
-    
-    esp_err_t err = om_find_by_frequency_in_mutex(frequency, name, commands);
+
+    linked_list_t *list = om_find_by_frequency_in_mutex(name, frequency);
 
     xSemaphoreGive(op_modes_mutex);
-    return err;
+
+    return list;
 }
 
-esp_err_t om_find_by_name_in_mutex(const char *name, char **commands) {
+linked_list_t *om_find_by_name_in_mutex(const char *name) {
     if (name == NULL || strlen(name) == 0) {
         ESP_LOGE(TAG, "Invalid op mode name");
-        return ESP_FAIL;
+        return NULL;
     }
 
     for (linked_list_node_t *omn = linked_list_begin(op_modes); omn != NULL; omn = linked_list_next(omn)) {
         op_mode_t *mode = (op_mode_t *)omn->data;
 
         if (strcmp(mode->name, name) == 0) {
-            *commands = strdup(mode->commands);
-            if (*commands == NULL) {
-                ESP_LOGE(TAG, "Failed to allocate memory for op mode commands");
-                return ESP_FAIL;
+            linked_list_t *list = command_list_create(mode->commands);
+            if (list == NULL) {
+                ESP_LOGE(TAG, "Failed to create commands list for op mode: %s", name);
+                return NULL;
             }
-
-            return ESP_OK;
+            return list;
         }
     }
 
-    return ESP_FAIL;
+    return NULL;
 }
 
-esp_err_t om_find_by_name(const char *name, char **commands) {
+linked_list_t *om_find_by_name(const char *name) {
     if (xSemaphoreTake(op_modes_mutex, pdMS_TO_TICKS(2000)) != pdTRUE) {
         error_log("Failed to take op modes mutex");
-        return ESP_FAIL;
+        return NULL;
     }
 
-    esp_err_t err = om_find_by_name_in_mutex(name, commands);
+    linked_list_t *list = om_find_by_name_in_mutex(name);
 
     xSemaphoreGive(op_modes_mutex);
-    return err;
+    return list;
 }
 
 static op_mode_t *create_default_op_mode() {

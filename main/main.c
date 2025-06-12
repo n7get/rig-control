@@ -7,6 +7,7 @@
 #include "config.h"
 #include "http.h"
 #include "info.h"
+#include "mem_chan.h"
 #include "op_mode.h"
 #include "rig.h"
 #include "rig_monitor.h"
@@ -82,6 +83,7 @@ void app_main(void) {
     ui_init();
     init_rig_controller();
     init_op_mode();
+    init_mem_chan();
     
     ESP_LOGI(TAG, "Application started");
 }

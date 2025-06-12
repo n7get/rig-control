@@ -6,22 +6,20 @@
             <div @click="add_mem_chan"><u>Add</u></div>
         </div>
         <div class="m-3">
-            <div>
-                <b-list-group>
-                    <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
-                        v-for="mc in mem_chans"
-                        :key="mc.name"
-                    >
-                        <div class="d-flex justify-content-between w-100">
-                            <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
-                            <div class="d-flex gap-3">
-                                <IBiPencil @click="edit_mem_chan(mc.id)" />
-                                <IBiTrash3 @click="remove_mem_chan(mc.id)" />
-                            </div>
+            <b-list-group>
+                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
+                    v-for="mc in mem_chans"
+                    :key="mc.id"
+                >
+                    <div class="d-flex justify-content-between w-100">
+                        <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
+                        <div class="d-flex gap-3">
+                            <IBiPencil @click="edit_mem_chan(mc.id)" />
+                            <IBiTrash3 @click="remove_mem_chan(mc.id)" />
                         </div>
-                    </b-list-group-item>
-                </b-list-group>
-            </div>
+                    </div>
+                </b-list-group-item>
+            </b-list-group>
         </div>
     </div>
 
@@ -42,12 +40,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { mem_chan } from '@/js/mem_chan';
 import { useMemChanStore } from '@/stores/mem_chans';
 import IBiPencil from '~icons/bi/pencil';
 import IBiTrash3 from '~icons/bi/trash3';
-import IBiPlus from '~icons/bi/plus';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
@@ -56,20 +53,23 @@ function back() {
     router.back();
 }
 
-const mem_chans = useMemChanStore().mem_chans
-const open_list_modal = ref(false);
 const open_confirm_modal = ref(false);
-
 let mem_chan_id = -1;
 const mem_chan_name = ref('');
+
+const mem_chans = computed(() => {
+    return Object.values(useMemChanStore().mem_chans).sort((a, b) => a.name.localeCompare(b.name));
+});
 
 function select_mem_chan(id) {
     const mc = mem_chan.fromObject(useMemChanStore().get_mem_chan(id));
     if (!mc) {
-        console.error('Memory channel not found for: ', id);
+        console.error('Mem chan not found for: ', id);
         return;
     }
+
     mc.set_current();
+
     router.back();
 }
 
@@ -81,12 +81,12 @@ function remove_mem_chan(id) {
 }
 function remove_confirmed() {
     if (mem_chan_id === -1) {
-        console.error('No memory channel selected for removal');
+        console.error('No mem chan selected for removal');
         return;
     }
     const mc = mem_chan.fromObject(useMemChanStore().get_mem_chan(mem_chan_id));
     if (!mc) {
-        console.error('Memory channel not found for: ', mem_chan_id);
+        console.error('Mem chan not found for: ', mem_chan_id);
         return;
     }
     mc.remove();
@@ -94,11 +94,9 @@ function remove_confirmed() {
     mem_chan_name.value = '';
     close_confirm_modal();
 }
-
 function close_confirm_modal() {
     open_confirm_modal.value = false;
 }
-
 function add_mem_chan() {
     router.push({ name: 'mem_chan_edit', params: { edit: false } });
 }

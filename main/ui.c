@@ -4,6 +4,7 @@
 
 #include "esp_log.h"
 
+#include "mem_chan.h"
 #include "observer.h"
 #include "op_mode.h"
 #include "rig_commands.h"
@@ -123,6 +124,11 @@ void ui_handle_json(cJSON *json_obj) {
     
     if (strcmp(topic, "controller") == 0) {
         rt_recv_from_ui(json_obj);
+        return;
+    }
+
+    if (strcmp(topic, "mem_chan") == 0) {
+        mc_recv_from_ui(json_obj);
         return;
     }
 

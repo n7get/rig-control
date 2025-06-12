@@ -1,6 +1,7 @@
 #include "esp_err.h"
 #include "linked_list.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 // Create a new linked list
 linked_list_t *linked_list_create(void) {
@@ -108,4 +109,28 @@ linked_list_node_t *linked_list_begin(const linked_list_t *list) {
 
 linked_list_node_t *linked_list_next(const linked_list_node_t *node) {
     return node ? node->next : NULL;
+}
+
+void linked_list_sort(linked_list_t *list, int (*node_order_compare)(const void *a, const void *b)) {
+    if (list == NULL || list->size == 0) {
+        return;
+    }
+    
+    // perform a bubble sort on the linked list
+    bool swapped;
+    do {
+        swapped = false;
+        linked_list_node_t *current = linked_list_begin(list);
+        while (current != NULL && current->next != NULL) {
+            linked_list_node_t *next = current->next;
+            if (node_order_compare(current->data, next->data) > 0) {
+                // Swap the data
+                void *temp = current->data;
+                current->data = next->data;
+                next->data = temp;
+                swapped = true;
+            }
+            current = next;
+        }
+    } while (swapped);
 }

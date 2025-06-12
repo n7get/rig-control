@@ -6,7 +6,7 @@ import { send_message } from '@/js/web_socket.js';
 import { conv_freq, is_in_band } from '@/js/freq_utils';
 
 let config = {};
-function setConfig(newConfig) {
+function set_op_mode_config(newConfig) {
     config = { ...newConfig };
 }
 
@@ -217,5 +217,5 @@ class op_mode {
 }
 
 export {
-    config, freq_range, op_mode, setConfig
+    config, freq_range, op_mode, set_op_mode_config
 };

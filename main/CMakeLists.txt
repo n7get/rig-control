@@ -2,11 +2,13 @@ idf_component_register(
 	 SRCS 
 	    "buffer.c"
 	 	"cat.c"
+		"command_list.c"
 		"config.c"
 		"http.c"
 		"info.c"
 		"linked_list.c"
 		"main.c"
+		"mem_chan.c"
 		"observer.c"
 		"op_mode.c"
 		"rig_commands.c"

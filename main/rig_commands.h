@@ -134,3 +134,4 @@ bool rc_is_narrow_command(const char *value);
 bool rc_is_width_command(const char *value);
 char *rc_freq_command();
 bool rc_needs_update(const char *value);
+char *rc_make_freq_command(uint32_t frequency);

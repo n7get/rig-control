@@ -418,11 +418,11 @@ static void log_rig_command(char *tag, rig_command_t *cmd) {
 /**
  * First if any commands are uninitialized and send them to the rig.
  * Note: that only the number of commands that will fit in the
- * send queue will be sent.  
- * 
+ * send queue will be sent.
+ *
  * If no commands are uninitialized, then check if any
  * responses are pending.  If so, return not readuy.
- * 
+ *
  * Once all commands are initialized (VALID_F), then return
  * true.
  */
@@ -581,7 +581,7 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
         prepare_notify(buffer, response->read, response->response);
         notify_callback(response->type, buffer, true);
         break;
-    
+
     case SEND_TYPE_READ:
         prepare_notify(buffer, response->read, response->response);
         notify_callback(response->type, buffer, true);
@@ -594,7 +594,7 @@ void rc_set_last_value(response_t *response, void (*notify_callback)(send_type_t
 
         cmd->flags &= ~(PENDING_F | PENDING_INIT_F);
         cmd->flags |= VALID_F;
-        
+
         cmd->next_refresh = cmd->flags & FAST_F ? VERY_FAST_REFRESH_TIME : cmd->refresh_time;
         break;
     }
@@ -695,6 +695,12 @@ bool rc_is_narrow_command(const char *value) {
 }
 bool rc_is_width_command(const char *value) {
     return (value[0] == 'S' && value[1] == 'H');
+}
+
+char *rc_make_freq_command(uint32_t frequency) {
+    char *freq_cmd = malloc(SEND_BUFFER_SIZE);
+    snprintf(freq_cmd, SEND_BUFFER_SIZE, "FA%09lu;", frequency);
+    return freq_cmd;
 }
 
 char *rc_freq_command() {

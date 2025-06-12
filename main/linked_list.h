@@ -46,3 +46,6 @@ size_t linked_list_size(const linked_list_t *list);
 // Iterate over the list
 linked_list_node_t *linked_list_begin(const linked_list_t *list);
 linked_list_node_t *linked_list_next(const linked_list_node_t *node);
+
+// Sort the linked list using a comparison function
+void linked_list_sort(linked_list_t *list, int (*node_order_compare)(const void *a, const void *b));
