@@ -37,6 +37,97 @@ static int ws_handshake(int client_fd);
 static int ws_recv_frame(int client_fd, char *buffer, size_t len);
 static void ws_broadcast_task(void *param);
 
+#define LOG_BUFFERS 0
+#if LOG_BUFFERS
+#define DUMP_WIDTH 12
+static char *dump_hex(uint8_t *data, size_t len) {
+    char *buf = malloc(DUMP_WIDTH * 3 + 1); // 2 hex digits + space + null terminator
+    if (!buf) return NULL;
+
+    char *ptr = buf;
+    for (size_t i = 0; i < DUMP_WIDTH; i++) {
+        if (i < len) {
+            ptr += sprintf(ptr, "%02x ", data[i]);
+        } else {
+            ptr += sprintf(ptr, "   ");
+        }
+    }
+    *ptr = '\0';
+    return buf;
+}
+static char *dump_ascii(uint8_t *data, size_t len) {
+    char *buf = malloc(DUMP_WIDTH + 1);
+    if (!buf) return NULL;
+
+    char *ptr = buf;
+    for (size_t i = 0; i < DUMP_WIDTH; i++) {
+        if (i < len) {
+            if (data[i] >= 32 && data[i] <= 126) {
+                *ptr++ = data[i];
+            } else {
+                *ptr++ = '.';
+            }
+        } else {
+            *ptr++ = ' ';
+        }
+    }
+
+    *ptr = '\0';
+    return buf;
+}
+
+static void log_buffer(const char *tag, const void *buffer, size_t len) {
+    const uint8_t *data = (const uint8_t *)buffer;
+    ESP_LOGI(tag, "Buffer content (%zu bytes):", len);
+    while (len > 0) {
+        size_t line_len = len < DUMP_WIDTH ? len : DUMP_WIDTH;
+        char *hex = dump_hex((uint8_t *)data, line_len);
+        char *ascii = dump_ascii((uint8_t *)data, line_len);
+        if (hex && ascii) {
+            ESP_LOGI(tag, "%s |%s|", hex, ascii);
+        } else {
+            ESP_LOGE(tag, "Failed to allocate memory for logging buffer");
+        }
+        free(hex);
+        free(ascii);
+        data += line_len;
+        len -= line_len;
+    }
+}
+
+static ssize_t ws_recv(int s, void *mem, size_t len, int flags) {
+    ESP_LOGI(TAG, "Reading data: s=%d, len=%zu, flags=%d", s, len, flags);
+    int recv_len = recv(s, mem, len, flags);
+    if (recv_len < 0) {
+        ESP_LOGE(TAG, "Receive error: errno %d", errno);
+        return -1;
+    }
+    if (recv_len == 0) {
+        ESP_LOGI(TAG, "Connection closed by peer");
+        return 0;
+    }
+    log_buffer(TAG, mem, recv_len);
+    return recv_len;
+}
+static size_t ws_write(int s, const void *data, size_t size, int flags) {
+    ESP_LOGI(TAG, "Writing data: s=%d, size=%zu, flags=%d", s, size, flags);
+    if (data == NULL || size == 0) {
+        ESP_LOGE(TAG, "Invalid data or size for ws_write");
+        return 0;
+    }
+    log_buffer(TAG, data, size);
+    ssize_t sent = send(s, data, size, flags);
+    if (sent < 0) {
+        ESP_LOGE(TAG, "Send error: errno %d", errno);
+        return 0;
+    }
+    return sent;
+}
+#else
+#define ws_recv(s, mem, len, flags) recv(s, mem, len, flags)
+#define ws_write(s, data, size, flags) send(s, data, size, flags)
+#endif
+
 static void ws_server_task(void *pvParameters) {
     while (1) {
         struct sockaddr_in client_addr;
@@ -83,12 +174,12 @@ static int ws_send_frame(int client_fd, const char *data, size_t len, uint8_t op
         hdr_len = 10;
     }
 
-    if (send(client_fd, hdr, hdr_len, 0) != hdr_len) {
+    if (ws_write(client_fd, hdr, hdr_len, 0) != hdr_len) {
         return -1;
     }
 
     if (data != NULL && len > 0) {
-        if (send(client_fd, data, len, 0) != len) {
+        if (ws_write(client_fd, data, len, 0) != len) {
             return -1;
         }
     }
@@ -217,11 +308,14 @@ void ws_server_stop(void) {
 
 static void ws_handle_client(void *param) {
     ws_client_t *client = (ws_client_t *)param;
+    ESP_LOGI(TAG, "New client connected: fd=%d", client->fd);
 
     if (ws_handshake(client->fd) != 0) {
         ESP_LOGE(TAG, "WebSocket handshake failed");
         goto cleanup;
     }
+
+    ESP_LOGI(TAG, "WebSocket handshake successful for client fd=%d", client->fd);
 
     char *buffer = malloc(WS_RECV_BUFFER_SIZE);
     if (!buffer) {
@@ -263,24 +357,34 @@ cleanup:
     vTaskDelete(NULL);
 }
 
+#define IO_BUFFER_SIZE 1024
 static int ws_handshake(int client_fd) {
-    char recv_buf[512];
-    char send_buf[512];
+    char *recv_buf = malloc(IO_BUFFER_SIZE);
+    char *send_buf = malloc(IO_BUFFER_SIZE);
     char sec_websocket_key[128] = {0};
 
-    int len = recv(client_fd, recv_buf, sizeof(recv_buf) - 1, 0);
-    if (len <= 0)
+    int len = ws_recv(client_fd, recv_buf, IO_BUFFER_SIZE - 1, 0);
+    if (len <= 0) {
+        free(recv_buf);
+        free(send_buf);
         return -1;
+    }
     recv_buf[len] = '\0';
 
     char *key_hdr = strstr(recv_buf, "Sec-WebSocket-Key: ");
-    if (!key_hdr)
+    if (!key_hdr) {
+        free(recv_buf);
+        free(send_buf);
         return -1;
+    }
     key_hdr += strlen("Sec-WebSocket-Key: ");
 
     char *key_end = strstr(key_hdr, "\r\n");
-    if (!key_end)
+    if (!key_end) {
+        free(recv_buf);
+        free(send_buf);
         return -1;
+    }
     int key_len = key_end - key_hdr;
     strncpy(sec_websocket_key, key_hdr, key_len);
     sec_websocket_key[key_len] = '\0';
@@ -296,55 +400,61 @@ static int ws_handshake(int client_fd) {
 
     // Base64 encode
     size_t olen;
-    mbedtls_base64_encode((unsigned char *)send_buf, sizeof(send_buf), &olen, sha1_out, 20);
+    mbedtls_base64_encode((unsigned char *)send_buf, IO_BUFFER_SIZE, &olen, sha1_out, 20);
     send_buf[olen] = '\0';
 
     // Build response
-    char *response = malloc(1024);
-    snprintf(response, 1024,
+    char *response = malloc(IO_BUFFER_SIZE);
+    snprintf(response, IO_BUFFER_SIZE,
              "HTTP/1.1 101 Switching Protocols\r\n"
              "Upgrade: websocket\r\n"
              "Connection: Upgrade\r\n"
              "Sec-WebSocket-Accept: %s\r\n\r\n",
              send_buf);
-    
-    send(client_fd, response, strlen(response), 0);
+    ws_write(client_fd, response, strlen(response), 0);
     free(response);
+    free(recv_buf);
+    free(send_buf);
 
     return 0;
 }
 
-// Minimal WebSocket frame receive (text only, no fragmentation, no mask from
+// Minimal WebSocket frame ws_recv (text only, no fragmentation, no mask from
 // client)
 static int ws_recv_frame(int client_fd, char *buffer, size_t len) {
     uint8_t hdr[2];
 
-    int r = recv(client_fd, hdr, 2, 0);
-    if (r != 2)
+    int r = ws_recv(client_fd, hdr, 2, 0);
+    if (r != 2) {
         return -1;
-        
+    }
+
     uint8_t opcode = hdr[0] & 0x0F;
     uint8_t mask = hdr[1] & 0x80;
 
     uint64_t payload_len = hdr[1] & 0x7F;
     if (payload_len == 126) {
         uint8_t ext[2];
-        if (recv(client_fd, ext, 2, 0) != 2)
+        if (ws_recv(client_fd, ext, 2, 0) != 2) {
             return -1;
+        }
         payload_len = (ext[0] << 8) | ext[1];
     } else if (payload_len == 127) {
         uint8_t ext[8];
-        if (recv(client_fd, ext, 8, 0) != 8)
+        if (ws_recv(client_fd, ext, 8, 0) != 8) {
             return -1;
+        }
         payload_len = 0;
-        for (int i = 0; i < 8; ++i)
+        for (int i = 0; i < 8; ++i) {
             payload_len = (payload_len << 8) | ext[i];
+        }
     }
 
     uint8_t masking_key[4];
     if (mask) {
-        if (recv(client_fd, masking_key, 4, 0) != 4)
+        if (ws_recv(client_fd, masking_key, 4, 0) != 4) {
             return -1;
+        }
     }
 
     if (payload_len > len - 1) {
@@ -353,9 +463,10 @@ static int ws_recv_frame(int client_fd, char *buffer, size_t len) {
 
     int recvd = 0;
     while (recvd < payload_len) {
-        int r = recv(client_fd, buffer + recvd, payload_len - recvd, 0);
-        if (r <= 0)
+        int r = ws_recv(client_fd, buffer + recvd, payload_len - recvd, 0);
+        if (r <= 0) {
             return -1;
+        }
         recvd += r;
     }
     if (mask) {
