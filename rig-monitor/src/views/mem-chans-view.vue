@@ -15,6 +15,7 @@
                         <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
                         <div class="d-flex gap-3">
                             <IBiPencil @click="edit_mem_chan(mc.id)" />
+                            <IBiCopy @click="copy_mem_chan(mc.id)" />
                             <IBiTrash3 @click="remove_mem_chan(mc.id)" />
                         </div>
                     </div>
@@ -44,6 +45,7 @@ import { computed, ref } from 'vue';
 import { mem_chan } from '@/js/mem_chan';
 import { useMemChanStore } from '@/stores/mem_chans';
 import IBiPencil from '~icons/bi/pencil';
+import IBiCopy from '~icons/bi/copy';
 import IBiTrash3 from '~icons/bi/trash3';
 import { useRouter } from 'vue-router';
 
@@ -99,6 +101,9 @@ function close_confirm_modal() {
 }
 function add_mem_chan() {
     router.push({ name: 'mem_chan_edit', params: { edit: false } });
+}
+function copy_mem_chan(id) {
+    router.push({ name: 'mem_chan_edit', params: { id: id, edit: false } });
 }
 function edit_mem_chan(id) {
     router.push({ name: 'mem_chan_edit', params: { id: id, edit: true } });

@@ -54,7 +54,7 @@ const open_op_modes = () => {
 }
 
 const open_config = () => {
-    // router.push({ name: 'config' });
+    router.push({ name: 'config' });
 }
 const open_mem_chan = () => {
     router.push({ name: 'mem_chans' });

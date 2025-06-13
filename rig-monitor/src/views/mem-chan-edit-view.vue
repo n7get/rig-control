@@ -44,22 +44,6 @@
                 @remove-command="remove_command"
                 @update-command="update_command"
                 :commands="mc.commands" />
-
-            <div v-if="props.edit != 'true'" class="mt-4 border-top pt-4">
-                <b-form-group
-                    class="mt-2"
-                    label="Mem Chan JSON:"
-                    label-for="mem-chan-json"
-                >
-                    <b-form-textarea
-                        id="mem-chan-json"
-                        v-model="mem_chan_json"
-                        placeholder="Pase Mem Chan JSON text here..."
-                        rows="6"
-                        max-rows="12" />
-                    <b-button class="mt-2" variant="primary" @click="parse_json">Parse JSON</b-button>
-                </b-form-group>
-            </div>
         </div>
     </div>
 </template>
@@ -115,6 +99,9 @@ onBeforeMount(() => {
         const mc_ref = useMemChanStore().get_mem_chan(props.id);
         if (mc_ref) {
             mc.value = mem_chan.fromObject(mc_ref).asObject();
+            if (props.edit === 'false') {
+                mc.value.id = 0;
+            }
         } else {
             console.error('Mem chan not found for ID:', props.id);
         }
@@ -164,18 +151,4 @@ function cancel() {
 }
 
 const mem_chan_json = ref('');
-
-function parse_json() {
-    try {
-        const parsed = JSON.parse(mem_chan_json.value);
-        if (parsed && typeof parsed === 'object') {
-            mc.value = mem_chan.fromObject(parsed).asObject();
-            validate();
-        } else {
-            console.error('Parsed JSON is not a valid object:', parsed);
-        }
-    } catch (e) {
-        console.error('Error parsing JSON:', e);
-    }
-}
 </script>

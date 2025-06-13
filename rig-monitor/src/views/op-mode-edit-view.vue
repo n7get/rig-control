@@ -89,22 +89,6 @@
                 @remove-command="remove_command"
                 @update-command="update_command"
                 :commands="om.commands" />
-
-            <div v-if="props.edit != 'true'" class=" border-top pt-4">
-                <b-form-group
-                    class="mt-2"
-                    label="Op Mode JSON:"
-                    label-for="op-mode-json"
-                >
-                    <b-form-textarea
-                        id="textarea"
-                        v-model="op_mode_text"
-                        placeholder="Pase Op Mode JSON text here..."
-                        rows="6"
-                        max-rows="12" />
-                    <b-button class="mt-2" variant="primary" @click="parse_json">Parse JSON</b-button>
-                </b-form-group>
-            </div>
         </div>
     </div>
 </template>
@@ -164,6 +148,9 @@ onBeforeMount(() => {
         const om_ref = useOpModeStore().get_op_mode(props.id);
         if (om_ref) {
             om.value = op_mode.fromObject(om_ref).asObject(); // Deep copy
+            if (props.edit === 'false') {
+                om.value.id = 0;
+            }
         } else {
             console.error('Op mode not found for ID:', props.id);
         }
@@ -223,20 +210,6 @@ function update_command(command) {
         om.value.commands[index].value = command.value;
     } else {
         console.warn('Command not found for update:', command.name);
-    }
-}
-
-function parse_json() {
-    try {
-        const parsed = JSON.parse(op_mode_text.value);
-        if (parsed && typeof parsed === 'object') {
-            om.value = op_mode.fromObject(parsed).asObject();
-            validate();
-        } else {
-            console.error('Parsed JSON is not a valid object:', parsed);
-        }
-    } catch (e) {
-        console.error('Error parsing JSON:', e);
     }
 }
 
