@@ -69,10 +69,10 @@ function set(value) {
     useGlobalStore().updateModal(input_value.value);
 }
 function decrement(dec) {
-    set(input_value.value - dec);
+    set(parseInt(input_value.value, 10) - parseInt(dec, 10));
 }
 function increment(inc) {
-    set(input_value.value + inc);
+    set(parseInt(input_value.value, 10) + parseInt(inc, 10));
 }
 
 function close_modal() {
