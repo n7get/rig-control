@@ -32,7 +32,7 @@ function is_in_band(start, end) {
     }
 
     return valid_freqs.some((f) => {
-        const result = (start >= f[0] && start < f[1]) && (end >= f[0] && end < f[1]);
+        const result = (start >= f[0] && start <= f[1]) && (end >= f[0] && end <= f[1]);
         return result;
     });
 }

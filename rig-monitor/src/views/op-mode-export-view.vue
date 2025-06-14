@@ -47,7 +47,7 @@ onBeforeMount(() => {
         .map((om) => {
             return {
                 name: om.name,
-                freq_range: om.freq_range,
+                freq_ranges: om.freq_ranges,
                 order: om.order,
                 commands: om.commands,
             };

@@ -38,13 +38,24 @@ const { op_modes } = useOpModeStore();
 function do_import(json) {
     const mc = op_mode.fromObject(json);
 
-    const result = Object.values(mc.validate());
-    result.forEach((error) => {
-        if (error) {
-            error_messages.value.push(error);
-        }
-    });
-    if (result.length > 0) {
+    const validationErrors = mc.validate(); 
+    if (Object.keys(validationErrors).length > 0) {
+        error_messages.value.push(`Op Mode ${mc.name} import failed:`);
+
+        Object.entries(validationErrors).forEach(([field, errors]) => {
+            if (field === 'freq_ranges') {
+                for (const [index, fr] of json.freq_ranges.entries()) {
+                    const msg = errors[index];
+                    if (msg) {
+                        error_messages.value.push(`Freq Range ${fr.start}, ${fr.end}: ${msg}`);
+                    }
+                }
+            }
+            else {
+                error_messages.value.push(errors);
+            }
+        });
+
         return;
     }
 
