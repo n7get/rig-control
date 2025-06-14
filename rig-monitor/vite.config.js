@@ -35,4 +35,23 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-})
+  build: {
+    cssMinify: true,
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        // You can specify the output directory for your assets
+        dir: 'dist/', 
+        
+        // Customize the naming pattern for entry files (your main JS/CSS files)
+        entryFileNames: 'entry-[name].js', 
+        
+        // Customize the naming pattern for other assets (images, fonts, etc.)
+        assetFileNames: 'assets/[name].[ext]', 
+        
+        // Customize the naming pattern for code-split chunks
+        chunkFileNames: 'chunk-[hash].js', 
+      },
+    },
+  },
+});
