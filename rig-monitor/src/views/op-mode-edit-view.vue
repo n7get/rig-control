@@ -1,95 +1,93 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="cancel"><u>Cancel</u></div>
-            <div><b>EDIT OP MODE</b></div>
-            <div @click="save_op_mode"><u>Save</u></div>
-        </div>
-        <div class="m-3">
-            <b-form-group
-                class="mt-2"
-                label="Name:"
-                label-for="name"
-            >
-                <b-form-input
-                    id="name"
-                    ref="name-input"
-                    v-model.lazy="om.name"
-                    :state="validate('name')"
-                    required
-                ></b-form-input>
-                <div v-if="errors('name')" class="text-danger">{{ errors('name') }}</div>
-            </b-form-group>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">
+        <div @click="cancel"><u>Cancel</u></div>
+        <div><b>EDIT OP MODE</b></div>
+        <div @click="save_op_mode"><u>Save</u></div>
+    </div>
+    <div class="my-3">
+        <b-form-group
+            class="mt-2"
+            label="Name:"
+            label-for="name"
+        >
+            <b-form-input
+                id="name"
+                ref="name-input"
+                v-model.lazy="om.name"
+                :state="validate('name')"
+                required
+            ></b-form-input>
+            <div v-if="errors('name')" class="text-danger">{{ errors('name') }}</div>
+        </b-form-group>
 
-            <b-form-group
-                class="mt-2"
-                label="Order:"
-                label-for="order"
-            >
-                <b-form-input
-                    id="order"
-                    ref="order-input"
-                    type="number"
-                    v-model.lazy="om.order"
-                    :state="validate('order')"
-                    required
-                ></b-form-input>
-                <div v-if="errors('order')" class="text-danger">{{ errors('order') }}</div>
-            </b-form-group>
+        <b-form-group
+            class="mt-2"
+            label="Order:"
+            label-for="order"
+        >
+            <b-form-input
+                id="order"
+                ref="order-input"
+                type="number"
+                v-model.lazy="om.order"
+                :state="validate('order')"
+                required
+            ></b-form-input>
+            <div v-if="errors('order')" class="text-danger">{{ errors('order') }}</div>
+        </b-form-group>
 
-            <b-form-group
-                label="Frequency Ranges:"
-                label-for="frequency-ranges"
-                label-class="mt-2"
-                :state="fr_fg_state"
-            >
-                <div v-for="(range, index) in om.freq_ranges" :key="index" class="mb-2">
-                    <div class="d-flex gap-2">
-                        <b-form-input
-                            v-model.lazy="om.freq_ranges[index].start"
-                            type="number"
-                            placeholder="Start Frequency"
-                            :state="fr_state(index, 0)"
-                        ></b-form-input>
-                        <b-form-input
-                            v-model.lazy="om.freq_ranges[index].end"
-                            type="number"
-                            placeholder="End Frequency"
-                            :state="fr_state(index, 1)"
-                        ></b-form-input>
-                        <b-button variant="danger" @click="remove_frequency_range(index)"><IBiXLg /></b-button>
-                    </div>
-                    <div v-if="errors('freq_ranges', index)" class="text-danger"><i>{{ errors('freq_ranges', index) }}</i></div>
+        <b-form-group
+            label="Frequency Ranges:"
+            label-for="frequency-ranges"
+            label-class="mt-2"
+            :state="fr_fg_state"
+        >
+            <div v-for="(range, index) in om.freq_ranges" :key="index" class="mb-2">
+                <div class="d-flex gap-2">
+                    <b-form-input
+                        v-model.lazy="om.freq_ranges[index].start"
+                        type="number"
+                        placeholder="Start Frequency"
+                        :state="fr_state(index, 0)"
+                    ></b-form-input>
+                    <b-form-input
+                        v-model.lazy="om.freq_ranges[index].end"
+                        type="number"
+                        placeholder="End Frequency"
+                        :state="fr_state(index, 1)"
+                    ></b-form-input>
+                    <b-button variant="danger" @click="remove_frequency_range(index)"><IBiXLg /></b-button>
                 </div>
+                <div v-if="errors('freq_ranges', index)" class="text-danger"><i>{{ errors('freq_ranges', index) }}</i></div>
+            </div>
 
-                <div>
-                    <div class="d-flex gap-2 mb-2">
-                        <b-form-input
-                            v-model.lazy="freq_ranges_start"
-                            type="number"
-                            placeholder="Start Frequency"
-                            :state="null"
-                            required
-                        ></b-form-input>
-                        <b-form-input
-                            v-model.lazy="freq_ranges_end"
-                            type="number"
-                            placeholder="End Frequency"
-                            :state="null"
-                            required
-                        ></b-form-input>
-                        <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
-                    </div>
-                    <div v-if="freq_inputs_error" class="text-danger"><i>{{ freq_inputs_error }}</i></div>
+            <div>
+                <div class="d-flex gap-2 mb-2">
+                    <b-form-input
+                        v-model.lazy="freq_ranges_start"
+                        type="number"
+                        placeholder="Start Frequency"
+                        :state="null"
+                        required
+                    ></b-form-input>
+                    <b-form-input
+                        v-model.lazy="freq_ranges_end"
+                        type="number"
+                        placeholder="End Frequency"
+                        :state="null"
+                        required
+                    ></b-form-input>
+                    <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
                 </div>
-            </b-form-group>
+                <div v-if="freq_inputs_error" class="text-danger"><i>{{ freq_inputs_error }}</i></div>
+            </div>
+        </b-form-group>
 
-            <command-list
-                @add-command="add_command"
-                @remove-command="remove_command"
-                @update-command="update_command"
-                :commands="om.commands" />
-        </div>
+        <command-list
+            @add-command="add_command"
+            @remove-command="remove_command"
+            @update-command="update_command"
+            :commands="om.commands" />
     </div>
 </template>
 

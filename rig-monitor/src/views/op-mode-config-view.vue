@@ -1,10 +1,8 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="back"><u>Back</u></div>
-            <div><b>Op Modes</b></div>
-            <div></div>
-        </div>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">
+        <div @click="back"><u>Back</u></div>
+        <div><b>Op Modes</b></div>
+        <div></div>
     </div>
     <div class="container">
         <b-button class="mb-3 w-100" @click="open('op_mode_import')">Import Op Modes</b-button>

@@ -1,50 +1,48 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="cancel"><u>Cancel</u></div>
-            <div><b>EDIT MEMORY CHANNEL</b></div>
-            <div @click="save_mem_chan"><u>Save</u></div>
-        </div>
-        <div class="m-3">
-            <b-form-group class="mt-2" label="Name:" label-for="name">
-                <b-form-input
-                    id="name"
-                    v-model.lazy="mc.name"
-                    :state="validate('name')"
-                    required
-                ></b-form-input>
-                <div v-if="errors('name')" class="text-danger">{{ errors('name') }}</div>
-            </b-form-group>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">
+        <div @click="cancel"><u>Cancel</u></div>
+        <div><b>EDIT MEMORY CHANNEL</b></div>
+        <div @click="save_mem_chan"><u>Save</u></div>
+    </div>
+    <div class="my-3">
+        <b-form-group class="mt-2" label="Name:" label-for="name">
+            <b-form-input
+                id="name"
+                v-model.lazy="mc.name"
+                :state="validate('name')"
+                required
+            ></b-form-input>
+            <div v-if="errors('name')" class="text-danger">{{ errors('name') }}</div>
+        </b-form-group>
 
-            <b-form-group class="mt-2" label="Frequency:" label-for="frequency">
-                <b-form-input
-                    id="frequency"
-                    type="number"
-                    v-model.lazy="mc.frequency"
-                    :state="validate('frequency')"
-                    @blur="check_freq"
-                    required
-                ></b-form-input>
-                <div v-if="errors('frequency')" class="text-danger">{{ errors('frequency') }}</div>
-            </b-form-group>
+        <b-form-group class="mt-2" label="Frequency:" label-for="frequency">
+            <b-form-input
+                id="frequency"
+                type="number"
+                v-model.lazy="mc.frequency"
+                :state="validate('frequency')"
+                @blur="check_freq"
+                required
+            ></b-form-input>
+            <div v-if="errors('frequency')" class="text-danger">{{ errors('frequency') }}</div>
+        </b-form-group>
 
-            <b-form-group class="mt-2" label="Op Mode:" label-for="op_mode">
-                <b-form-select
-                    id="op_mode"
-                    v-model="mc.op_mode"
-                    :options="op_mode_options"
-                    :state="validate('op_mode')"
-                    required
-                ></b-form-select>
-                <div v-if="errors('op_mode')" class="text-danger">{{ errors('op_mode') }}</div>
-            </b-form-group>
+        <b-form-group class="mt-2" label="Op Mode:" label-for="op_mode">
+            <b-form-select
+                id="op_mode"
+                v-model="mc.op_mode"
+                :options="op_mode_options"
+                :state="validate('op_mode')"
+                required
+            ></b-form-select>
+            <div v-if="errors('op_mode')" class="text-danger">{{ errors('op_mode') }}</div>
+        </b-form-group>
 
-            <command-list 
-                @add-command="add_command"
-                @remove-command="remove_command"
-                @update-command="update_command"
-                :commands="mc.commands" />
-        </div>
+        <command-list 
+            @add-command="add_command"
+            @remove-command="remove_command"
+            @update-command="update_command"
+            :commands="mc.commands" />
     </div>
 </template>
 

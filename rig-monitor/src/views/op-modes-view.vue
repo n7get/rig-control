@@ -1,27 +1,25 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="back"><u>Back</u></div>
-            <div><b>OP MODES</b></div>
-            <div @click="add_op_mode"><u>Add</u></div>
-        </div>
-        <div class="m-3">
-            <b-list-group>
-                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
-                    v-for="om in op_modes"
-                    :key="om.name"
-                >
-                    <div class="d-flex justify-content-between w-100">
-                        <div @click="select_op_mode(om.id)">{{ om.name }}</div>
-                        <div class="d-flex gap-3">
-                            <IBiPencil @click="edit_op_mode(om.id)" />
-                            <IBiCopy @click="copy_op_mode(om.id)" />
-                            <IBiTrash3 @click="remove_op_mode(om.id)" />
-                        </div>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">  
+        <div @click="back"><u>Back</u></div>
+        <div><b>Op Modes</b></div>
+        <div @click="add_op_mode"><u>Add</u></div>
+    </div>
+    <div class="my-3">
+        <b-list-group>
+            <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
+                v-for="om in op_modes"
+                :key="om.name"
+            >
+                <div class="d-flex justify-content-between w-100">
+                    <div @click="select_op_mode(om.id)">{{ om.name }}</div>
+                    <div class="d-flex gap-3">
+                        <IBiPencil @click="edit_op_mode(om.id)" />
+                        <IBiCopy @click="copy_op_mode(om.id)" />
+                        <IBiTrash3 @click="remove_op_mode(om.id)" />
                     </div>
-                </b-list-group-item>
-            </b-list-group>
-        </div>
+                </div>
+            </b-list-group-item>
+        </b-list-group>
     </div>
 
     <b-modal

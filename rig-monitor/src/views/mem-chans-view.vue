@@ -1,29 +1,27 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="back"><u>Back</u></div>
-            <div><b>MEMORY CHANNELS</b></div>
-            <div @click="add_mem_chan"><u>Add</u></div>
-        </div>
-        <div class="m-3">
-            <b-list-group>
-                <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
-                    v-for="mc in mem_chans"
-                    :key="mc.id"
-                >
-                    <div class="d-flex justify-content-between w-100">
-                        <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
-                        <div class="d-flex gap-3">
-                            <IBiPencil @click="edit_mem_chan(mc.id)" />
-                            <IBiCopy @click="copy_mem_chan(mc.id)" />
-                            <IBiTrash3 @click="remove_mem_chan(mc.id)" />
-                        </div>
-                    </div>
-                </b-list-group-item>
-            </b-list-group>
-        </div>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">
+        <div @click="back"><u>Back</u></div>
+        <div><b>Memory Channels</b></div>
+        <div @click="add_mem_chan"><u>Add</u></div>
     </div>
-
+    <div class="my-3">
+        <b-list-group>
+            <b-list-group-item class="px-2 d-flex justify-content-between align-items-left"
+                v-for="mc in mem_chans"
+                :key="mc.id"
+            >
+                <div class="d-flex justify-content-between w-100">
+                    <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
+                    <div class="d-flex gap-3">
+                        <IBiPencil @click="edit_mem_chan(mc.id)" />
+                        <IBiCopy @click="copy_mem_chan(mc.id)" />
+                        <IBiTrash3 @click="remove_mem_chan(mc.id)" />
+                    </div>
+                </div>
+            </b-list-group-item>
+        </b-list-group>
+    </div>
+    
     <b-modal
         @ok="remove_confirmed"
         @esc="close_confirm_modal"

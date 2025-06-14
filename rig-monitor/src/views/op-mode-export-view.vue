@@ -1,10 +1,8 @@
 <template>
-    <div>
-        <div class="m-3 pb-2 d-flex justify-content-between border-bottom">
-            <div @click="back"><u>Back</u></div>
-            <div><b>Export Op Modes</b></div>
-            <div></div>
-        </div>
+    <div class="py-3 d-flex justify-content-between w-100 border-bottom">
+        <div @click="back"><u>Back</u></div>
+        <div><b>Export Op Modes</b></div>
+        <div></div>
     </div>
     <div class="container">
         <div>
