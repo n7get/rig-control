@@ -5,6 +5,7 @@
 #include <string.h>
 #include <esp_vfs.h>
 #include "esp_littlefs.h"
+#include "linked_list.h"
 
 static const char *TAG = "HTTP";
 static httpd_handle_t server = NULL;
@@ -126,13 +127,13 @@ static esp_err_t file_handler(httpd_req_t *req) {
     }
 }
 
-static void register_files(char *fs_path) {
+static esp_err_t find_files(char *fs_path, linked_list_t *files) {
     ESP_LOGI(TAG, "Filesystem path: %s", fs_path);
 
     DIR *dir = opendir(fs_path);
     if (!dir) {
-        ESP_LOGE(TAG, "Failed to open HTML directory");
-        return;
+        ESP_LOGE(TAG, "Failed to open directory");
+        return ESP_FAIL;
     }
 
     struct dirent *entry;
@@ -143,22 +144,45 @@ static void register_files(char *fs_path) {
         strncat(filepath, entry->d_name, sizeof(filepath) - strlen(filepath) - 1);
 
         if (entry->d_type == DT_DIR) {
-            register_files(filepath);
-        }
-        else if (entry->d_type == DT_REG) {
+            if (find_files(filepath, files) != ESP_OK) {
+                closedir(dir);
+                return ESP_FAIL;
+            }
+        } else if (entry->d_type == DT_REG) {
             if (strcmp(filepath + strlen(filepath) - 3, ".gz") == 0) {
                 filepath[strlen(filepath) - 3] = '\0';
             }
-            register_html_page(filepath + strlen(HTML_MOUNT_POINT), HTTP_GET, file_handler);
+            char *file = strdup(filepath + strlen(HTML_MOUNT_POINT));
+            if (file == NULL) {
+                ESP_LOGE(TAG, "Failed to allocate memory for file path");
+                closedir(dir);
+                return ESP_FAIL;
+            }
+            linked_list_push(files, file);
         }
     }
 
     closedir(dir);
+
+    return ESP_OK;
+}
+
+static void register_files(linked_list_t *files) {
+    ESP_LOGI(TAG, "Registering files...");
+    for (linked_list_node_t *node = linked_list_begin(files); node != NULL; node = linked_list_next(node)) {
+        register_html_page((char *)node->data, HTTP_GET, file_handler);
+    }
 }
 
 bool start_webserver(void) {
+    linked_list_t *files = linked_list_create();
+    if (find_files(HTML_MOUNT_POINT, files) != ESP_OK) {
+        linked_list_destroy(files, free);
+        return false;
+    }
+
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = 10;
+    config.max_uri_handlers = linked_list_size(files) + 2;
 
     if (httpd_start(&server, &config) == ESP_OK) {
         ESP_LOGI(TAG, "Web server started");
@@ -168,13 +192,15 @@ bool start_webserver(void) {
 
         ESP_LOGI(TAG, "Reading HTML contents...");
 
-        register_files(HTML_MOUNT_POINT);
+        register_files(files);
+        linked_list_destroy(files, free);
 
         ESP_LOGI(TAG, "Finished listing HTML contents");
 
         return true;
     } else {
         ESP_LOGE(TAG, "Failed to start web server");
+        linked_list_destroy(files, free);
         return false;
     }
 }
