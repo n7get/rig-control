@@ -71,13 +71,11 @@ void app_main(void) {
         ESP_LOGE(TAG, "Failed to start web server");
         return;
     }
-    register_info_endpoints();
-    register_settings_endpoints();
-    
-    ws_server_start();
 
-    cat_init();
+    ws_server_start();
     
+    init_info();
+    cat_init();    
     init_rig_commands();
     init_rig_monitor();
     ui_init();

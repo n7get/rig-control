@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cJSON.h"
+
 typedef struct {
     int no_empty_sendqueue;
     int no_busy_sendqueue;
@@ -29,4 +31,5 @@ typedef struct {
 } info_t;
 
 info_t *get_info();
-void register_info_endpoints(void);
+void in_recv_from_ui(cJSON *json_obj);
+void init_info(void);

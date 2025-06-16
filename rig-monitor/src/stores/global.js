@@ -44,10 +44,9 @@ export const useGlobalStore = defineStore('global', () => {
 		modal.value.open = false
 		modal_cb = null;
 	}
-	
 	return {
 		ready, setReady, isReady, 
 		has_error, error_message, setError, clearError,
 		modal, updateModal, openModal, closeModal,
-	 };
+	};
 })

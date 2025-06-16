@@ -10,6 +10,11 @@ const routes = [
     name: 'config',
     component: () => import('@/views/config-view.vue'),
   },
+  {
+    path: '/info',
+    name: 'info',
+    component: () => import('@/views/info-view.vue'),
+  },
 
   {
     path: '/mem_chans',
@@ -64,6 +69,12 @@ const routes = [
     name: 'op_mode_import',
     component: () => import('@/views/op-mode-import-view.vue'),
   },
+
+  {
+    path: '/wifi_config',
+    name: 'wifi_config',
+    component: () => import('@/views/wifi-config-view.vue'),
+  }
 ]
 
 const router = createRouter({

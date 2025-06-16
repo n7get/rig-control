@@ -8,11 +8,15 @@ import { useMemChanStore } from '@/stores/mem_chans';
 import { useOpModeStore } from '@/stores/op_modes';
 
 let socket = null;
+const promisees = {};
+
 function connect_ws(ws_url, try_dev = false) {
     socket = new WebSocket(ws_url);
-
+    
     socket.onopen = () => {
         console.log('WebSocket connected');
+        
+        useGlobalStore().setResourceUri(ws_url);
         send_message({ topic: 'monitor', event: 'refresh' });
     };
 
@@ -37,19 +41,33 @@ function connect_ws(ws_url, try_dev = false) {
         // if (message.value.substring(0, 2) !== 'SM') {
             // console.log('WebSocket message received:', message);
         // }
+
+        if (promisees.hasOwnProperty(message.topic)) {
+            switch (message.event) {
+            case 'response':
+                promisees[message.topic].resolve(message.value);
+                delete promisees[message.topic];
+                break;
+
+            case 'error':
+                promisees[message.topic].reject(message.value);
+                delete promisees[message.topic];
+                break;
+            }
+        }
         
         switch(message.topic) {
         case 'controller':
             handle_controller(message);
+            break;
+        case 'mem_chan':
+            handle_mem_chan(message);
             break;
         case 'monitor':
             handle_monitor(message);
             break;
         case 'op_mode':
             handle_op_mode(message);
-            break;
-        case 'mem_chan':
-            handle_mem_chan(message);
             break;
         default:
             console.log('Unknown message type: ', message);
@@ -236,6 +254,18 @@ function send_message(message) {
     }
 }
 
+function send_message_with_response(message) {
+    return new Promise((resolve, reject) => {
+        if (promisees.hasOwnProperty(message.topic)) {
+            console.warn('Promise already exists for topic:', message.topic);
+        }
+        promisees[message.topic] = { resolve, reject };
+        console.log('Promise created for topic:', message.topic);
+
+        send_message(message);
+    });
+}
+
 function send_read(read, value) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         const rc = rig_setting.of(read, value);
@@ -257,4 +287,4 @@ function send_command(command, value) {
     }
 }
 
-export { connect_ws, send_read, send_command, send_message };
+export { connect_ws, send_read, send_command, send_message, send_message_with_response };

@@ -4,12 +4,14 @@
 
 #include "esp_log.h"
 
+#include "info.h"
 #include "mem_chan.h"
 #include "observer.h"
 #include "op_mode.h"
 #include "rig_commands.h"
 #include "rig_controller.h"
 #include "rig_monitor.h"
+#include "settings.h"
 #include "ui.h"
 #include "web_socket.h"
 
@@ -134,6 +136,16 @@ void ui_handle_json(cJSON *json_obj) {
 
     if (strcmp(topic, "op_mode") == 0) {
         om_recv_from_ui(json_obj);
+        return;
+    }
+
+    if (strcmp(topic, "info") == 0) {
+        in_recv_from_ui(json_obj);
+        return;
+    }
+
+    if (strcmp(topic, "settings") == 0) {
+        st_recv_from_ui(json_obj);
         return;
     }
 

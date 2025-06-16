@@ -1,26 +1,65 @@
-#include "cJSON.h"
-#include "config.h"
-#include "esp_log.h"
-#include "http.h"
-#include "nvs_flash.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#include "cJSON.h"
+#include "esp_log.h"
+#include "nvs_flash.h"
+
+#include "config.h"
+#include "http.h"
+#include "settings.h"
+#include "ui.h"
+
 static const char *TAG = "SETTINGS";
 
-char ap_ssid[32] = "rigmonitor";
+char ap_ssid[32] = "rig-controller";
 char ap_password[64] = "";
 char sta_ssid[32] = "";
 char sta_password[64] = "";
 
-#ifdef CONFIG_RADIO_FT857D
-#define DEFAULT_BAUD_RATE 4800
-#endif
-#ifndef DEFAULT_BAUD_RATE
-#define DEFAULT_BAUD_RATE 38400
-#endif
-int baud_rate = DEFAULT_BAUD_RATE;
+static void send_result(const char *result, const char *message) {
+    if (result == NULL || message == NULL) {
+        ESP_LOGE(TAG, "Invalid result or message");
+        return;
+    }
+
+    cJSON *json = cJSON_CreateObject();
+    if (!json) {
+        ESP_LOGE(TAG, "Failed to create JSON object");
+        return;
+    }
+
+    cJSON_AddStringToObject(json, "topic", "settings");
+    cJSON_AddStringToObject(json, "event", result);
+    cJSON_AddStringToObject(json, "value", message);
+
+    char *json_str = cJSON_PrintUnformatted(json);
+    if (json_str) {
+        ESP_LOGI(TAG, "Result: %s", json_str);
+        ui_send_json(json_str);
+        free(json_str);
+    } else {
+        ESP_LOGE(TAG, "Failed to print JSON");
+    }
+
+    cJSON_Delete(json);
+}
+
+static void error_log(const char *fmt, ...) {
+    if (fmt == NULL) {
+        ESP_LOGE(TAG, "Error message is NULL");
+        return;
+    }
+    char buf[256];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+
+    ESP_LOGE(TAG, "%s", buf);
+    send_result("error", buf);
+}
 
 void load_settings(void) {
     if (get_string("ap_ssid", ap_ssid, sizeof(ap_ssid)) == ESP_OK) {
@@ -54,148 +93,132 @@ void load_settings(void) {
         set_string("sta_password", sta_password);
         ESP_LOGI(TAG, "Default STA Password saved to NVS: %s", sta_password);
     }
-
-    uint32_t u32_v;
-    if (get_u32("baud_rate", &u32_v) == ESP_OK) {
-        ESP_LOGI(TAG, "Loaded baud rate from NVS: %ld", u32_v);
-        baud_rate = (int)u32_v;
-    } else {
-        ESP_LOGW(TAG, "Failed to load baud rate from NVS, using default: %d", baud_rate);
-        set_u32("baud_rate", (uint32_t)baud_rate);
-    }
 }
 
-static esp_err_t set_settings_handler(httpd_req_t *req) {
-    char content[256];
-    int content_len = httpd_req_recv(req, content, sizeof(content) - 1);
-
-    if (content_len <= 0) {
-        ESP_LOGE(TAG, "Failed to receive request body");
-        const char *response = "{\"error\": \"Invalid request body\"}";
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, response, strlen(response));
-        return ESP_FAIL;
-    }
-
-    content[content_len] = '\0';
-    ESP_LOGI(TAG, "Received settings: %s", content);
-
-    cJSON *json = cJSON_Parse(content);
+static void handle_set(cJSON *json) {
     if (!json) {
-        ESP_LOGE(TAG, "Failed to parse JSON");
-        const char *response = "{\"error\": \"Invalid JSON format\"}";
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, response, strlen(response));
-        return ESP_FAIL;
+        error_log("Invalid JSON object");
+        return;
     }
 
-    cJSON *ap_ssid_json = cJSON_GetObjectItem(json, "ap_ssid");
-    if (ap_ssid_json && cJSON_IsString(ap_ssid_json)) {
-        if (strcmp(ap_ssid, ap_ssid_json->valuestring) != 0) {
-            strncpy(ap_ssid, ap_ssid_json->valuestring, sizeof(ap_ssid) - 1);
-            ap_ssid[sizeof(ap_ssid) - 1] = '\0';
-            set_string("ap_ssid", ap_ssid);
-            ESP_LOGI(TAG, "AP SSID updated and saved to NVS: %s", ap_ssid);
-        }
-    } else {
-        ESP_LOGE(TAG, "AP SSID parameter missing or invalid");
+    cJSON *value = cJSON_GetObjectItem(json, "value");
+    if (!value || !cJSON_IsObject(value)) {
+        error_log("Invalid or missing 'value' object in JSON");
+        cJSON_Delete(json);
+        return;
+    }
+    
+    cJSON *ap_ssid_json = cJSON_GetObjectItem(value, "ap_ssid");
+    if (ap_ssid_json == NULL || !cJSON_IsString(ap_ssid_json)) {
+        error_log("AP SSID parameter missing or invalid");
+        cJSON_Delete(json);
+        return;
     }
 
-    cJSON *ap_password_json = cJSON_GetObjectItem(json, "ap_password");
-    if (ap_password_json && cJSON_IsString(ap_password_json)) {
-        if (strcmp(ap_password, ap_password_json->valuestring) != 0) {
-            strncpy(ap_password, ap_password_json->valuestring, sizeof(ap_password) - 1);
-            ap_password[sizeof(ap_password) - 1] = '\0';
-            set_string("ap_password", ap_password);
-            ESP_LOGI(TAG, "AP Password updated and saved to NVS: %s", ap_password);
-        }
-    } else {
-        ESP_LOGE(TAG, "AP Password parameter missing or invalid");
+    cJSON *ap_password_json = cJSON_GetObjectItem(value, "ap_password");
+    if (ap_password_json == NULL || !cJSON_IsString(ap_password_json)) {
+        error_log("AP Password parameter missing or invalid");
+        cJSON_Delete(json);
+        return;
     }
 
-    cJSON *sta_ssid_json = cJSON_GetObjectItem(json, "sta_ssid");
-    if (sta_ssid_json && cJSON_IsString(sta_ssid_json)) {
-        if (strcmp(sta_ssid, sta_ssid_json->valuestring) != 0) {
-            strncpy(sta_ssid, sta_ssid_json->valuestring, sizeof(sta_ssid) - 1);
-            sta_ssid[sizeof(sta_ssid) - 1] = '\0';
-            set_string("sta_ssid", sta_ssid);
-            ESP_LOGI(TAG, "STA SSID updated and saved to NVS: %s", sta_ssid);
-        }
-    } else {
-        ESP_LOGE(TAG, "STA SSID parameter missing or invalid");
+    cJSON *sta_ssid_json = cJSON_GetObjectItem(value, "sta_ssid");
+    if (sta_ssid_json == NULL || !cJSON_IsString(sta_ssid_json)) {
+        error_log("STA SSID parameter missing or invalid");
+        cJSON_Delete(json);
+        return;
     }
 
-    cJSON *sta_password_json = cJSON_GetObjectItem(json, "sta_password");
-    if (sta_password_json && cJSON_IsString(sta_password_json)) {
-        if (strcmp(sta_password, sta_password_json->valuestring) != 0) {
-            strncpy(sta_password, sta_password_json->valuestring, sizeof(sta_password) - 1);
-            sta_password[sizeof(sta_password) - 1] = '\0';
-            set_string("sta_password", sta_password);
-            ESP_LOGI(TAG, "STA Password updated and saved to NVS: %s", sta_password);
-        }
-    } else {
-        ESP_LOGE(TAG, "STA Password parameter missing or invalid");
+    cJSON *sta_password_json = cJSON_GetObjectItem(value, "sta_password");
+    if (sta_password_json == NULL || !cJSON_IsString(sta_password_json)) {
+        error_log("STA Password parameter missing or invalid");
+        cJSON_Delete(json);
+        return;
     }
 
-    cJSON *baud_rate_json = cJSON_GetObjectItem(json, "baud_rate");
-    if (baud_rate_json && cJSON_IsNumber(baud_rate_json)) {
-        int new_baud_rate = baud_rate_json->valueint;
-        if (new_baud_rate != baud_rate) {
-            baud_rate = new_baud_rate;
-            set_u32("baud_rate", (uint32_t)baud_rate);
-            ESP_LOGI(TAG, "Baud rate updated and saved to NVS: %d", baud_rate);
-        }
-    } else {
-        ESP_LOGE(TAG, "Baud rate parameter missing or invalid");
+    if (strcmp(ap_ssid, ap_ssid_json->valuestring) != 0) {
+        strncpy(ap_ssid, ap_ssid_json->valuestring, sizeof(ap_ssid) - 1);
+        ap_ssid[sizeof(ap_ssid) - 1] = '\0';
+        set_string("ap_ssid", ap_ssid);
+        ESP_LOGI(TAG, "AP SSID updated and saved to NVS: %s", ap_ssid);
+    }
+
+    if (strcmp(ap_password, ap_password_json->valuestring) != 0) {
+        strncpy(ap_password, ap_password_json->valuestring, sizeof(ap_password) - 1);
+        ap_password[sizeof(ap_password) - 1] = '\0';
+        set_string("ap_password", ap_password);
+        ESP_LOGI(TAG, "AP Password updated and saved to NVS: %s", ap_password);
+    }
+
+    if (strcmp(sta_ssid, sta_ssid_json->valuestring) != 0) {
+        strncpy(sta_ssid, sta_ssid_json->valuestring, sizeof(sta_ssid) - 1);
+        sta_ssid[sizeof(sta_ssid) - 1] = '\0';
+        set_string("sta_ssid", sta_ssid);
+        ESP_LOGI(TAG, "STA SSID updated and saved to NVS: %s", sta_ssid);
+    }
+
+    if (strcmp(sta_password, sta_password_json->valuestring) != 0) {
+        strncpy(sta_password, sta_password_json->valuestring, sizeof(sta_password) - 1);
+        sta_password[sizeof(sta_password) - 1] = '\0';
+        set_string("sta_password", sta_password);
+        ESP_LOGI(TAG, "STA Password updated and saved to NVS: %s", sta_password);
     }
 
     cJSON_Delete(json);
-
-    const char *response = "{\"result\": \"Settings updated successfully\"}";
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, response, strlen(response));
-
-    return ESP_OK;
+    
+    send_result("response", "ok");
 }
 
-static esp_err_t get_settings_handler(httpd_req_t *req) {
+static void handle_get(void) {
     cJSON *json = cJSON_CreateObject();
-    if (!json) {
-        ESP_LOGE(TAG, "Failed to create JSON object");
-        const char *response = "{\"error\": \"Failed to create JSON object\"}";
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, response, strlen(response));
-        return ESP_FAIL;
+    if (json == NULL) {
+        error_log("Failed to create JSON object");
+        return;
     }
 
-    cJSON_AddStringToObject(json, "ap_ssid", ap_ssid);
-    cJSON_AddStringToObject(json, "ap_password", ap_password);
-    cJSON_AddStringToObject(json, "sta_ssid", sta_ssid);
-    cJSON_AddStringToObject(json, "sta_password", sta_password);
-    cJSON_AddNumberToObject(json, "baud_rate", baud_rate);
+    cJSON_AddStringToObject(json, "topic", "settings");
+    cJSON_AddStringToObject(json, "event", "response");
+
+    cJSON *value = cJSON_CreateObject();
+    if (!value) {
+        error_log("Failed to create JSON object");
+        cJSON_Delete(json);
+        return;
+    }
+
+    cJSON_AddStringToObject(value, "ap_ssid", ap_ssid);
+    cJSON_AddStringToObject(value, "ap_password", ap_password);
+    cJSON_AddStringToObject(value, "sta_ssid", sta_ssid);
+    cJSON_AddStringToObject(value, "sta_password", sta_password);
+
+    cJSON_AddItemToObject(json, "value", value);
 
     const char *response = cJSON_Print(json);
     if (!response) {
-        ESP_LOGE(TAG, "Failed to print JSON object");
+        error_log("Failed to print JSON object");
         cJSON_Delete(json);
-        const char *error_response = "{\"error\": \"Failed to generate JSON response\"}";
-        httpd_resp_set_type(req, "application/json");
-        httpd_resp_send(req, error_response, strlen(error_response));
-        return ESP_FAIL;
+        return;
     }
 
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_send(req, response, strlen(response));
+    ui_send_json(response);
 
     cJSON_Delete(json);
     free((void *)response);
-
-    return ESP_OK;
 }
 
-void register_settings_endpoints(void) {
-    register_html_page("/api/settings", HTTP_GET, get_settings_handler);
-    register_html_page("/api/settings", HTTP_POST, set_settings_handler);
+void st_recv_from_ui(cJSON *json) {
+    cJSON *eventValue = cJSON_GetObjectItem(json, "event");
+    if (eventValue == NULL || !cJSON_IsString(eventValue)) {
+        error_log("No event found in JSON or event is not a string");
+        return;
+    }
+    const char *event = eventValue->valuestring;
 
-    ESP_LOGI(TAG, "Settings endpoints registered");
+    if (strcmp(event, "get") == 0) {
+        handle_get();
+    } else if (strcmp(event, "set") == 0) {
+        handle_set(json);
+    } else {
+        error_log("Received unknown event: %s", event);
+    }
 }

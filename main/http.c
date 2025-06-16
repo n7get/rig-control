@@ -180,9 +180,10 @@ bool start_webserver(void) {
         linked_list_destroy(files, free);
         return false;
     }
+    ESP_LOGI(TAG, "Found %d files in HTML mount point", linked_list_size(files));
 
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    config.max_uri_handlers = linked_list_size(files) + 2;
+    config.max_uri_handlers = linked_list_size(files) + 1; // +1 for the redirect handler
 
     if (httpd_start(&server, &config) == ESP_OK) {
         ESP_LOGI(TAG, "Web server started");

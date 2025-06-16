@@ -7,6 +7,8 @@
     <div class="container">
         <b-button class="w-100 mb-3" @click="open('mem_chan_config')">Memory Channels</b-button>
         <b-button class="w-100 mb-3" @click="open('op_mode_config')">Op Modes</b-button>
+        <b-button class="w-100 mb-3" @click="open('wifi_config')">Wifi Config</b-button>
+        <b-button class="w-100 mb-3" @click="open('info')">Info</b-button>
     </div>
 </template>
 
