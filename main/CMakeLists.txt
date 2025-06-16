@@ -28,4 +28,4 @@ idf_component_register(
 	PRIV_REQUIRES "mbedtls"
 	PRIV_REQUIRES "nvs_flash"
 	INCLUDE_DIRS ".")
-littlefs_create_partition_image(html ../rig-monitor/dist/ FLASH_IN_PROJECT)
+littlefs_create_partition_image(html ../ui/dist/ FLASH_IN_PROJECT)
