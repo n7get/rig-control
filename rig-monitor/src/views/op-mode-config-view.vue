@@ -31,6 +31,7 @@ import { ref } from 'vue';
 import { useOpModeStore } from '@/stores/op_modes';
 import { op_mode } from '@/js/op_mode.js';
 import { useRouter } from 'vue-router';
+import { send_message } from '@/js/web_socket.js';
 
 const router = useRouter();
 const open_confirm_modal = ref(false);
@@ -40,16 +41,8 @@ function op_mode_reset() {
     open_confirm_modal.value = true;
 }
 function reset_confirmed() {
-    Object.values(op_modes)
-        .filter((om) => {
-            return om.name !== 'Default';
-        })
-        .forEach((om) => {
-            const o = op_mode.fromObject(om);
-            console.log(`Removing Op Mode: ${o.name}`);
-            o.remove();
-        });
     close_confirm_modal();
+    send_message({'topic': 'op_mode', 'event': 'reset'});
 }
 function close_confirm_modal() {
     open_confirm_modal.value = false;

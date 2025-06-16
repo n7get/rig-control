@@ -591,6 +591,27 @@ static void remove_op_mode(uint32_t id) {
     return;
 }
 
+static int find_removeable_op_mode() {
+    for (linked_list_node_t *node = linked_list_begin(op_modes); node != NULL; node = linked_list_next(node)) {
+        op_mode_t *mode = (op_mode_t *)node->data;
+        if (mode->id != 0) {
+            return mode->id;
+        }
+    }
+    return -1;
+}
+
+static void handle_reset() {
+    for(;;) {
+        uint32_t id = find_removeable_op_mode();
+        if (id == -1) {
+            error_log("No more removable op mode found");
+            return;
+        }
+        remove_op_mode(id);
+    }
+}
+
 static void update_op_mode(op_mode_t *mode) {
     if (mode == NULL) {
         error_log("Op mode is NULL");
@@ -628,6 +649,11 @@ static void handle_ui_event(const char *event, cJSON *json_obj) {
     if (strcmp(event, "refresh") == 0) {
         send_refresh();
         send_config();
+        return;
+    }
+
+    if (strcmp(event, "reset") == 0) {
+        handle_reset();
         return;
     }
     

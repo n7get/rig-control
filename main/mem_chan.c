@@ -496,6 +496,14 @@ static void remove_mem_chan(uint32_t id) {
     free_mem_chan(chan);
 }
 
+static void handle_reset() {
+    while (linked_list_size(mem_chans) > 0) {
+        linked_list_node_t *node = linked_list_begin(mem_chans);
+        mem_chan_t *chan = (mem_chan_t *)node->data;
+        remove_mem_chan(chan->id);
+    }
+}
+
 static void update_mem_chan(mem_chan_t *chan) {
     if (chan == NULL) {
         error_log("mem_chan is NULL");
@@ -544,6 +552,11 @@ static void mc_recv_from_ui_in_mutex(cJSON *json_obj) {
     if (strcmp(event, "refresh") == 0) {
         send_refresh();
         send_mem_chan_config();
+        return;
+    }
+
+    if(strcmp(event, "reset") == 0) {
+        handle_reset();
         return;
     }
 

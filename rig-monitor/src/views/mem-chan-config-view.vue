@@ -31,6 +31,7 @@ import { ref } from 'vue';
 import { useMemChanStore } from '@/stores/mem_chans';
 import { mem_chan } from '@/js/mem_chan.js';
 import { useRouter } from 'vue-router';
+import { send_message } from '@/js/web_socket.js';
 
 const router = useRouter();
 const open_confirm_modal = ref(false);
@@ -40,13 +41,8 @@ function mem_chan_reset() {
     open_confirm_modal.value = true;
 }
 function reset_confirmed() {
-    Object.values(mem_chans)
-        .forEach((mc) => {
-            const m = mem_chan.fromObject(mc);
-            console.log(`Removing Memory Channel: ${m.name}`);
-            m.remove();
-        });
     close_confirm_modal();
+    send_message({'topic': 'mem_chan', 'event': 'reset'});
 }
 function close_confirm_modal() {
     open_confirm_modal.value = false;
