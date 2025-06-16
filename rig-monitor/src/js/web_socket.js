@@ -15,8 +15,6 @@ function connect_ws(ws_url, try_dev = false) {
     
     socket.onopen = () => {
         console.log('WebSocket connected');
-        
-        useGlobalStore().setResourceUri(ws_url);
         send_message({ topic: 'monitor', event: 'refresh' });
     };
 

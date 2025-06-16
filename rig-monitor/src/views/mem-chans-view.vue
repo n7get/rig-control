@@ -13,9 +13,9 @@
                 <div class="d-flex justify-content-between w-100">
                     <div @click="select_mem_chan(mc.id)">{{ mc.name }}</div>
                     <div class="d-flex gap-3">
-                        <IBiPencil @click="edit_mem_chan(mc.id)" />
-                        <IBiCopy @click="copy_mem_chan(mc.id)" />
-                        <IBiTrash3 @click="remove_mem_chan(mc.id)" />
+                        <icon-edit @click="edit_mem_chan(mc.id)" />
+                        <icon-copy @click="copy_mem_chan(mc.id)" />
+                        <icon-trash @click="remove_mem_chan(mc.id)" />
                     </div>
                 </div>
             </b-list-group-item>
@@ -42,9 +42,9 @@
 import { computed, ref } from 'vue';
 import { mem_chan } from '@/js/mem_chan';
 import { useMemChanStore } from '@/stores/mem_chans';
-import IBiPencil from '~icons/bi/pencil';
-import IBiCopy from '~icons/bi/copy';
-import IBiTrash3 from '~icons/bi/trash3';
+import iconEdit from '@/components/icons/edit.vue';
+import iconCopy from '@/components/icons/copy.vue';
+import iconTrash from '@/components/icons/trash.vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

@@ -13,9 +13,9 @@
                 <div class="d-flex justify-content-between w-100">
                     <div @click="select_op_mode(om.id)">{{ om.name }}</div>
                     <div class="d-flex gap-3">
-                        <IBiPencil @click="edit_op_mode(om.id)" />
-                        <IBiCopy @click="copy_op_mode(om.id)" />
-                        <IBiTrash3 @click="remove_op_mode(om.id)" />
+                        <icon-edit @click="edit_op_mode(om.id)" />
+                        <icon-copy @click="copy_op_mode(om.id)" />
+                        <icon-trash @click="remove_op_mode(om.id)" />
                     </div>
                 </div>
             </b-list-group-item>
@@ -42,9 +42,9 @@
 import { computed, onBeforeMount, ref } from 'vue';
 import { op_mode } from '@/js/op_mode';
 import { useOpModeStore } from '@/stores/op_modes';
-import IBiPencil from '~icons/bi/pencil';
-import IBiCopy from '~icons/bi/copy';
-import IBiTrash3 from '~icons/bi/trash3';
+import iconEdit from '@/components/icons/edit.vue';
+import iconCopy from '@/components/icons/copy.vue';
+import iconTrash from '@/components/icons/trash.vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();

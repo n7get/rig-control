@@ -7,11 +7,11 @@
     </div>
 
     <div v-if="success_message" class="alert alert-info mt-2 d-flex justify-content-between">
-        <div class="me-2 text-center"><iconsCheck /></div>
+        <div class="me-2 text-center"><icons-check /></div>
         <div>{{ success_message }}</div>
     </div>
     <div v-if="error_message" class="alert alert-danger mt-2 d-flex justify-content-between">
-        <div class="me-2 text-center"><iconsWarning /></div>
+        <div class="me-2 text-center"><icons-warning /></div>
         <div>{{ error_message }}</div>
     </div>
 

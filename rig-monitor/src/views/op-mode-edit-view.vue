@@ -56,7 +56,7 @@
                         placeholder="End Frequency"
                         :state="fr_state(index, 1)"
                     ></b-form-input>
-                    <b-button variant="danger" @click="remove_frequency_range(index)"><IBiXLg /></b-button>
+                    <b-button variant="danger" @click="remove_frequency_range(index)"><icon-trash /></b-button>
                 </div>
                 <div v-if="errors('freq_ranges', index)" class="text-danger"><i>{{ errors('freq_ranges', index) }}</i></div>
             </div>
@@ -77,7 +77,7 @@
                         :state="null"
                         required
                     ></b-form-input>
-                    <b-button variant="primary" @click="add_frequency_range()"><IBiPlus /></b-button>
+                    <b-button variant="primary" @click="add_frequency_range()"><icon-plus /></b-button>
                 </div>
                 <div v-if="freq_inputs_error" class="text-danger"><i>{{ freq_inputs_error }}</i></div>
             </div>
@@ -94,8 +94,8 @@
 <script setup>
 import { computed, onBeforeMount, ref } from 'vue';
 import { useOpModeStore } from '@/stores/op_modes';
-import IBiPlus from '~icons/bi/plus';
-import IBiXLg from '~icons/bi/x-lg';
+import iconPlus from '@/components/icons/plus.vue';
+import iconTrash from '@/components/icons/trash.vue';
 import { useRouter } from 'vue-router';
 import { rig_property } from '@/js/rig_property.js';
 import { config, freq_range, op_mode } from '@/js/op_mode';

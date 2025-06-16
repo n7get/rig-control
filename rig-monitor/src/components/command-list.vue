@@ -10,7 +10,7 @@
                     <div @click="edit_command(rp)">{{ rp.desc }}</div>
                     <div class="d-flex gap-3">
                         <div>{{ rp.value }}</div>
-                        <IBiTrash3 @click="remove_command(rp.name)" />
+                        <icon-trash @click="remove_command(rp.name)" />
                     </div>
                 </div>
             </b-list-group-item>
@@ -46,7 +46,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import IBiTrash3 from '~icons/bi/trash3';
+import iconTrash from '@/components/icons/trash.vue';
 import { useRouter } from 'vue-router';
 import { useGlobalStore } from '@/stores/global';
 import { rig_property } from '@/js/rig_property.js';
