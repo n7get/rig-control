@@ -3,7 +3,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 const routes = [
   {
       path: '/',
-      component: () => import('@/views/ui-view.vue'),
+      component: () => import('@/views/main-view.vue'),
   },
   {
     path: '/config',
