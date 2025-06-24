@@ -460,12 +460,12 @@ static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority
         return false;
     }
     if (cmd->flags & PENDING_F) {
-        info->pending++;
+        info->rc_pending++;
         return false;
     }
 
     if (cmd->flags & VALID_F) {
-        info->valid++;
+        info->rc_valid++;
         if (cmd->next_refresh <= 0) {
             command_t command;
             memset(&command, 0, sizeof(command_t));
@@ -476,7 +476,7 @@ static bool send_if_update_needed(rig_command_t *cmd, info_t *info, int priority
             if (cat_queue_command(&command, priority) == ESP_ERR_NO_MEM) {
                 return true;
             }
-            info->updates++;
+            info->rc_updates++;
             cmd->flags |= PENDING_F;
         } else {
             cmd->next_refresh -= elapsed_ticks;
@@ -495,8 +495,8 @@ TickType_t rc_scan_for_updates(TickType_t last_scan_tick) {
     TickType_t elapsed_ticks = start_tick - last_scan_tick;
 
     info_t *info = get_info();
-    info->polls++;
-    info->elapsed_ticks += elapsed_ticks;
+    info->rc_polls++;
+    info->rc_elapsed_ticks += elapsed_ticks;
 
     // Process fast commands first
     for (int i = 0; rig_commands[i].cmd != NULL; i++) {

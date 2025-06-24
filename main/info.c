@@ -63,30 +63,38 @@ info_t *get_info() {
 }
 
 void init_info() {
-    info.no_busy_sendqueue = 0;
-    info.no_sendqueue_waiting = 0;
-    info.total_sendqueue = 0;
-    info.max_send_len = 0;
-    info.max_receive_len = 0;
-    info.total_response_time = 0;
-    info.no_responses = 0;
-    info.max_response_time = 0;
-    info.polls = 0;
-    info.elapsed_ticks = 0;
-    info.pending = 0;
-    info.valid = 0;
-    info.updates = 0;
-    info.rm_queue_polls = 0;
-    info.rm_queue_count = 0;
-    info.last_rm_queue_event = -1;
+    info.cat_empty_queue = 0;
+    info.cat_queue_busy = 0;
+    info.cat_max_queue_size = 0;
+    info.cat_max_send_len = 0;
+    info.cat_max_receive_len = 0;
+    info.cat_total_response_time = 0;
+    info.cat_no_responses = 0;
+    info.cat_max_response_time = 0;
+    info.rc_polls = 0;
+    info.rc_elapsed_ticks = 0;
+    info.rc_pending = 0;
+    info.rc_valid = 0;
+    info.rc_updates = 0;
+    info.rt_empty_queue = 0;
+    info.rt_queue_busy = 0;
+    info.rt_max_queue_size = 0;
+    info.rm_empty_queue = 0;
+    info.rm_queue_busy = 0;
+    info.rm_max_queue_size = 0;
+    info.rm_last_queue_event = -1;
     info.cat_queue_full = 0;
     info.cat_queue_fast_full = 0;
+    info.uart_empty_queue = 0;
+    info.uart_queue_busy = 0;
+    info.uart_max_queue_size = 0;
     info.uart_max_read_len = 0;
     info.uart_buffer_full = 0;
     info.uart_fifo_ovf = 0;
-    info.input_queue_full = 0;
-    info.ws_queue_polls = 0;
-    info.ws_queue_count = 0;
+    info.uart_input_queue_full = 0;
+    info.ws_max_queue_size = 0;
+    info.ws_empty_queue = 0;
+    info.ws_queue_busy = 0;
 }
 
 static void handle_get() {
@@ -105,36 +113,48 @@ static void handle_get() {
         return;
     }
 
-    float busy_sendqueue_percent = ((float)info.no_busy_sendqueue / (float)(info.no_empty_sendqueue + info.no_busy_sendqueue)) * 100.0f;
-    cJSON_AddNumberToObject(value, "busy_sendqueue_percent", busy_sendqueue_percent);
-    float avg_sendqueue_len = (float)info.no_sendqueue_waiting / (float)info.total_sendqueue;
-    cJSON_AddNumberToObject(value, "avg_sendqueue_len", avg_sendqueue_len);
+    cJSON_AddNumberToObject(value, "cat_empty_queue", info.cat_empty_queue);
+    cJSON_AddNumberToObject(value, "cat_queue_busy", info.cat_queue_busy);
+    cJSON_AddNumberToObject(value, "cat_max_queue_size", info.cat_max_queue_size);
+    
+    cJSON_AddNumberToObject(value, "cat_max_send_len", info.cat_max_send_len);
+    cJSON_AddNumberToObject(value, "cat_max_receive_len", info.cat_max_receive_len);
+    float cat_avg_response_time = (float)info.cat_total_response_time / (float)info.cat_no_responses;
+    cJSON_AddNumberToObject(value, "cat_avg_response_time", cat_avg_response_time / 1000.0f);
+    cJSON_AddNumberToObject(value, "cat_max_response_time", info.cat_max_response_time / 1000);
 
-    cJSON_AddNumberToObject(value, "max_send_len", info.max_send_len);
-    cJSON_AddNumberToObject(value, "max_receive_len", info.max_receive_len);
-    float avg_response_time = (float)info.total_response_time / (float)info.no_responses;
-    cJSON_AddNumberToObject(value, "avg_response_time", avg_response_time / 1000.0f);
-    cJSON_AddNumberToObject(value, "max_response_time", info.max_response_time / 1000);
+    float rc_avg_elapsed_ticks = (float)info.rc_elapsed_ticks / (float)info.rc_polls;
+    cJSON_AddNumberToObject(value, "rc_avg_elapsed_ticks", rc_avg_elapsed_ticks);
+    float rc_avg_pending = (float)info.rc_pending / (float)info.rc_polls;
+    cJSON_AddNumberToObject(value, "rc_avg_pending", rc_avg_pending);
+    float rc_avg_valid = (float)info.rc_valid / (float)info.rc_polls;
+    cJSON_AddNumberToObject(value, "rc_avg_valid", rc_avg_valid);
+    float rc_avg_updates = (float)info.rc_updates / (float)info.rc_polls;
+    cJSON_AddNumberToObject(value, "rc_avg_updates", rc_avg_updates);
 
-    float avg_elapsed_ticks = (float)info.elapsed_ticks / (float)info.polls;
-    cJSON_AddNumberToObject(value, "avg_elapsed_ticks", avg_elapsed_ticks);
-    float avg_pending = (float)info.pending / (float)info.polls;
-    cJSON_AddNumberToObject(value, "avg_pending", avg_pending);
-    float avg_valid = (float)info.valid / (float)info.polls;
-    cJSON_AddNumberToObject(value, "avg_valid", avg_valid);
-    float avg_updates = (float)info.updates / (float)info.polls;
-    cJSON_AddNumberToObject(value, "avg_updates", avg_updates);
-    float avg_rm_queue_size = (float)info.rm_queue_count / (float)info.rm_queue_polls;
-    cJSON_AddNumberToObject(value, "avg_rm_queue_size", avg_rm_queue_size);
-    cJSON_AddNumberToObject(value, "last_rm_queue_event", info.last_rm_queue_event);
+    cJSON_AddNumberToObject(value, "rt_empty_queue", info.rt_empty_queue);
+    cJSON_AddNumberToObject(value, "rt_queue_busy", info.rt_queue_busy);
+    cJSON_AddNumberToObject(value, "rt_max_queue_size", info.rt_max_queue_size);
+
+    cJSON_AddNumberToObject(value, "rm_empty_queue", info.rm_empty_queue);
+    cJSON_AddNumberToObject(value, "rm_queue_busy", info.rm_queue_busy);
+    cJSON_AddNumberToObject(value, "rm_max_queue_size", info.rm_max_queue_size);
+    cJSON_AddNumberToObject(value, "rm_last_queue_event", info.rm_last_queue_event);
+    
     cJSON_AddNumberToObject(value, "cat_queue_full", info.cat_queue_full);
     cJSON_AddNumberToObject(value, "cat_queue_fast_full", info.cat_queue_fast_full);
+
+    cJSON_AddNumberToObject(value, "uart_empty_queue", info.uart_empty_queue);
+    cJSON_AddNumberToObject(value, "uart_queue_busy", info.uart_queue_busy);
+    cJSON_AddNumberToObject(value, "uart_max_queue_size", info.uart_max_queue_size);
     cJSON_AddNumberToObject(value, "uart_max_read_len", info.uart_max_read_len);
     cJSON_AddNumberToObject(value, "uart_buffer_full", info.uart_buffer_full);
     cJSON_AddNumberToObject(value, "uart_fifo_ovf", info.uart_fifo_ovf);
-    cJSON_AddNumberToObject(value, "input_queue_full", info.input_queue_full);
-    float avg_ws_queue_size = (float)info.ws_queue_count / (float)info.ws_queue_polls;
-    cJSON_AddNumberToObject(value, "avg_ws_queue_size", avg_ws_queue_size);
+    cJSON_AddNumberToObject(value, "uart_input_queue_full", info.uart_input_queue_full);
+
+    cJSON_AddNumberToObject(value, "ws_max_queue_size", info.ws_max_queue_size);
+    cJSON_AddNumberToObject(value, "ws_empty_queue", info.ws_empty_queue);
+    cJSON_AddNumberToObject(value, "ws_queue_busy", info.ws_queue_busy);
 
     cJSON_AddNumberToObject(value, "free_heap", esp_get_free_heap_size());
     cJSON_AddNumberToObject(value, "min_free_heap", esp_get_minimum_free_heap_size());

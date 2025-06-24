@@ -66,8 +66,8 @@ static process_command_result_t process_command(response_t *response) {
         ESP_LOGE(TAG, "Number of bytes written does not match command size: expected %d, got %d", send_buf_len, bytes_written);
     }
 
-    if (bytes_written > info->max_send_len) {
-        info->max_send_len = bytes_written;
+    if (bytes_written > info->cat_max_send_len) {
+        info->cat_max_send_len = bytes_written;
     }
 
     if (response->read_len == 0) {
@@ -124,10 +124,12 @@ static void cat_task(void *arg) {
     while (1) {
         int no_in_sendqueue = uxQueueMessagesWaiting(send_queue);
         if (no_in_sendqueue == 0) {
-            info->no_empty_sendqueue++;
+            info->cat_empty_queue++;
         } else {
-            info->no_busy_sendqueue++;
-            info->no_sendqueue_waiting += no_in_sendqueue;
+            info->cat_queue_busy++;
+            if (no_in_sendqueue > info->cat_max_queue_size) {
+                info->cat_max_queue_size = no_in_sendqueue;
+            }
         }
 
         // Wait for data to send
@@ -135,7 +137,6 @@ static void cat_task(void *arg) {
         
         if (xQueueReceive(send_queue, &command, portMAX_DELAY) == pdPASS) {
             int64_t start_time = esp_timer_get_time();
-            info->total_sendqueue++;
             int retries = 0;
 
             for(;;) {
@@ -171,14 +172,14 @@ static void cat_task(void *arg) {
                     if (!rc_is_fail(response.response)) {
                         int64_t end_time = esp_timer_get_time();
                         int64_t elapsed_time = end_time - start_time;
-                        info->total_response_time += elapsed_time;
-                        info->no_responses++;
-                        if (elapsed_time > info->max_response_time) {
-                            info->max_response_time = elapsed_time;
+                        info->cat_total_response_time += elapsed_time;
+                        info->cat_no_responses++;
+                        if (elapsed_time > info->cat_max_response_time) {
+                            info->cat_max_response_time = elapsed_time;
                         }
 
-                        if (response.response_len > info->max_receive_len) {
-                            info->max_receive_len = response.response_len;
+                        if (response.response_len > info->cat_max_receive_len) {
+                            info->cat_max_receive_len = response.response_len;
                         }
                     }
                     if (response.type != SEND_TYPE_POLL) {

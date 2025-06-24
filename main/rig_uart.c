@@ -35,6 +35,16 @@ static void uart_event_task(void *pvParameters) {
     input_data_t input_data;
 
     while (1) {
+        int no_in_sendqueue = uxQueueMessagesWaiting(uart_event_queue);
+        if (no_in_sendqueue == 0) {
+            info->uart_empty_queue++;
+        } else {
+            info->uart_queue_busy++;
+            if (no_in_sendqueue > info->uart_max_queue_size) {
+                info->uart_max_queue_size = no_in_sendqueue;
+            }
+        }
+
         if (xQueueReceive(uart_event_queue, (void *)&event, portMAX_DELAY)) {
             switch (event.type) {
             case UART_DATA:
@@ -55,7 +65,7 @@ static void uart_event_task(void *pvParameters) {
                     input_data.data[len] = '\0';
                     if (xQueueSend(input_queue, &input_data, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
                         ESP_LOGE(TAG, "Input queue overflow");
-                        info->input_queue_full++;
+                        info->uart_input_queue_full++;
                     }
                 }
                 break;
@@ -72,7 +82,7 @@ static void uart_event_task(void *pvParameters) {
                 input_data.len = 0;
                 if (xQueueSend(input_queue, &input_data, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
                     ESP_LOGE(TAG, "Input queue overflow");
-                    info->input_queue_full++;
+                    info->uart_input_queue_full++;
                 }
                 break;
 
@@ -84,7 +94,7 @@ static void uart_event_task(void *pvParameters) {
                 input_data.len = 0;
                 if (xQueueSend(input_queue, &input_data, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
                     ESP_LOGE(TAG, "Input queue overflow");
-                    info->input_queue_full++;
+                    info->uart_input_queue_full++;
                 }
                 break;
 

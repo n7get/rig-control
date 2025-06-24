@@ -8,6 +8,7 @@
 #include "esp_log.h"
 
 #include "command_list.h"
+#include "info.h"
 #include "rig_monitor.h"
 #include "rig_controller.h"
 #include "op_mode.h"
@@ -397,9 +398,20 @@ static void handle_next_command() {
 static void op_mode_task(void *pvParameters) {
     bool is_ready = false;
     bool disable_frequency_update = false;
+    info_t *info = get_info();
 
     while(1) {
         rt_event_t *rt_event;
+
+        int no_in_sendqueue = uxQueueMessagesWaiting(rt_event_queue);
+        if (no_in_sendqueue == 0) {
+            info->rt_empty_queue++;
+        } else {
+            info->rt_queue_busy++;
+            if (no_in_sendqueue > info->rt_max_queue_size) {
+                info->rt_max_queue_size = no_in_sendqueue;
+            }
+        }
 
         if (xQueueReceive(rt_event_queue, &rt_event, portMAX_DELAY) == pdPASS) {
             switch(rt_event->type) {

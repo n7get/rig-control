@@ -14,6 +14,8 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/sha1.h"
 
+#include "info.h"
+
 #define TAG "WS_SERVER"
 #define WS_QUEUE_SIZE 300
 #define PING_TIMER 30000
@@ -547,7 +549,19 @@ static void ws_broadcast_text(const char *msg) {
 // Task to send messages from the queue to all clients
 static void ws_broadcast_task(void *param) {
     char *msg;
+    info_t *info = get_info();
+
     while (1) {
+        int no_in_sendqueue = uxQueueMessagesWaiting(ws_send_queue);
+        if (no_in_sendqueue == 0) {
+            info->ws_empty_queue++;
+        } else {
+            info->ws_queue_busy++;
+            if (no_in_sendqueue > info->ws_max_queue_size) {
+                info->ws_max_queue_size = no_in_sendqueue;
+            }
+        }
+
         if (xQueueReceive(ws_send_queue, &msg, portMAX_DELAY) == pdTRUE) {
             ws_broadcast_text(msg);
             free(msg);

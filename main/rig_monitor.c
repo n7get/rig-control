@@ -185,19 +185,27 @@ static void rig_monitor_task(void *pvParameters) {
     info_t *info = get_info();
 
     while(1) {
-        rm_event_t event;
+        rm_event_t *event;
 
-        info->rm_queue_count = uxQueueMessagesWaiting(rm_event_queue);
+        int no_in_sendqueue = uxQueueMessagesWaiting(rm_event_queue);
+        if (no_in_sendqueue == 0) {
+            info->rm_empty_queue++;
+        } else {
+            info->rm_queue_busy++;
+            if (no_in_sendqueue > info->rm_max_queue_size) {
+                info->rm_max_queue_size = no_in_sendqueue;
+            }
+        }
+
         if (xQueueReceive(rm_event_queue, &event, portMAX_DELAY) == pdPASS) {
-            info->rm_queue_polls++;
-            info->last_rm_queue_event = event.type;
+            info->rm_last_queue_event = event->type;
 #ifdef LOG_EVENTS            
             log_event(&event, in_startup, is_ready);
 #endif
 
-            switch (event.type) { 
+            switch (event->type) { 
                 case RM_EVENT_RECEIVED:
-                    bool r = event_received(in_startup, &event.response);
+                    bool r = event_received(in_startup, &event->response);
                     if (in_startup && !r) {
                         ESP_LOGI(TAG, "Rig monitor has finished startup");
                         in_startup = r;
@@ -219,7 +227,7 @@ static void rig_monitor_task(void *pvParameters) {
                     if (in_startup || !is_ready) {
                         notify_control(CONTROL_MSG_NOT_READY);
                     } else {
-                        if (cat_queue_command(&event.command, event.priority) == ESP_ERR_NO_MEM) {
+                        if (cat_queue_command(&event->command, event->priority) == ESP_ERR_NO_MEM) {
                             notify_control(CONTROL_MSG_BUSY);
                             get_info()->cat_queue_full++;
                         }
@@ -264,9 +272,11 @@ static void rig_monitor_task(void *pvParameters) {
                     break;
 
                 default:
-                    ESP_LOGE(TAG, "Unknown event type: %d", event.type);
+                    ESP_LOGE(TAG, "Unknown event type: %d", event->type);
                     break;
             }
+            free(event);
+            event = NULL;
         }
     }
 }
@@ -311,10 +321,9 @@ static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t
 
 
 esp_err_t rm_queue_command(const char *cmd_str, send_type_t type) {
-    rm_event_t event;
-    memset(&event, 0, sizeof(rm_event_t));
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
 
-    esp_err_t err = setup_event(&event, cmd_str, type);
+    esp_err_t err = setup_event(event, cmd_str, type);
     if (err != ESP_OK) {
         return err;
     }
@@ -327,19 +336,19 @@ esp_err_t rm_queue_command(const char *cmd_str, send_type_t type) {
 }
 
 void rm_queue_refresh() {
-    rm_event_t event;
-    event.type = RM_EVENT_REFRESH;
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
+    event->type = RM_EVENT_REFRESH;
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to send refresh event to rig monitor task");
     }
 }
 
 void rm_queue_tx_poll(bool tx_poll) {
-    rm_event_t event;
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
     if (tx_poll) {
-        event.type = RM_TX_POLL_SET;
+        event->type = RM_TX_POLL_SET;
     } else {
-        event.type = RM_TX_POLL_CLEAR;
+        event->type = RM_TX_POLL_CLEAR;
     }
 
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
@@ -348,20 +357,20 @@ void rm_queue_tx_poll(bool tx_poll) {
 }
 
 void rm_queue_response(response_t *response) {
-    rm_event_t event;
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
 
     switch(response->result) {
     case RECV_RESULT_OK:
         // log_response("rig_monitor_recv_data", response);
-        event.type = RM_EVENT_RECEIVED;
-        memcpy(&event.response, response, sizeof(response_t));
+        event->type = RM_EVENT_RECEIVED;
+        memcpy(&event->response, response, sizeof(response_t));
         while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
             ESP_LOGE(TAG, "Failed to send event to rig monitor task");
         }
         break;
 
     case RECV_RESULT_TIMEOUT:
-        event.type = RM_EVENT_TIMEOUT;
+        event->type = RM_EVENT_TIMEOUT;
         while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
             ESP_LOGE(TAG, "Failed to send event to rig monitor task");
         }
@@ -378,8 +387,8 @@ void rm_queue_response(response_t *response) {
 }
 
 static void rig_monitor_scan_timer(TimerHandle_t xTimer) {
-    rm_event_t event;
-    event.type = RM_EVENT_SCAN;
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
+    event->type = RM_EVENT_SCAN;
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to send scan event to rig monitor task");
     }
@@ -392,7 +401,7 @@ void init_rig_monitor() {
     updates_subject = new_subject();
     status_subject = new_subject();
 
-    rm_event_queue = xQueueCreate(10, sizeof(rm_event_t));
+    rm_event_queue = xQueueCreate(10, sizeof(rm_event_t *));
     if (rm_event_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create rig monitor event queue");
         return;
@@ -412,8 +421,8 @@ void init_rig_monitor() {
         return;
     }
 
-    rm_event_t event;
-    event.type = RM_EVENT_START;
+    rm_event_t *event = calloc(1, sizeof(rm_event_t));
+    event->type = RM_EVENT_START;
     while (xQueueSend(rm_event_queue, &event, pdMS_TO_TICKS(RESPONSE_TIMEOUT_MS)) != pdPASS) {
         ESP_LOGE(TAG, "Failed to send event to rig monitor task");
     }
