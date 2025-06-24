@@ -4,6 +4,7 @@ idf_component_register(
 	 	"cat.c"
 		"command_list.c"
 		"config.c"
+		"group.c"
 		"http.c"
 		"info.c"
 		"linked_list.c"

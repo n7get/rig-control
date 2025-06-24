@@ -10,6 +10,34 @@ const routes = [
     name: 'config',
     component: () => import('@/views/config-view.vue'),
   },
+
+  {
+    path: '/groups',
+    name: 'groups',
+    component: () => import('@/views/groups-view.vue'),
+  },
+  {
+    path: '/groups_config',
+    name: 'group_config',
+    component: () => import('@/views/group-config-view.vue'),
+  },
+  {
+    path: '/group_edit/:edit/:id?',
+    name: 'group_edit',
+    component: () => import('@/views/group-edit-view.vue'),
+    props: true,
+  },
+  {
+    path: '/group_export',
+    name: 'group_export',
+    component: () => import('@/views/group-export-view.vue'),
+  },
+  {
+    path: '/group_import',
+    name: 'group_import',
+    component: () => import('@/views/group-import-view.vue'),
+  },
+
   {
     path: '/info',
     name: 'info',

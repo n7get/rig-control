@@ -1,15 +1,7 @@
 <template>
 <div id="app-view" class="d-flex justify-content-center w-100">
   <div class="w-sm-100 col-12 col-md-6 col-lg-4 px-3">
-      <RouterView v-if="isReady" />
-      <div class="loading wait-wrapper d-flex justify-content-center align-items-center text-center" v-else>
-        <div class="spinner">
-          <div class="spinner-border" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <div class="mt-5 fs-1 mx-4">Please wait until the controller is ready.</div>
-        </div>
-    </div>
+    <RouterView />
     
     <settings-modal />
 
@@ -52,8 +44,6 @@
 <script setup>
 import { computed } from 'vue';
 import { useGlobalStore } from '@/stores/global';
-
-const isReady = computed(() => useGlobalStore().ready);
 
 const has_error = computed(() => useGlobalStore().has_error);
 const error_message = computed(() => useGlobalStore().error_message);

@@ -1505,6 +1505,6 @@ const rig_setting = class {
 
 export {
     agc_to_cat,
-    cat_preamp, preamp_cat,
+    cat_preamp, preamp_cat, modes_cat,
     rig_setting,
 };

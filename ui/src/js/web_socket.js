@@ -1,3 +1,4 @@
+import { group, set_group_config } from '@/js/group.js';
 import { mem_chan, set_mem_chan_config } from '@/js/mem_chan.js';
 import { op_mode, set_op_mode_config } from '@/js/op_mode.js';
 import { rig_setting } from '../js/rig_setting.js';
@@ -15,7 +16,7 @@ function connect_ws(ws_url, try_dev = false) {
     
     socket.onopen = () => {
         console.log('WebSocket connected');
-        send_message({ topic: 'monitor', event: 'refresh' });
+        send_message({ topic: 'op_mode', event: 'refresh' });
     };
 
     socket.onclose = () => {
@@ -58,6 +59,9 @@ function connect_ws(ws_url, try_dev = false) {
         case 'controller':
             handle_controller(message);
             break;
+        case 'group':
+            handle_group(message);
+            break;
         case 'mem_chan':
             handle_mem_chan(message);
             break;
@@ -75,11 +79,22 @@ function connect_ws(ws_url, try_dev = false) {
 };
 
 function handle_controller(message) {
-    console.log('Controller message received:', message);
+    // console.log('Controller message received:', message);
     switch (message.event) {
     case 'current_op_mode':
         console.log('Current op mode:', message.value);
         useOpModeStore().set_current_op_mode(message.value);
+        break;
+
+    case 'current_mem_chan':
+        console.log('Current mem chan:', message.value);
+        break;
+
+    case 'refresh':
+        if (message.value === 'complete') {
+            console.log('Controller refresh complete');
+            send_message({ topic: 'group', event: 'refresh' });
+        }
         break;
 
     case 'error':
@@ -88,6 +103,39 @@ function handle_controller(message) {
 
     default:
         console.warn('Unknown controller event:', message);
+        break;
+    }
+}
+
+function handle_group(message) {
+    // console.log('Group message received:', message);
+    switch (message.event) {
+    case 'update':
+        const g = group.fromJSON(message.value);
+        if (g) {
+            // console.log('Group update:', g.asUpdate());
+            useGroupsStore().add_group(g);
+        }
+        break;
+
+    case 'removed':
+        // console.log('Group removed:', message.value);
+        useGroupsStore().remove_group(message.value);
+        break;
+
+    case 'refresh':
+        if (message.value === 'complete') {
+            console.log('Group refresh complete');
+            send_message({ topic: 'monitor', event: 'refresh' });
+        }
+        break;
+
+    case 'config':
+        set_group_config(message.value);
+        break;
+
+    default:
+        console.warn('Unknown group message:', message);
         break;
     }
 }
@@ -104,7 +152,7 @@ function handle_op_mode(message) {
         break;
 
     case 'removed':
-        console.log('Op mode removed:', message.value);
+        // console.log('Op mode removed:', message.value);
         useOpModeStore().remove_op_mode(message.value);
         break;
 
@@ -130,18 +178,18 @@ function handle_op_mode(message) {
 }
 
 function handle_mem_chan(message) {
-    console.log('Mem chan message received:', message);
+    // console.log('Mem chan message received:', message);
     switch (message.event) {
     case 'update':
         const mc = mem_chan.fromJSON(message.value);
         if (mc) {
-            console.log('Mem chan update:', mc.asUpdate());
+            // console.log('Mem chan update:', mc.asUpdate());
             useMemChanStore().add_mem_chan(mc);
         }
         break;
 
     case 'removed':
-        console.log('Mem chan removed:', message.value);
+        // console.log('Mem chan removed:', message.value);
         useMemChanStore().remove_mem_chan(message.value);
         break;
 
@@ -215,11 +263,9 @@ function handle_monitor(message) {
         switch (message.value) {
         case 'ready':
             if (!useGlobalStore().isReady) {
-                useGroupsStore().groups_init();
+                // useGroupsStore().groups_init();
                 console.log('Rig is ready');
                 useGlobalStore().setReady(true);
-
-                send_message({ topic: 'op_mode', event: 'refresh' });
             }
             break;
 

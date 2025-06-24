@@ -25,7 +25,6 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { get_property_list } from '@/js/rig_property.js';
 import { useGlobalStore } from '@/stores/global';
 import { useGroupsStore } from '@/stores/groups';
 
@@ -56,14 +55,12 @@ const edit_property = (rp) => {
 }
 
 const groups_modal = ref(false);
-const group_list = computed(() => Object.keys(useGroupsStore().groups_list));
+const group_list = computed(() => useGroupsStore().groups_list);
 const open_groups_modal = () => {
     groups_modal.value = true;
 };
 const select_group = (group) => {
-    const groups_list = useGroupsStore().groups_list;
-    const g = groups_list[group];
-    useGroupsStore().set_current_group(g);
+    useGroupsStore().set_current_group(group);
     close_modal();
 };
 const close_modal = () => {

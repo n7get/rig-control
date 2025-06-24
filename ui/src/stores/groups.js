@@ -4,210 +4,98 @@ import { get_all_menus_list, rig_property } from '@/js/rig_property.js';
 import { get_all_settings_list } from '@/js/rig_property.js';
 import { useOpModeStore } from '@/stores/op_modes';
 
+const OP_MODE = 'Op Mode';
+const ALL_MENUS = 'All Menus';
+const ALL_SETTINGS = 'All Settings';
+const NO_CURRENT_GROUP = '';
+
 export const useGroupsStore = defineStore('groups', () => {
     const groups = ref({})
 
-    const current_group = ref('SETTINGS');
-
-    const set_default_group = (mode) => {
-        switch (mode) {
-        case 'AM':
-            current_group.value = 'AM';
-            break;
-        case 'CW':
-            current_group.value = 'CW';
-            break;
-        case 'FM':
-            current_group.value = 'FM';
-            break;
-        case 'DATA-FM':
-            current_group.value = 'DATA-FM';
-            break;
-        case 'LSB':
-        case 'USB':
-            current_group.value = 'SSB';
-            break;
-        case 'DATA-LSB':
-        case 'DATA-USB':
-            current_group.value = 'DATA-SSB';
-            break;
-        default:
-            current_group.value = 'SETTINGS';
-            break;
+    function add_group(group) {
+        groups.value[group.name] = group.asObject();
+    }
+    function remove_group(id) {
+        const group = Object.values(groups.value).find((g) => g.id === id);
+        if (group) {
+            delete groups.value[group.name];
         }
     }
+    function find_group(id) {
+        return Object.values(groups.value).find((g) => g.id === id);
+    }
 
-    const make_groups_list = (mode) => {
-        const list = {};
+    function get_group_properties(name) {
+        if (name === OP_MODE) {
+            const current_op_modes = useOpModeStore().get_current_op_mode;
+            if (current_op_modes) {
+                return current_op_modes.commands.map(cmd => cmd.name);
+            }
 
-        switch (mode) {
-            case 'AM':
-                list['AM Settings'] = 'AM';
-                list['VOX Settings'] = 'VOX';
-                break;
-            case 'CW':
-                list['CW Settings'] = 'CW';
-                break;
-            case 'FM':
-                list['FM Settings'] = 'FM';
-                list['VOX Settings'] = 'VOX';
-                break;
-            case 'DATA-FM':
-                list['Digital Settings'] = 'DATA-FM';
-                break;
-            case 'LSB':
-            case 'USB':
-                list['SSB Settings'] = 'SSB';
-                list['VOX Settings'] = 'VOX';
-                break;
-            case 'DATA-LSB':
-            case 'DATA-USB':
-                list['Digital Settings'] = 'DATA-SSB';
-                break;
-            default:
-                break;
+            return [];
         }
-
-        list['Op Modes'] = 'OP_MODES';
-        list['All Menus'] = 'MENUS';
-        list['All Settings'] = 'SETTINGS';
-
-        return list;
+        if (name === ALL_MENUS) {
+            return get_all_menus_list();
+        }
+        if (name === ALL_SETTINGS) {
+            return get_all_settings_list();
+        }
+        if (groups.value[name]) {
+            return groups.value[name].properties;
+        }
+        console.warn(`Group "${name}" does not exist.`);
+        return null;
     }
     
     const groups_list = computed(() => {
-        const mode = rig_property('mode');
-        return make_groups_list(mode.value);
+        const mode = rig_property('mode').value;
+
+        const list = Object.values(groups.value)
+            .filter(g => g.modes.some((gm) => gm === mode))
+            .sort((a, b) => a.order - b.order)
+            .map(g => g.name);
+
+        list.push(OP_MODE);
+        list.push(ALL_MENUS);
+        list.push(ALL_SETTINGS);
+
+        return list;
     });
 
-    const groups_init = () => {
-        groups.value['MENUS'] = get_all_menus_list();
-        groups.value['SETTINGS'] = get_all_settings_list();
-        groups.value['OP_MODES'] = [];
+    const current_group = ref(NO_CURRENT_GROUP);
+    function get_current_group() {
+        const list = groups_list.value;
 
-        groups.value['AM'] = [
-            'mic_gain',
-            'squelch_level',
-            '41',
-            '42',
-            '43',
-            '44',
-            '45',
-            '46',
-            '47',
-            '48',
-            '49',
-        ];
-        groups.value['CW'] = [
-            'break_in',
-            'cw_break_in_delay_time',
-            'cw_spot',
-            'key_pitch',
-            'key_speed',
-            'keyer',
-            '50',
-            '51',
-            '52',
-            '53',
-            '54',
-            '55',
-            '56',
-            '57',
-            '58',
-            '59',
-        ];
-        groups.value['FM'] = [
-            'offset',
-            'ctcss',
-            'ctcss_tone_frequency',
-            'dcs_tone_frequency',
-            'mic_gain',
-            'squelch_level',
-        ];
-        groups.value['DATA-FM'] = [
-            '74',
-            '77',
-            '75',
-            '78',
-            '79',
-            '62',
-            '76',
-        ];
-        groups.value['DATA-SSB'] = [
-            '70',
-            '72',
-            '73',
-            '64',
-            '65',
-            '71',
-            '66',
-            '67',
-            '68',
-            '69',
-        ];
-        groups.value['SSB'] = [
-            '102',
-            '103',
-            '104',
-            '105',
-            '106',
-            '107',
-            '108',
-            '109',
-            '110',
-        ];
-        groups.value['VOX'] = [
-            'vox',
-            'vox_delay_time',
-            'vox_gain',
-            '142',
-            '143',
-            '144',
-            '145',
-            '146',
-            '147',
-            '148',
-        ];
-    }
-
-    const group_titles = {
-        'AM': 'AM Settings',
-        'CW': 'CW Settings',
-        'FM': 'FM Settings',
-        'DATA-FM': 'Digital Settings',
-        'SSB': 'SSB Settings',
-        'DATA-SSB': 'Digital Settings',
-        'MENUS': 'All Menus',
-        'OP_MODES': 'Op Modes',
-        'SETTINGS': 'All Settings',
-        'VOX': 'VOX Settings',
-    }
-
-    const groups_init_op_modes = () => {
-        const current_op_modes = useOpModeStore().get_current_op_mode;
-        if (current_op_modes) {
-            groups.value['OP_MODES'] = current_op_modes.commands.map(cmd => cmd.name);
-        } else {
-            groups.value['OP_MODES'] = [];
+        if (current_group.value === NO_CURRENT_GROUP || !list.includes(current_group.value)) {
+            if (list.length > 0) {
+                return list[0];
+            }
+            return ALL_SETTINGS;
         }
+        return current_group.value;
     }
-
-    const set_current_group = (group) => {
-        if (groups.value[group]) {
-            current_group.value = group;
-        } else {
-            console.warn(`Group "${group}" does not exist.`);
+    function set_current_group(name) {
+        if ([OP_MODE, ALL_MENUS, ALL_SETTINGS].includes(name)) {
+            current_group.value = name;
+            return;
         }
+
+        if (groups.value[name]) {
+            current_group.value = name;
+            return;
+        }
+
+        console.warn(`Group "${name}" does not exist.`);
+    }
+    function reset_current_group() {
+        current_group.value = NO_CURRENT_GROUP;
     }
 
     return {
         groups,
-        groups_init,
+        add_group, remove_group, find_group, 
         groups_list,
-        group_titles,
-        current_group,
-        set_current_group,
-        set_default_group,
-        groups_init_op_modes,
-    }
+        get_group_properties,
+        get_current_group, set_current_group, reset_current_group,
+    };
 });

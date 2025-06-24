@@ -366,6 +366,8 @@ static void handle_set_op_mode_by_name(const char *name) {
 
 static void handle_send_refresh() {
     send_current_op_mode();
+
+    send_result("refresh", "complete");
 }
 
 static void handle_frequency_change(uint32_t frequency, bool op_mode_disabled) {

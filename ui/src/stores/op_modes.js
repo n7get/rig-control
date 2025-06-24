@@ -1,6 +1,6 @@
 import { computed, reactive, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { useGroupsStore } from '@/stores/groups.js';
+// import { useGroupsStore } from '@/stores/groups.js';
 
 export const useOpModeStore = defineStore('op_modes', () => {
     const op_modes = reactive({});
@@ -15,7 +15,7 @@ export const useOpModeStore = defineStore('op_modes', () => {
     }
     const add_op_mode = (op_mode) => {
         op_modes[op_mode.id] = op_mode.asObject();
-        useGroupsStore().groups_init_op_modes();
+        // useGroupsStore().groups_init_op_modes();
     }
     const remove_op_mode = (id) => {
         if (!op_modes.hasOwnProperty(id)) {
@@ -34,7 +34,7 @@ export const useOpModeStore = defineStore('op_modes', () => {
         const om = Object.values(op_modes).find(op_mode => op_mode.name === name);
         if (om) {
             current_op_mode.value = om.id;
-            useGroupsStore().groups_init_op_modes();
+            // useGroupsStore().groups_init_op_modes();
         } else {
             console.warn(`Op mode "${name}" does not exist.`);
         }

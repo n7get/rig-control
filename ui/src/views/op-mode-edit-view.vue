@@ -87,6 +87,8 @@
             @add-command="add_command"
             @remove-command="remove_command"
             @update-command="update_command"
+            @move-up="move_up"
+            @move-down="move_down"
             :commands="om.commands" />
     </div>
 </template>
@@ -208,6 +210,23 @@ function update_command(command) {
         om.value.commands[index].value = command.value;
     } else {
         console.warn('Command not found for update:', command.name);
+    }
+}
+
+function move_up(command) {
+    const index = om.value.commands.findIndex(c => c.name === command.name);
+    if (index > 0) {
+        const temp = om.value.commands[index - 1];
+        om.value.commands[index - 1] = om.value.commands[index];
+        om.value.commands[index] = temp;
+    }
+}
+function move_down(command) {
+    const index = om.value.commands.findIndex(c => c.name === command.name);
+    if (index < om.value.commands.length - 1) {
+        const temp = om.value.commands[index + 1];
+        om.value.commands[index + 1] = om.value.commands[index];
+        om.value.commands[index] = temp;
     }
 }
 

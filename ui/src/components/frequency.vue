@@ -3,10 +3,14 @@
         @click="freqHandleClicks()"
         class="frequency-digits d-flex justify-content-center align-items-center gap-2 mt-2"
         :class="{'tx': transmit.value}"
+        v-if="isReady"
     >
         <div class="mhz">{{ mhz }}</div>
         <div class="khz">{{ khz }}</div>
         <div class="hz">{{ hz }}</div>
+    </div>
+    <div v-else class="frequency-digits d-flex justify-content-center align-items-center gap-2 mt-2">
+        NOT READY
     </div>
 </template>
 
@@ -27,6 +31,7 @@ const props = defineProps({
 
 const vfo = rig_property(props.vfo);
 const transmit = rig_property('transmit');
+const isReady = computed(() => useGlobalStore().ready);
 
 const getFreq = () => {
     let value = vfo.value;

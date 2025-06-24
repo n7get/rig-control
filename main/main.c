@@ -5,6 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "nvs_flash.h"
 #include "config.h"
+#include "group.h"
 #include "http.h"
 #include "info.h"
 #include "mem_chan.h"
@@ -82,6 +83,7 @@ void app_main(void) {
     init_rig_controller();
     init_op_mode();
     init_mem_chan();
+    group_init();
     
     ESP_LOGI(TAG, "Application started");
 }

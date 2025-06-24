@@ -4,26 +4,26 @@
         <div><b>FT-991A</b></div>
         <div @click="open_mem_chan"><u>Mem chans</u></div>
     </div>
-    <b-container class="px-0">
-        <b-row class="mt-2">
-            <b-col class="col-3">
-                <b-button cols="9" id="op-mode-button" @click="open_op_modes">{{ name }}</b-button>                        
-            </b-col>
-            <b-col><frequency /></b-col>
-        </b-row>
-        <b-row class="mt-2">
-            <b-col><tuner-status /></b-col>
-            <b-col><lock-status /></b-col>
-            <b-col><pre-amp-status /></b-col>
-            <b-col><alc-status /></b-col>
-            <b-col><mode-status /></b-col>
-            <!-- <manual-mode-status /> -->
-        </b-row>
-        <controls />
-        <!-- <radio-status class="px-3" /> -->
-        <!-- <rbn /> -->
-        <!-- <config /> -->
-    </b-container>
+
+    <div class="mt-2 d-flex">
+        <b-button class="col-3" id="op-mode-button" @click="open_op_modes">{{ name }}</b-button>                        
+        <frequency class="flex-grow-1" />
+    </div>
+
+    <div class="mt-2 d-flex justify-content-between">
+        <div><tuner-status /></div>
+        <div><lock-status /></div>
+        <div><pre-amp-status /></div>
+        <div><alc-status /></div>
+        <div><mode-status /></div>
+        <!-- <manual-mode-status /> -->
+    </div>
+
+    <controls />
+
+    <!-- <radio-status class="px-3" /> -->
+    <!-- <rbn /> -->
+
     <groups />
 </template>
 

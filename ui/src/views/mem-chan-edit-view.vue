@@ -42,6 +42,8 @@
             @add-command="add_command"
             @remove-command="remove_command"
             @update-command="update_command"
+            @move-up="move_up"
+            @move-down="move_down"
             :commands="mc.commands" />
     </div>
 </template>
@@ -128,6 +130,23 @@ function update_command(command) {
         mc.value.commands[index].value = command.value;
     } else {
         console.warn('Command not found for update:', command.name);
+    }
+}
+
+function move_up(command) {
+    const index = mc.value.commands.findIndex(c => c.name === command.name);
+    if (index > 0) {
+        const temp = mc.value.commands[index - 1];
+        mc.value.commands[index - 1] = mc.value.commands[index];
+        mc.value.commands[index] = temp;
+    }
+}
+function move_down(command) {
+    const index = mc.value.commands.findIndex(c => c.name === command.name);
+    if (index < mc.value.commands.length - 1) {
+        const temp = mc.value.commands[index + 1];
+        mc.value.commands[index + 1] = mc.value.commands[index];
+        mc.value.commands[index] = temp;
     }
 }
 

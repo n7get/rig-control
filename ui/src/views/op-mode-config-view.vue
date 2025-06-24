@@ -28,14 +28,11 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { useOpModeStore } from '@/stores/op_modes';
-import { op_mode } from '@/js/op_mode.js';
 import { useRouter } from 'vue-router';
 import { send_message } from '@/js/web_socket.js';
 
 const router = useRouter();
 const open_confirm_modal = ref(false);
-const { op_modes } = useOpModeStore();
 
 function op_mode_reset() {
     open_confirm_modal.value = true;
