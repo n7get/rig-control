@@ -10,6 +10,14 @@ export const useGlobalStore = defineStore('global', () => {
 		ready.value = value
 	}
 
+	const connected = ref(false)
+	const isConnected = computed(() => {
+		return connected.value
+	})
+	const setConnected = (value) => {
+		connected.value = value
+	}
+
 	const has_error = ref(false)
 	const error_message = ref('')
 	const setError = (message) => {
@@ -46,6 +54,7 @@ export const useGlobalStore = defineStore('global', () => {
 	}
 	return {
 		ready, setReady, isReady, 
+		connected, setConnected, isConnected,
 		has_error, error_message, setError, clearError,
 		modal, updateModal, openModal, closeModal,
 	};

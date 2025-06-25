@@ -12,11 +12,11 @@
         no-close-on-esc
         no-close-on-backdrop
         ok-only
-        hide-header-close
+        no-header-close
         header-bg-variant="danger"
         header-text-variant="light"
         v-model="has_error"
-        titele="Error!!"
+        title="Error!!"
     >
         <div>{{ error_message }}</div>
     </b-modal>
@@ -28,7 +28,7 @@
         no-close-on-esc
         no-close-on-backdrop
         ok-only
-        hide-header-close
+        no-header-close
         header-bg-variant="danger"
         header-text-variant="light"
     >
@@ -39,16 +39,42 @@
     </b-modal> -->
   </div> 
 </div>
+
+<b-modal
+      id="not-connected"
+      no-close-on-esc
+      no-close-on-backdrop
+      ok-title="Connect"
+      ok-only
+      @ok="connect"
+      no-header-close
+      header-bg-variant="danger"
+      header-text-variant="light"
+      v-model="not_connected"
+      title="Not Connected"
+  >
+      <div class="fs-4">
+        Connection to the controller has been lost.
+        Tap <b>Connect</b> to attempt to reconnect.
+      </div>
+  </b-modal>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import { useGlobalStore } from '@/stores/global';
+import { connect_ws } from '@/js/web_socket.js';
 
 const has_error = computed(() => useGlobalStore().has_error);
 const error_message = computed(() => useGlobalStore().error_message);
+const not_connected = computed(() => !useGlobalStore().isConnected);
+
 const close_error = (e) => {
     useGlobalStore().clearError();
+}
+
+function connect() {
+    connect_ws();
 }
 </script>
 

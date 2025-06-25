@@ -11,16 +11,19 @@ import { useOpModeStore } from '@/stores/op_modes';
 let socket = null;
 const promisees = {};
 
-function connect_ws(ws_url, try_dev = false) {
+function connect_ws(ws_url = 'ws://' + window.location.hostname + ':8080', try_dev = true) {
     socket = new WebSocket(ws_url);
     
     socket.onopen = () => {
         console.log('WebSocket connected');
+        useGlobalStore().setConnected(true);
         send_message({ topic: 'op_mode', event: 'refresh' });
     };
 
     socket.onclose = () => {
         console.log('WebSocket disconnected');
+        useGlobalStore().setReady(false);
+        useGlobalStore().setConnected(false);
     };
 
     socket.onerror = (error) => {
@@ -28,7 +31,7 @@ function connect_ws(ws_url, try_dev = false) {
 
         if (try_dev) {
             console.log('origin URL failed, try development URL: ', dev_url);
-            connect_ws(dev_url);
+            connect_ws(dev_url, false);
             return;
         }
 

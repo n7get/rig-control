@@ -13,8 +13,6 @@ app.use(createPinia())
 app.use(createBootstrap())
 app.use(router)
 
-
-const  ws_url = 'ws://' + window.location.hostname + ':8080';
-connect_ws(ws_url, true);
+connect_ws();
 
 app.mount('#app')
