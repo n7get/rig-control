@@ -112,12 +112,12 @@ void ui_handle_json(cJSON *json_obj) {
         char *value = valueValue->valuestring;
 
         if (strcmp(event, "command") == 0) {
-            rm_queue_command(value, SEND_TYPE_COMMAND);
+            rm_queue_command(value, SEND_TYPE_COMMAND, SEND_PRIORITY_DEFAULT);
             return;
         }
 
         if (strcmp(event, "read") == 0) {
-            rm_queue_command(value, SEND_TYPE_READ);
+            rm_queue_command(value, SEND_TYPE_READ, SEND_PRIORITY_DEFAULT);
             return;
         }
 

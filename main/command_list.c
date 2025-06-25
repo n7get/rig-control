@@ -90,16 +90,19 @@ void command_list_merge(linked_list_t *list1, linked_list_t *list2) {
 }
 
 static int node_order(const char *cmd) {
+    if (rc_is_freq_command(cmd)) {
+        return 1;
+    }
     if (rc_is_mode_command(cmd)) {
-        return -3;
+        return 2;
     }
     if (rc_is_narrow_command(cmd)) {
-        return -2;
+        return 3;
     }
     if (rc_is_width_command(cmd)) {
-        return -1;
+        return 4;
     }
-    return 0;
+    return 10;
 }
 
 static int node_order_compare(const void *a, const void *b) {

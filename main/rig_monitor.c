@@ -307,9 +307,15 @@ void rig_monitor_remove_observers(observer_callback_t callback) {
     remove_observer(status_subject, callback);
 }
 
-static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t type) {
+static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t type, int priority) {
     event->type = RM_EVENT_SEND;
-    event->priority = type != SEND_TYPE_POLL ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
+
+    if (priority == SEND_PRIORITY_DEFAULT) {
+        event->priority = type != SEND_TYPE_POLL ? SEND_PRIORITY_HIGH : SEND_PRIORITY_NORMAL;
+    } else {
+        event->priority = priority;
+    }
+
     esp_err_t err = rc_setup_command(&event->command, cmd_str, type);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to setup command: %s", cmd_str);
@@ -320,10 +326,10 @@ static esp_err_t setup_event(rm_event_t *event, const char *cmd_str, send_type_t
 }
 
 
-esp_err_t rm_queue_command(const char *cmd_str, send_type_t type) {
+esp_err_t rm_queue_command(const char *cmd_str, send_type_t type, int priority) {
     rm_event_t *event = calloc(1, sizeof(rm_event_t));
 
-    esp_err_t err = setup_event(event, cmd_str, type);
+    esp_err_t err = setup_event(event, cmd_str, type, priority);
     if (err != ESP_OK) {
         return err;
     }
@@ -401,7 +407,7 @@ void init_rig_monitor() {
     updates_subject = new_subject();
     status_subject = new_subject();
 
-    rm_event_queue = xQueueCreate(10, sizeof(rm_event_t *));
+    rm_event_queue = xQueueCreate(50, sizeof(rm_event_t *));
     if (rm_event_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create rig monitor event queue");
         return;

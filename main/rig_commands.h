@@ -129,9 +129,11 @@ esp_err_t rc_setup_command(command_t *command, const char *cmd_str, send_type_t 
 
 bool rc_commands_are_same(const char *cmd1, const char *cmd2);
 uint32_t rc_parse_frequency(const char *value);
+bool rc_is_freq_command(const char *value);
 bool rc_is_mode_command(const char *value);
 bool rc_is_narrow_command(const char *value);
 bool rc_is_width_command(const char *value);
+bool rc_is_transmit_command(const char *value);
 char *rc_freq_command();
 bool rc_needs_update(const char *value);
 char *rc_make_freq_command(uint32_t frequency);

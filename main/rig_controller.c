@@ -23,7 +23,6 @@ typedef enum {
     RT_SET_OP_MODE_BY_NAME,
     RT_DISABLE_FREQUENCY_UPDATE,
     RT_ENABLE_FREQUENCY_UPDATE,
-    RT_NEXT_COMMAND,
     RT_TRANSMIT,
     RT_READY,
     RT_NOT_READY,
@@ -40,9 +39,7 @@ typedef struct {
 static QueueHandle_t rt_event_queue;
 static bool transmit = false;
 static uint32_t current_frequency = 999999999;
-static linked_list_t *commands_list = NULL;
 static char current_op_mode[MAX_OP_MODE_NAME_LEN + 1] = {0};
-static char last_command[SEND_BUFFER_SIZE] = {0};
 static char current_mem_chan[MAX_MEM_CHAN_NAME_LEN + 1] = {0};
 
 #define TAG "RIG_CONTROLLER"
@@ -151,76 +148,44 @@ static void send_current_op_mode() {
     cJSON_Delete(json);
 }
 
-static void send_next_command() {
-    if (linked_list_size(commands_list) == 0) {
-        ESP_LOGI(TAG, "No commands left for current op mode");
-        return;
-    }
-
-    char *cmd = linked_list_pop(commands_list);
-
-    if (cmd == NULL) {
-        ESP_LOGW(TAG, "No command found in current op mode");
-        return;
-    }
-
-    if (strcmp(cmd, "RT_ENABLE_FREQUENCY_UPDATE") == 0) {
-        queue_event(RT_ENABLE_FREQUENCY_UPDATE);
-        safe_free(cmd);
-        return;
-    }
-
-    if (!rc_needs_update(cmd)) {
-        safe_free(cmd);
-        send_next_command();
-        return;
-    }
-
-    ESP_LOGI(TAG, "Send next command: %s", cmd);
-    if (rm_queue_command(cmd, SEND_TYPE_COMMAND) != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to queue command: %s", cmd);
-        linked_list_push(commands_list, cmd);
-        return;
-    }
-    strcpy(last_command, cmd);
-    safe_free(cmd);
-}
-
-static void set_command_list(linked_list_t *list) {
-    bool was_active = linked_list_size(commands_list) != 0;
-    linked_list_destroy(commands_list, safe_free);
-
-    commands_list = list;
-
-    if (was_active) {
-        ESP_LOGI(TAG, "sending next commands were already active");
-    } else {
-        send_next_command();
-    }
-}
-
-static void set_current_op_mode(const char *name, linked_list_t *list) {
+static void set_current_op_mode(const char *name) {
     if (name == NULL) {
         ESP_LOGE(TAG, "Cannot set current op mode to NULL");
         return;
     }
 
-    if (strcmp(current_op_mode, name) == 0) {
-        ESP_LOGI(TAG, "Current op mode is already set to: %s", current_op_mode);
-        return;
+    if (strcmp(current_op_mode, name) != 0) {
+        ESP_LOGI(TAG, "Setting op mode to: %s", name);
+        strcpy(current_op_mode, name);
+        send_current_op_mode();
     }
+}
 
-    ESP_LOGI(TAG, "Setting op mode to: %s", name);
-    strcpy(current_op_mode, name);
-
-    send_current_op_mode();
-
+static void queue_commands(linked_list_t *list) {
     if (linked_list_size(list) == 0) {
-        ESP_LOGI(TAG, "No commands found for op mode: %s", name);
+        ESP_LOGI(TAG, "No commands for op mode");
+        linked_list_destroy(list, safe_free);
         return;
     }
 
-    set_command_list(list);
+    command_list_sort(list);
+
+    for(char *cmd = (char *)linked_list_pop(list); cmd != NULL; cmd = (char *)linked_list_pop(list)) {
+        if (!rc_needs_update(cmd)) {
+            safe_free(cmd);
+            continue;
+        }
+
+        ESP_LOGI(TAG, "Send command: %s", cmd);
+        if (rm_queue_command(cmd, SEND_TYPE_COMMAND, SEND_PRIORITY_NORMAL) != ESP_OK) {
+            ESP_LOGE(TAG, "Send queue full: %s", cmd);
+            linked_list_destroy(list, safe_free);
+            return;
+        }
+    }
+
+    ESP_LOGI(TAG, "All commands queued successfully");
+    linked_list_destroy(list, safe_free);
 }
 
 static void send_current_mem_chan() {
@@ -311,16 +276,13 @@ static void handle_set_mem_chan_by_name(const char *mc_name) {
     // Push a frequency command at the beginning of the list
     // and a marker command to enable frequency updates at the end
 
-    command_list_sort(om_list);
     char *freq_cmd = rc_make_freq_command(chan->frequency);
     linked_list_shift(om_list, freq_cmd);
     current_frequency = chan->frequency;
     ESP_LOGI(TAG, "Setting current frequency to: %lu", current_frequency);
 
-    char *enable_freq_update = strdup("RT_ENABLE_FREQUENCY_UPDATE");
-    linked_list_push(om_list, enable_freq_update);
-
-    set_current_op_mode(om_name, om_list);
+    set_current_op_mode(om_name);
+    queue_commands(om_list);
 
     strncpy(current_mem_chan, mc_name, MAX_MEM_CHAN_NAME_LEN);
     send_current_mem_chan();
@@ -344,8 +306,9 @@ static void handle_set_op_mode_by_frequency() {
         return;
     }
 
-    command_list_sort(list);
-    set_current_op_mode(name, list);
+    set_current_op_mode(name);
+    queue_commands(list);
+
     safe_free(name);
 }
 
@@ -361,8 +324,8 @@ static void handle_set_op_mode_by_name(const char *name) {
         return;
     }
 
-    command_list_sort(list);
-    set_current_op_mode(name, list);
+    set_current_op_mode(name);
+    queue_commands(list);
 }
 
 static void handle_send_refresh() {
@@ -390,12 +353,7 @@ static void handle_frequency_change(uint32_t frequency, bool op_mode_disabled) {
     }
 }
 
-static void handle_next_command() {
-    last_command[0] = '\0';
-    send_next_command();
-}
-
-static void op_mode_task(void *pvParameters) {
+static void event_task(void *pvParameters) {
     bool is_ready = false;
     bool disable_frequency_update = false;
     info_t *info = get_info();
@@ -438,9 +396,6 @@ static void op_mode_task(void *pvParameters) {
             case RT_ENABLE_FREQUENCY_UPDATE:
                 disable_frequency_update = false;
                 break;
-            case RT_NEXT_COMMAND:
-                handle_next_command();
-                break;
             case RT_TRANSMIT:
                 handle_transmit(rt_event->transmit_enabled);
                 break;
@@ -464,7 +419,7 @@ static void status_notification_handler(void *context, void *data) {
     if (strcmp((char *)data, "ready") == 0) {
         queue_event(RT_READY);
 
-        if (rm_queue_command(rc_freq_command(), SEND_TYPE_READ) != ESP_OK) {
+        if (rm_queue_command(rc_freq_command(), SEND_TYPE_READ, SEND_PRIORITY_DEFAULT) != ESP_OK) {
             ESP_LOGE(TAG, "Failed to queue get frequency command");
             return;
         }
@@ -523,9 +478,10 @@ void rt_recv_from_ui(cJSON *json_obj) {
 }
 
 static void command_notification_handler(void *context, void *data) {
-    ESP_LOGI(TAG, "Received command: %s", (char *)data);
-    if (rc_commands_are_same(last_command, data)) {
-        queue_event(RT_NEXT_COMMAND);
+    // ESP_LOGI(TAG, "Received command: %s", (char *)data);
+    if (rc_is_mode_command((const char *)data)) {
+        queue_event(RT_ENABLE_FREQUENCY_UPDATE);
+        return;
     }
 
     uint32_t freq = rc_parse_frequency((const char *)data);
@@ -535,6 +491,11 @@ static void command_notification_handler(void *context, void *data) {
 }
 
 static void update_notification_handler(void *context, void *data) {
+    if (rc_is_mode_command((const char *)data)) {
+        queue_event(RT_ENABLE_FREQUENCY_UPDATE);
+        return;
+    }
+
     uint32_t freq = rc_parse_frequency((const char *)data);
     if (freq != 0) {
         queue_frequency_change(freq, false);
@@ -564,12 +525,6 @@ void rt_find_op_node_by_freq(void) {
 }
 
 void init_rig_controller(void) {
-    commands_list = linked_list_create();
-    if (commands_list == NULL) {
-        ESP_LOGE(TAG, "Failed to create linked list for op mode commands");
-        return;
-    }
-
     rt_event_queue = xQueueCreate(10, sizeof(rt_event_t *));
     if (rt_event_queue == NULL) {
         ESP_LOGE(TAG, "Failed to create op mode event queue");
@@ -577,7 +532,7 @@ void init_rig_controller(void) {
     }
 
     // create a task to process the op mode events
-    if (xTaskCreate(op_mode_task, "op_mode_task", 4096, NULL, 5, NULL) != pdPASS) {
+    if (xTaskCreate(event_task, "event_task", 4096, NULL, 5, NULL) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create rig monitor task");
         return;
     }

@@ -687,6 +687,9 @@ uint32_t rc_parse_frequency(const char *value) {
     }
     return 0;
 }
+bool rc_is_freq_command(const char *value) {
+    return (value[0] == 'F' && value[1] == 'A') || (value[0] == 'I' && value[1] == 'F');
+}
 bool rc_is_mode_command(const char *value) {
     return (value[0] == 'M' && value[1] == 'D');
 }
@@ -695,6 +698,9 @@ bool rc_is_narrow_command(const char *value) {
 }
 bool rc_is_width_command(const char *value) {
     return (value[0] == 'S' && value[1] == 'H');
+}
+bool rc_is_transmit_command(const char *value) {
+    return (value[0] == 'T' && value[1] == 'X');
 }
 
 char *rc_make_freq_command(uint32_t frequency) {
