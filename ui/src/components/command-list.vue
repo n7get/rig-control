@@ -22,6 +22,7 @@
                         <div v-if="show_order" :class="{'hide': !is_last(index)}">
                             <icon-down-arrow @click="move_down(rp)" />
                         </div>
+                        <icon-copy v-if="canCopy(rp)" @click="copy_value(rp)" />
                         <icon-trash @click="remove_command(rp.name)" />
                     </div>
                 </div>
@@ -60,6 +61,7 @@ import { computed, onMounted, ref } from 'vue';
 import iconTrash from '@/components/icons/trash.vue';
 import iconUpArrow from '@/components/icons/up-arrow.vue';
 import iconDownArrow from '@/components/icons/down-arrow.vue';
+import iconCopy from '@/components/icons/copy.vue';
 import { useRouter } from 'vue-router';
 import { useGlobalStore } from '@/stores/global';
 import { rig_property } from '@/js/rig_property.js';
@@ -144,6 +146,19 @@ const is_last = (index) => {
     const lastIndex = commands.value.length - 1;
     return index !== lastIndex;
 };
+
+function canCopy(rp) {
+    if (show_order.value) {
+        return false;
+    }
+    const rv = rig_property(rp.name);
+    console.log('canCopy', rp.name, rv.value, rp.value.value);
+    return rv.value !== rp.value.value;
+}
+function copy_value(rp) {
+    const rv = rig_property(rp.name);
+    emit('update-command', { name: rv.name, value: rv.value });
+}
 
 const open_modal = ref(false);
 function close_modal() {
