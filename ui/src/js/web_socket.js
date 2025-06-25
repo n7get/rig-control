@@ -46,12 +46,12 @@ function connect_ws(ws_url, try_dev = false) {
             case 'response':
                 promisees[message.topic].resolve(message.value);
                 delete promisees[message.topic];
-                break;
+                return;
 
             case 'error':
                 promisees[message.topic].reject(message.value);
                 delete promisees[message.topic];
-                break;
+                return;
             }
         }
         
