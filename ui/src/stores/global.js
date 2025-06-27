@@ -10,11 +10,19 @@ export const useGlobalStore = defineStore('global', () => {
 		ready.value = value
 	}
 
+	const ws_connecting = ref(false);
+	const is_ws_connecting = computed(() => {
+		return ws_connecting.value
+	})
+	const set_ws_connecting = (value) => {
+		ws_connecting.value = value
+	}
+
 	const connected = ref(false)
-	const isConnected = computed(() => {
+	const is_connected = computed(() => {
 		return connected.value
 	})
-	const setConnected = (value) => {
+	const set_connected = (value) => {
 		connected.value = value
 	}
 
@@ -54,7 +62,8 @@ export const useGlobalStore = defineStore('global', () => {
 	}
 	return {
 		ready, setReady, isReady, 
-		connected, setConnected, isConnected,
+		ws_connecting, set_ws_connecting, is_ws_connecting,
+		connected, set_connected, is_connected,
 		has_error, error_message, setError, clearError,
 		modal, updateModal, openModal, closeModal,
 	};

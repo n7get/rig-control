@@ -12,18 +12,23 @@ let socket = null;
 const promisees = {};
 
 function connect_ws(ws_url = 'ws://' + window.location.hostname + ':8080', try_dev = true) {
+    useGlobalStore().set_ws_connecting(true);
     socket = new WebSocket(ws_url);
     
     socket.onopen = () => {
         console.log('WebSocket connected');
-        useGlobalStore().setConnected(true);
+
+        useGlobalStore().set_ws_connecting(false);
+        useGlobalStore().set_connected(true);
+
         send_message({ topic: 'op_mode', event: 'refresh' });
     };
 
     socket.onclose = () => {
         console.log('WebSocket disconnected');
         useGlobalStore().setReady(false);
-        useGlobalStore().setConnected(false);
+        useGlobalStore().set_ws_connecting(false);
+        useGlobalStore().set_connected(false);
     };
 
     socket.onerror = (error) => {
@@ -34,6 +39,9 @@ function connect_ws(ws_url = 'ws://' + window.location.hostname + ':8080', try_d
             connect_ws(dev_url, false);
             return;
         }
+
+        useGlobalStore().set_ws_connecting(false);
+        useGlobalStore().set_connected(false);
 
         console.error('WebSocket error:', error);
     };
@@ -236,6 +244,10 @@ function handle_monitor(message) {
             const rp = rig_property(rs.value.no);
             rp.value = rs.value.value;
         } else if (rs.name === 'information') {
+            if (!rs.value) {
+                console.warn('No information received?:', command);
+                return;
+            }
             // console.log('information:', rs.value);
             rig_property('memory_channel').value = rs.value.memory_channel;
             rig_property('vfo_a').value = rs.value.vfo_a;
@@ -328,7 +340,7 @@ function send_command(command, value) {
     if (socket && socket.readyState === WebSocket.OPEN) {
         const rc = rig_setting.of(command, value);
 
-        send_message({ topic: 'command', event: 'command', value: rc.asSet });
+        send_message({ topic: 'monitor', event: 'command', value: rc.asSet });
     } else {
         console.warn('WebSocket is not open.');
     }

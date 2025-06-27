@@ -1,7 +1,16 @@
 <template>
 <div id="app-view" class="d-flex justify-content-center w-100">
   <div class="w-sm-100 col-12 col-md-6 col-lg-4 px-3">
-    <RouterView />
+    <RouterView v-if="!is_connecting" />
+      <div class="loading wait-wrapper d-flex justify-content-center align-items
+-center text-center pt-5" v-else>
+        <div class="spinner">
+          <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <div class="mt-5 fs-1 mx-4">Connecting to controller.</div>
+        </div>
+    </div>
     
     <settings-modal />
 
@@ -61,16 +70,22 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { useGlobalStore } from '@/stores/global';
 import { connect_ws } from '@/js/web_socket.js';
 
 const has_error = computed(() => useGlobalStore().has_error);
 const error_message = computed(() => useGlobalStore().error_message);
-const not_connected = computed(() => !useGlobalStore().isConnected);
+const not_connected = ref(false);
+
+const is_connecting = computed(() => useGlobalStore().is_ws_connecting);
+
+watchEffect(() => {
+  not_connected.value = !useGlobalStore().connected && !useGlobalStore().is_ws_connecting;
+});
 
 const close_error = (e) => {
-    useGlobalStore().clearError();
+  useGlobalStore().clearError();
 }
 
 function connect() {
