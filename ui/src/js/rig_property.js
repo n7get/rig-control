@@ -14,10 +14,6 @@ class rig_property_base {
     get name() { return this._name; }
     get desc() { return this._value.desc; }
     get value() { return this._value.value; }
-    get all() { return this._value.all; }
-    get changed() { return this._value.changed; }
-    get fav() { return this._value.fav; }
-    get saved() { return this._value.saved; }
     get unavailable() { return this._value.unavailable; }
     get suffix() { return ''; }
 
